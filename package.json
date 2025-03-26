@@ -1,0 +1,16 @@
+{
+    "name": "world-cup-2026",
+    "version": "1.0.0",
+    "description": "A simple project for displaying World Cup 2026 tables.",
+    "main": "index.html",
+    "scripts": {
+      "start": "live-server src",
+      "build": "echo 'No build step required for this project'"
+    },
+    "keywords": ["world-cup", "2026", "tables", "html", "css"],
+    "author": "Your Name",
+    "license": "MIT",
+    "devDependencies": {
+      "live-server": "^1.2.2"
+    }
+  }
