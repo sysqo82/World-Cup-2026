@@ -1,11 +1,12 @@
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: collapse; /* Ensures borders don't double up */
     margin: 20px 0;
+    border: 1px solid #000; /* Add a border around the entire table */
 }
 
 th, td {
-    border: 1px solid #000;
+    border: 1px solid #000; /* Add borders between rows and columns */
     padding: 10px;
     text-align: center;
 }
