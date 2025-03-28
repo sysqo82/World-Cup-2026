@@ -7,14 +7,25 @@ Location of the page: https://sysqo82.github.io/World-Cup-2026/
 ## Project Structure
 
 ```
-World-Cup-2026
-├── src
-│   ├── index.html        # Main HTML document
-│   ├── styles
-│   │   └── style.css     # CSS styles for the web page
-│   └── scripts
-│       └── script.js     # JavaScript for interactivity
-└── README.md             # Project documentation
+World-Cup-2026/
+├── public/                     # Static files for the project
+│   ├── index.html              # Main HTML document
+│   ├── admin.html              # Admin page for managing data
+│   ├── styles/                 # CSS files
+│   │   └── style.css           # Main stylesheet
+│   ├── scripts/                # JavaScript files
+│   │   ├── script.js           # Frontend logic for interactivity
+│   │   └── admin.js            # Admin page logic
+├── worldcup2026.db             # SQLite database file (used locally)
+├── generate-static.js          # Script to generate static HTML files
+├── database.js                 # Database helper functions
+├── server.js                   # Node.js server file (if needed)
+├── package.json                # Project metadata and dependencies
+├── .gitignore                  # Git ignore file
+├── .github/                    # GitHub Actions workflows
+│   └── workflows/
+│       └── main.yml            # Workflow for deployment
+└── README.md                   # Project documentation
 ```
 
 ## Getting Started
