@@ -6,7 +6,8 @@
   "type": "module",
   "author": "Assaf Itzikson",
   "scripts": {
-    "start": "pm2 start server.js --name world-cup-2026",
+    "start-local": "pm2 start server.js --name world-cup-2026",
+    "start": "node server.js",
     "build": "echo 'No build step required for this project'",
     "test": "echo 'No test step required for this project'"
   },
