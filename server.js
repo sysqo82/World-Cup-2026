@@ -1,11 +1,18 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3000;
 
 // Middleware
-app.use(express.static('public')); // Serve static files from the 'public' folder
+// Serve static files from the correct directory (e.g., 'docs' or 'public')
+app.use(express.static(path.join(__dirname, 'docs'))); // Change 'docs' to the correct folder name if needed
 app.use(bodyParser.json());
 
 // API to add a country
@@ -33,6 +40,12 @@ app.post('/delete-country', async (req, res) => {
     } catch (err) {
         res.status(500).send('Error deleting the country');
     }
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Unexpected error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred' });
 });
 
 // Start the server
