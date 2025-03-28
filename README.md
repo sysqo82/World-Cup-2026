@@ -2,6 +2,8 @@
 
 This project is a simple web application that displays 8 tables, each containing 4 rows and 4 columns. It is designed to showcase information related to the World Cup 2026.
 
+Location of the page: https://sysqo82.github.io/World-Cup-2026/
+
 ## Project Structure
 
 ```
