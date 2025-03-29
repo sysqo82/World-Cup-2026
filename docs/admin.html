@@ -142,25 +142,27 @@
 
         // Update team data in Firestore
         function updateTeam(groupId, teamId) {
-            const nameInput = document.getElementById(`name-${teamId}`);
-            const matchesInput = document.getElementById(`matches-${teamId}`);
+    const nameInput = document.getElementById(`name-${teamId}`);
+    const matchesInput = document.getElementById(`matches-${teamId}`);
 
-            const updatedData = {
-                Name: nameInput.value,
-                Played: parseInt(matchesInput.value, 10)
-            };
+    const updatedData = {
+        Name: nameInput.value,
+        Played: parseInt(matchesInput.value, 10)
+    };
 
-            db.collection('groups').doc(groupId).update({
-                [`teams.${teamId}`]: updatedData
-            })
-            .then(() => {
-                alert('Team updated successfully!');
-            })
-            .catch(err => {
-                console.error('Error updating team:', err);
-                alert('Failed to update team. Please try again.');
-            });
-        }
+    // Use Firestore's update method to update only the specified fields
+    db.collection('groups').doc(groupId).update({
+        [`teams.${teamId}.Name`]: updatedData.Name,
+        [`teams.${teamId}.Played`]: updatedData.Played
+    })
+    .then(() => {
+        alert('Team updated successfully!');
+    })
+    .catch(err => {
+        console.error('Error updating team:', err);
+        alert('Failed to update team. Please try again.');
+    });
+}
     </script>
 </body>
 </html>
