@@ -12,6 +12,9 @@
 <body>
     <h1>Admin Page - World Cup 2026</h1>
 
+    <!-- Logout Button -->
+    <button id="logout-button" style="display: none;">Logout</button>
+
     <!-- Authentication Form -->
     <div id="auth-container">
         <label for="email">Email:</label>
@@ -55,6 +58,28 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Check authentication state on page load
+        auth.onAuthStateChanged(user => {
+            const logoutButton = document.getElementById('logout-button');
+            const authContainer = document.getElementById('auth-container');
+            const adminContent = document.getElementById('admin-content');
+
+            if (user) {
+                // User is logged in
+                authContainer.style.display = 'none';
+                adminContent.style.display = 'block';
+                logoutButton.style.display = 'block';
+
+                // Fetch groups
+                fetchGroups();
+            } else {
+                // User is not logged in
+                authContainer.style.display = 'block';
+                adminContent.style.display = 'none';
+                logoutButton.style.display = 'none';
+            }
+        });
+
         // Handle login
         document.getElementById('login-button').addEventListener('click', () => {
             const email = document.getElementById('email').value;
@@ -65,6 +90,7 @@
                     // Hide authentication form and show admin content
                     document.getElementById('auth-container').style.display = 'none';
                     document.getElementById('admin-content').style.display = 'block';
+                    document.getElementById('logout-button').style.display = 'block';
 
                     // Fetch groups
                     fetchGroups();
@@ -72,6 +98,18 @@
                 .catch(err => {
                     console.error('Error during login:', err);
                     document.getElementById('auth-error').style.display = 'block';
+                });
+        });
+
+        // Handle logout
+        document.getElementById('logout-button').addEventListener('click', () => {
+            auth.signOut()
+                .then(() => {
+                    location.reload(); // Reload the page to show the login form
+                })
+                .catch(err => {
+                    console.error('Error during logout:', err);
+                    alert('Failed to log out. Please try again.');
                 });
         });
 
@@ -121,48 +159,58 @@
             teamsContainer.innerHTML = ''; // Clear previous teams
 
             if (group.teams && typeof group.teams === 'object') {
-                Object.entries(group.teams).forEach(([teamId, team]) => {
+                // Convert teams object to an array and sort by points (descending)
+                const sortedTeams = Object.entries(group.teams).sort(([, a], [, b]) => (b.points || 0) - (a.points || 0));
+
+                // Iterate through sorted teams
+                sortedTeams.forEach(([teamId, team], index) => {
                     const teamDiv = document.createElement('div');
                     teamDiv.style.marginBottom = '20px';
 
+                    // Use the correct field name for the country name
                     teamDiv.innerHTML = `
-                        <label>Team Name:</label>
-                        <input type="text" id="name-${teamId}" value="${team.Name || ''}" style="margin-right: 10px;">
-                        <label>Matches Played:</label>
-                        <input type="number" id="matches-${teamId}" value="${team.Played || 0}" style="margin-right: 10px;">
+                        <label>Rank ${index + 1}:</label>
+                        <input type="text" id="name-${teamId}" value="${team.name || 'Unknown'}" style="margin-right: 10px;">
+                        <label>Games Played:</label>
+                        <input type="number" id="played-${teamId}" value="${team.played || 0}" style="margin-right: 10px;">
                         <button onclick="updateTeam('${group.id}', '${teamId}')">Update</button>
                     `;
 
                     teamsContainer.appendChild(teamDiv);
                 });
             } else {
+                console.warn(`No teams found for group: ${group.name}`);
                 teamsContainer.innerHTML = '<p>No teams found for this group.</p>';
             }
         }
 
-        // Update team data in Firestore
+        // Function to update the team data in Firestore
         function updateTeam(groupId, teamId) {
-    const nameInput = document.getElementById(`name-${teamId}`);
-    const matchesInput = document.getElementById(`matches-${teamId}`);
+            const nameInput = document.getElementById(`name-${teamId}`);
+            const playedInput = document.getElementById(`played-${teamId}`);
 
-    const updatedData = {
-        Name: nameInput.value,
-        Played: parseInt(matchesInput.value, 10)
-    };
+            // Ensure the input elements exist
+            if (!nameInput || !playedInput) {
+                console.error(`Input fields for teamId ${teamId} not found.`);
+                alert('Failed to update team. Please try again.');
+                return;
+            }
 
-    // Use Firestore's update method to update only the specified fields
-    db.collection('groups').doc(groupId).update({
-        [`teams.${teamId}.Name`]: updatedData.Name,
-        [`teams.${teamId}.Played`]: updatedData.Played
-    })
-    .then(() => {
-        alert('Team updated successfully!');
-    })
-    .catch(err => {
-        console.error('Error updating team:', err);
-        alert('Failed to update team. Please try again.');
-    });
-}
+            const updatedData = {
+                name: nameInput.value,
+                played: parseInt(playedInput.value, 10)
+            };
+
+            // Use Firestore's update method to update only the specified fields
+            db.collection('groups').doc(groupId).update({
+                [`teams.${teamId}.name`]: updatedData.name,
+                [`teams.${teamId}.played`]: updatedData.played
+            })
+            .catch(err => {
+                console.error('Error updating team:', err);
+                alert('Failed to update team. Please try again.');
+            });
+        }
     </script>
 </body>
 </html>

@@ -30,115 +30,113 @@
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Fetch and display groups and teams
-        function fetchCountries() {
-            db.collection('groups').get()
-                .then(groupsSnapshot => {
-                    const groups = groupsSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
+        // Real-time listener for groups and teams
+        db.collection('groups').onSnapshot(snapshot => {
+            const groups = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
 
-                    createTables(groups);
-                    populateTables(groups);
-                })
-                .catch(err => {
-                    console.error('Error fetching groups:', err);
-                });
-        }
+            createTables(groups);
+            populateTables(groups);
+        }, err => {
+            console.error('Error fetching groups:', err);
+        });
 
         function createTables(groups) {
-        const container = document.getElementById('tables-container');
-        container.innerHTML = ''; // Clear any existing tables
+            const container = document.getElementById('tables-container');
+            container.innerHTML = ''; // Clear any existing tables
 
-        groups.forEach(group => {
-            if (!group.name) {
-                console.warn(`Group with ID ${group.id} is missing the 'name' field.`);
-                return; // Skip this group
-            }
+            groups.forEach(group => {
+                if (!group.name) {
+                    console.warn(`Group with ID ${group.id} is missing the 'name' field.`);
+                    return; // Skip this group
+                }
 
-        // Create a table for each group
-        const groupDiv = document.createElement('div');
-        groupDiv.innerHTML = `
-            <h2>${group.name}</h2>
-            <table id="${group.name.replace(' ', '-')}-table">
-                <tr>
-                    <th>Rank</th>
-                    <th>Country</th>
-                    <th>Played</th>
-                    <th>W</th>
-                    <th>D</th>
-                    <th>L</th>
-                    <th>Agg</th>
-                    <th>Points</th>
-                </tr>
-            </table>
-        `;
-        container.appendChild(groupDiv);
-    });
-}
-
-function populateTables(groups) {
-    groups.forEach(group => {
-        // Sanitize the group name to match the table ID
-        const tableId = group.name.replace(/[^a-zA-Z0-9_-]/g, '-'); // Replace spaces and special characters with '-'
-        const table = document.querySelector(`#${tableId}-table`);
-
-        if (table) {
-            // Check if the teams field exists and is an object
-            if (group.teams && typeof group.teams === 'object') {
-
-                // Convert teams object to an array and sort by points (descending)
-                const sortedTeams = Object.values(group.teams).sort((a, b) => (b.points || 0) - (a.points || 0));
-
-                // Iterate through sorted teams
-                sortedTeams.forEach((team, index) => {
-
-                    const row = table.insertRow(); // Create a new row for each team
-
-                    // Add Rank column
-                    const cellRank = row.insertCell(0);
-                    cellRank.textContent = index + 1; // Rank is based on the sorted order
-
-                    // Add Country column
-                    const cellCountry = row.insertCell(1);
-                    cellCountry.innerHTML = `<strong>${team.Name || team.name || 'Unknown'}</strong>`; // Check for both 'Name' and 'name'
-
-                    // Add Played column
-                    const cellPlayed = row.insertCell(2);
-                    cellPlayed.textContent = team.Played || 0;
-
-                    // Add W column
-                    const cellW = row.insertCell(3);
-                    cellW.textContent = team.W || 0;
-
-                    // Add D column
-                    const cellD = row.insertCell(4);
-                    cellD.textContent = team.D || 0;
-
-                    // Add L column
-                    const cellL = row.insertCell(5);
-                    cellL.textContent = team.L || 0;
-
-                    // Add Agg column (Goals Scored - Goals Received)
-                    const cellAgg = row.insertCell(6);
-                    const goalsScored = team.GoalsScored || 0;
-                    const goalsReceived = team.GoalsReceived || 0;
-                    cellAgg.textContent = `${goalsScored}-${goalsReceived}`;
-
-                    // Display Points
-                    const cellPoints = row.insertCell(7);
-                    cellPoints.textContent = team.points || 0; // Access the 'points' field
-                });
-            } else {
-                console.warn(`No teams found for group: ${group.name}`);
-            }
-        } else {
-            console.error(`Table for group ${group.name} not found. Ensure the table ID matches the group name.`);
+                // Create a table for each group
+                const groupDiv = document.createElement('div');
+                groupDiv.innerHTML = `
+                    <h2>${group.name}</h2>
+                    <table id="${group.name.replace(/[^a-zA-Z0-9_-]/g, '-')}-table">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Country</th>
+                            <th>Played</th>
+                            <th>W</th>
+                            <th>D</th>
+                            <th>L</th>
+                            <th>Agg</th>
+                            <th>Points</th>
+                        </tr>
+                    </table>
+                `;
+                container.appendChild(groupDiv);
+            });
         }
-    });
-}        
-document.addEventListener('DOMContentLoaded', fetchCountries);
+
+        function populateTables(groups) {
+            groups.forEach(group => {
+                // Sanitize the group name to match the table ID
+                const tableId = group.name.replace(/[^a-zA-Z0-9_-]/g, '-'); // Replace spaces and special characters with '-'
+                const table = document.querySelector(`#${tableId}-table`);
+
+                if (table) {
+                    // Clear existing rows (except the header row)
+                    while (table.rows.length > 1) {
+                        table.deleteRow(1);
+                    }
+
+                    // Check if the teams field exists and is an object
+                    if (group.teams && typeof group.teams === 'object') {
+                        // Convert teams object to an array and sort by points (descending)
+                        const sortedTeams = Object.values(group.teams).sort((a, b) => (b.points || 0) - (a.points || 0));
+
+                        // Iterate through sorted teams
+                        sortedTeams.forEach((team, index) => {
+                            const row = table.insertRow(); // Create a new row for each team
+
+                            // Add Rank column
+                            const cellRank = row.insertCell(0);
+                            cellRank.textContent = index + 1; // Rank is based on the sorted order
+
+                            // Add Country column
+                            const cellCountry = row.insertCell(1);
+                            cellCountry.innerHTML = `<strong>${team.Name || team.name || 'Unknown'}</strong>`; // Check for both 'Name' and 'name'
+
+                            // Add Played column
+                            const cellPlayed = row.insertCell(2);
+                            cellPlayed.textContent = team.Played || 0;
+
+                            // Add W column
+                            const cellW = row.insertCell(3);
+                            cellW.textContent = team.W || 0;
+
+                            // Add D column
+                            const cellD = row.insertCell(4);
+                            cellD.textContent = team.D || 0;
+
+                            // Add L column
+                            const cellL = row.insertCell(5);
+                            cellL.textContent = team.L || 0;
+
+                            // Add Agg column (Goals Scored - Goals Received)
+                            const cellAgg = row.insertCell(6);
+                            const goalsScored = team.GoalsScored || 0;
+                            const goalsReceived = team.GoalsReceived || 0;
+                            cellAgg.textContent = `${goalsScored}-${goalsReceived}`;
+
+                            // Display Points
+                            const cellPoints = row.insertCell(7);
+                            cellPoints.textContent = team.points || 0; // Access the 'points' field
+                        });
+                    } else {
+                        console.warn(`No teams found for group: ${group.name}`);
+                    }
+                } else {
+                    console.error(`Table for group ${group.name} not found. Ensure the table ID matches the group name.`);
+                }
+            });
+        }
     </script>
 </body>
 </html>

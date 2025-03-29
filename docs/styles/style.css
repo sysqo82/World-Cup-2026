@@ -68,7 +68,7 @@ h1 {
 }
 
 #auth-container input {
-    width: 100%;
+    width: calc(100% - 20px);
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #ccc;
@@ -153,4 +153,21 @@ h1 {
 
 #teams-container button:hover {
     background-color: #218838;
+}
+/* Logout button styling */
+#logout-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#logout-button:hover {
+    background-color: #e60000;
 }
