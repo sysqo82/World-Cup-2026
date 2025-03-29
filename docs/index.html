@@ -87,14 +87,12 @@ function populateTables(groups) {
         if (table) {
             // Check if the teams field exists and is an object
             if (group.teams && typeof group.teams === 'object') {
-                console.log(`Populating table for group: ${group.name}`, group.teams); // Debugging: Log the teams data
 
                 // Convert teams object to an array and sort by points (descending)
                 const sortedTeams = Object.values(group.teams).sort((a, b) => (b.points || 0) - (a.points || 0));
 
                 // Iterate through sorted teams
                 sortedTeams.forEach((team, index) => {
-                    console.log('Team data:', team); // Debugging: Log each team's data
 
                     const row = table.insertRow(); // Create a new row for each team
 
