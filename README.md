@@ -1,59 +1,38 @@
-# World Cup 2026 Project
+# World Cup 2026 Admin Panel
 
-This project is a simple web application that displays 8 tables, each containing 4 rows and 4 columns. It is designed to showcase information related to the World Cup 2026.
+This project is a web-based admin panel for managing and displaying data for the World Cup 2026. It allows administrators to log in, manage team data, and display group standings dynamically.
 
-Location of the page: https://sysqo82.github.io/World-Cup-2026/
+---
 
-## Project Structure
+## **Features**
 
-```
-World-Cup-2026/
-├── public/                     # Static files for the project
-│   ├── index.html              # Main HTML document
-│   ├── admin.html              # Admin page for managing data
-│   ├── styles/                 # CSS files
-│   │   └── style.css           # Main stylesheet
-│   ├── scripts/                # JavaScript files
-│   │   ├── script.js           # Frontend logic for interactivity
-│   │   └── admin.js            # Admin page logic
-├── worldcup2026.db             # SQLite database file (used locally)
-├── generate-static.js          # Script to generate static HTML files
-├── database.js                 # Database helper functions
-├── server.js                   # Node.js server file (if needed)
-├── package.json                # Project metadata and dependencies
-├── .gitignore                  # Git ignore file
-├── .github/                    # GitHub Actions workflows
-│   └── workflows/
-│       └── main.yml            # Workflow for deployment
-└── README.md                   # Project documentation
-```
+### **Admin Page**
+- **Authentication**: Admins can log in using their email and password.
+- **Group Management**:
+  - View and select groups from a dropdown.
+  - Display teams within a selected group.
+  - Update team details such as name and matches played.
+- **Firestore Integration**:
+  - Data is fetched and updated dynamically from Firestore.
 
-## Getting Started
+### **Public Page**
+- **Dynamic Group Tables**:
+  - Displays group standings with the following columns:
+    - Rank
+    - Country
+    - Played
+    - Wins (W)
+    - Draws (D)
+    - Losses (L)
+    - Aggregate (Agg: Goals Scored - Goals Received)
+    - Points
+  - Teams are sorted by points in descending order.
 
-To set up and run the project, follow these steps:
+---
 
-1. **Clone the repository**:
-   ```
-   git clone <repository-url>
-   ```
+## **Setup Instructions**
 
-2. **Navigate to the project directory**:
-   ```
-   cd World-Cup-2026
-   ```
-
-3. **Open the `index.html` file** in your web browser to view the project.
-
-## Features
-
-- Displays 8 tables with 4 rows and 4 columns each.
-- Custom styles applied for a visually appealing layout.
-- JavaScript functionality for potential interactivity.
-
-## Contributing
-
-If you would like to contribute to this project, please fork the repository and submit a pull request with your changes.
-
-## License
-
-This project is open-source and available under the MIT License.
+### **1. Clone the Repository**
+```bash
+git clone <repository-url>
+cd World-Cup-2026
