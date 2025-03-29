@@ -4,31 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - World Cup 2026</title>
-    <link rel="stylesheet" href="styles/style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
-    <h1>Admin Page - Add Countries</h1>
-    <form id="admin-form">
+    <h1>Admin Panel</h1>
+    <form id="login-form">
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" required>
+        <button type="submit">Login</button>
+    </form>
+
+    <form id="add-country-form" style="display: none;">
         <label for="country-name">Country Name:</label>
-        <input type="text" id="country-name" name="country-name" required>
-        
-        <label for="group-select">Select Group:</label>
-        <select id="group-select" name="group-select" required>
-            <option value="Group A">Group A</option>
-            <option value="Group B">Group B</option>
-            <option value="Group C">Group C</option>
-            <option value="Group D">Group D</option>
-            <option value="Group E">Group E</option>
-            <option value="Group F">Group F</option>
-            <option value="Group G">Group G</option>
-            <option value="Group H">Group H</option>
-        </select>
-        
+        <input type="text" id="country-name" required>
+        <label for="group-name">Group:</label>
+        <input type="text" id="group-name" required>
         <button type="submit">Add Country</button>
     </form>
 
-    <div id="message" style="margin-top: 20px; color: green;"></div>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxdeTLscpv1RK8W7SabyJJckYiBjLQRvM",
+            authDomain: "world-cup-2026-b1fda.firebaseapp.com",
+            projectId: "world-cup-2026-b1fda",
+            storageBucket: "world-cup-2026-b1fda.firebasestorage.app",
+            messagingSenderId: "355932893733",
+            appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
+            measurementId: "G-6QWWJLC2LM"
+        };
 
-    <script src="scripts/admin.js"></script>
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Handle login
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                alert('Login successful!');
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('add-country-form').style.display = 'block';
+            } catch (err) {
+                console.error('Error logging in:', err);
+                alert('Login failed. Check the console for details.');
+            }
+        });
+
+        // Add country to Firestore
+        document.getElementById('add-country-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('country-name').value;
+            const group = document.getElementById('group-name').value;
+
+            try {
+                await db.collection('countries').add({ name, group });
+                alert(`Country ${name} added to group ${group}`);
+                document.getElementById('add-country-form').reset();
+            } catch (err) {
+                console.error('Error adding country:', err);
+                alert('Failed to add country. Check the console for details.');
+            }
+        });
+    </script>
 </body>
 </html>

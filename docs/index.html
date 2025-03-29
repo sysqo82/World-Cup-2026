@@ -4,69 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>World Cup 2026</title>
-    <link rel="stylesheet" href="styles/style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <h1>World Cup 2026</h1>
-    <div class="tables-container">
-        <div>
-            <h2>Group A</h2>
-            <table>
-                <tr>
-                    <th>Country</th>
-                    <th>Games</th>
-                    <th>W</th>
-                    <th>D</th>
-                    <th>L</th>
-                    <th>Points</th>
-                </tr>
-                <tr>
-                    <td>Brazil</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                </tr>
-                <tr>
-                    <td>Argentina</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                </tr>
-            </table>
-        </div>
-        <div>
-            <h2>Group B</h2>
-            <table>
-                <tr>
-                    <th>Country</th>
-                    <th>Games</th>
-                    <th>W</th>
-                    <th>D</th>
-                    <th>L</th>
-                    <th>Points</th>
-                </tr>
-                <tr>
-                    <td>France</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                </tr>
-                <tr>
-                    <td>Germany</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                    <td>0</td>
-                </tr>
-            </table>
-        </div>
+    <div class="tables-container" id="tables-container">
+        <!-- Tables will be dynamically created here -->
     </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxdeTLscpv1RK8W7SabyJJckYiBjLQRvM",
+            authDomain: "world-cup-2026-b1fda.firebaseapp.com",
+            projectId: "world-cup-2026-b1fda",
+            storageBucket: "world-cup-2026-b1fda.firebasestorage.app",
+            messagingSenderId: "355932893733",
+            appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
+            measurementId: "G-6QWWJLC2LM"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Fetch and display groups and teams
+        function fetchCountries() {
+            db.collection('groups').get()
+                .then(groupsSnapshot => {
+                    const groups = groupsSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+
+                    createTables(groups);
+                    populateTables(groups);
+                })
+                .catch(err => {
+                    console.error('Error fetching groups:', err);
+                });
+        }
+
+        function createTables(groups) {
+            const container = document.getElementById('tables-container');
+            container.innerHTML = ''; // Clear any existing tables
+
+            groups.forEach(group => {
+                if (!group.name) {
+                    console.warn(`Group with ID ${group.id} is missing the 'name' field.`);
+                    return; // Skip this group
+                }
+
+                // Create a table for each group
+                const groupDiv = document.createElement('div');
+                groupDiv.innerHTML = `
+                    <h2>${group.name}</h2>
+                    <table id="${group.name.replace(' ', '-')}-table">
+                        <tr>
+                            <th>Country</th>
+                            <th>Games Played</th>
+                            <th>W</th>
+                            <th>D</th>
+                            <th>L</th>
+                            <th>Points</th>
+                        </tr>
+                    </table>
+                `;
+                container.appendChild(groupDiv);
+            });
+        }
+
+        function populateTables(groups) {
+            groups.forEach(group => {
+                const table = document.querySelector(`#${group.name.replace(' ', '-')}-table`);
+                if (table) {
+                    // Check if the teams field exists and is an object
+                    if (group.teams && typeof group.teams === 'object') {
+                        // Iterate through teams in the group
+                        Object.values(group.teams).forEach(team => {
+                            const row = table.insertRow();
+                            const cell1 = row.insertCell(0);
+                            const cell2 = row.insertCell(1);
+                            const cell3 = row.insertCell(2);
+                            const cell4 = row.insertCell(3);
+                            const cell5 = row.insertCell(4);
+                            const cell6 = row.insertCell(5);
+
+                            cell1.textContent = team.Name || 'Unknown';
+                            cell2.textContent = team.Played || 0;
+                            cell3.textContent = team.W || 0;
+                            cell4.textContent = team.D || 0;
+                            cell5.textContent = team.L || 0;
+                            cell6.textContent = team.Points || 0;
+                        });
+                    } else {
+                        console.warn(`No teams found for group: ${group.name}`);
+                    }
+                } else {
+                    console.error(`Table for group ${group.name} not found.`);
+                }
+            });
+        }
+
+        // Fetch groups and teams when the page loads
+        document.addEventListener('DOMContentLoaded', fetchCountries);
+    </script>
 </body>
 </html>
