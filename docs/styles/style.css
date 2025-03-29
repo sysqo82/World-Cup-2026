@@ -1,47 +1,33 @@
+/* Align the tables container to the left and limit its width */
+.tables-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 tables per row */
+    gap: 20px; /* Space between tables */
+    padding: 20px;
+    width: 50%; /* Limit the width to 50% of the screen */
+    margin: 0; /* Remove centering */
+}
+
+/* Styling for each group container */
+.tables-container div {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+/* Table styling */
 table {
-    width: 100%;
-    border-collapse: collapse; /* Ensures borders don't double up */
-    margin: 20px 0;
-    border: 1px solid #000; /* Add a border around the entire table */
+    width: 100%; /* Make the table fill its container */
+    border-collapse: collapse;
 }
 
 th, td {
-    border: 1px solid #000; /* Add borders between rows and columns */
-    padding: 10px;
-    text-align: center;
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
 }
 
 th {
     background-color: #f2f2f2;
-}
-
-body {
-    font-family: Arial, sans-serif;
-    background-color: #eaeaea;
-    margin: 0;
-    padding: 20px;
-}
-
-h1 {
-    text-align: center;
-    color: #333;
-}
-
-/* New styles for tables to appear side by side */
-.tables-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px; /* Space between tables */
-    justify-content: center; /* Center the tables horizontally */
-}
-
-table {
-    width: 150px; /* Set a fixed width for the tables */
-    margin: 0; /* Remove extra margin */
-}
-
-table td {
-    border: 1px solid #000; /* Add borders to table cells */
-    text-align: center;
-    padding: 10px;
 }
