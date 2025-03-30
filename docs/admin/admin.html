@@ -80,26 +80,22 @@
             }
         });
 
-        // Handle login
-        document.getElementById('login-button').addEventListener('click', () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+// Handle login
+document.getElementById('login-button').addEventListener('click', () => {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    // Hide authentication form and show admin content
-                    document.getElementById('auth-container').style.display = 'none';
-                    document.getElementById('admin-content').style.display = 'block';
-                    document.getElementById('logout-button').style.display = 'block';
-
-                    // Fetch groups
-                    fetchGroups();
-                })
-                .catch(err => {
-                    console.error('Error during login:', err);
-                    document.getElementById('auth-error').style.display = 'block';
-                });
+    firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            console.log(`Logged in as: ${userCredential.user.email}`);
+            // Redirect to the admin page or show admin content
+            window.location.href = '/admin.html';
+        })
+        .catch(error => {
+            console.error('Error during login:', error);
+            document.getElementById('auth-error').style.display = 'block';
         });
+});
 
         // Handle logout
         document.getElementById('logout-button').addEventListener('click', () => {

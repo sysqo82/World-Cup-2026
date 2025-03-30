@@ -171,3 +171,31 @@ h1 {
 #logout-button:hover {
     background-color: #e60000;
 }
+
+/* Layout for Groups and Fixtures sections */
+.main-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.groups-container,
+.fixtures-container {
+    width: 48%;
+}
+
+.groups-container h1,
+.fixtures-container h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Center the "Result" header in the fixtures table */
+.fixtures-container table th:nth-child(4) {
+    text-align: center;
+}
+
+/* Center the result input field inside the fixtures table */
+.fixtures-container table td:nth-child(4) {
+    text-align: center;
+}

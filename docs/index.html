@@ -6,12 +6,27 @@
     <title>World Cup 2026</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="./styles/style.css">
 </head>
 <body>
     <h1>World Cup 2026</h1>
-    <div class="tables-container" id="tables-container">
-        <!-- Tables will be dynamically created here -->
+    <div class="main-container">
+        <!-- Groups Section -->
+        <div class="groups-container">
+            <h1>Groups</h1>
+            <div class="tables-container" id="tables-container">
+                <!-- Tables will be dynamically created here -->
+            </div>
+        </div>
+
+        <!-- Fixtures Section -->
+        <div class="fixtures-container">
+            <h1>Fixtures</h1>
+            <div id="fixtures-container">
+                <!-- Fixtures will be dynamically created here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -30,6 +45,15 @@
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // Check if the user is logged in
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                console.log(`User is logged in: ${user.email}`);
+            } else {
+                console.log('No user is logged in.');
+            }
+        });
+
         // Real-time listener for groups and teams
         db.collection('groups').onSnapshot(snapshot => {
             const groups = snapshot.docs.map(doc => ({
@@ -39,6 +63,7 @@
 
             createTables(groups);
             populateTables(groups);
+            generateFixtures(groups);
         }, err => {
             console.error('Error fetching groups:', err);
         });
@@ -75,68 +100,384 @@
         }
 
         function populateTables(groups) {
-            groups.forEach(group => {
-                // Sanitize the group name to match the table ID
-                const tableId = group.name.replace(/[^a-zA-Z0-9_-]/g, '-'); // Replace spaces and special characters with '-'
-                const table = document.querySelector(`#${tableId}-table`);
+    groups.forEach(group => {
+        const tableId = group.name.replace(/[^a-zA-Z0-9_-]/g, '-');
+        const table = document.querySelector(`#${tableId}-table`);
 
-                if (table) {
-                    // Clear existing rows (except the header row)
-                    while (table.rows.length > 1) {
-                        table.deleteRow(1);
-                    }
+        if (table) {
+            while (table.rows.length > 1) {
+                table.deleteRow(1);
+            }
 
-                    // Check if the teams field exists and is an object
-                    if (group.teams && typeof group.teams === 'object') {
-                        // Convert teams object to an array and sort by points (descending)
-                        const sortedTeams = Object.values(group.teams).sort((a, b) => (b.points || 0) - (a.points || 0));
+            if (group.teams && typeof group.teams === 'object') {
+                const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
+                    id,
+                    name: team.name || team.Name || 'Unknown',
+                    goalsScored: team.goalsScored || 0,
+                    goalsReceived: team.goalsReceived || 0,
+                    played: team.Played || 0,
+                    wins: team.W || 0,
+                    draws: team.D || 0,
+                    losses: team.L || 0,
+                    points: (team.W || 0) * 3 + (team.D || 0), // Calculate points dynamically
+                    goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0), // Calculate goal difference
+                    initialRank: parseInt(id.replace('team', ''), 10) || 0 // Extract initial rank from team ID
+                })).sort((a, b) => 
+                    a.initialRank - b.initialRank // Sort by initial rank (team1, team2, etc.)
+                );
 
-                        // Iterate through sorted teams
-                        sortedTeams.forEach((team, index) => {
-                            const row = table.insertRow(); // Create a new row for each team
+                sortedTeams.forEach((team, index) => {
+                    const row = table.insertRow();
 
-                            // Add Rank column
-                            const cellRank = row.insertCell(0);
-                            cellRank.textContent = index + 1; // Rank is based on the sorted order
+                    const cellRank = row.insertCell(0);
+                    cellRank.textContent = index + 1;
 
-                            // Add Country column
-                            const cellCountry = row.insertCell(1);
-                            cellCountry.innerHTML = `<strong>${team.Name || team.name || 'Unknown'}</strong>`; // Check for both 'Name' and 'name'
+                    const cellCountry = row.insertCell(1);
+                    cellCountry.innerHTML = `<strong>${team.name}</strong>`;
 
-                            // Add Played column
-                            const cellPlayed = row.insertCell(2);
-                            cellPlayed.textContent = team.Played || 0;
+                    const cellPlayed = row.insertCell(2);
+                    cellPlayed.textContent = team.played;
 
-                            // Add W column
-                            const cellW = row.insertCell(3);
-                            cellW.textContent = team.W || 0;
+                    const cellW = row.insertCell(3);
+                    cellW.textContent = team.wins;
 
-                            // Add D column
-                            const cellD = row.insertCell(4);
-                            cellD.textContent = team.D || 0;
+                    const cellD = row.insertCell(4);
+                    cellD.textContent = team.draws;
 
-                            // Add L column
-                            const cellL = row.insertCell(5);
-                            cellL.textContent = team.L || 0;
+                    const cellL = row.insertCell(5);
+                    cellL.textContent = team.losses;
 
-                            // Add Agg column (Goals Scored - Goals Received)
-                            const cellAgg = row.insertCell(6);
-                            const goalsScored = team.GoalsScored || 0;
-                            const goalsReceived = team.GoalsReceived || 0;
-                            cellAgg.textContent = `${goalsScored}-${goalsReceived}`;
+                    const cellAgg = row.insertCell(6);
+                    cellAgg.textContent = `${team.goalsScored}-${team.goalsReceived}`;
 
-                            // Display Points
-                            const cellPoints = row.insertCell(7);
-                            cellPoints.textContent = team.points || 0; // Access the 'points' field
-                        });
-                    } else {
-                        console.warn(`No teams found for group: ${group.name}`);
-                    }
-                } else {
-                    console.error(`Table for group ${group.name} not found. Ensure the table ID matches the group name.`);
-                }
-            });
+                    const cellPoints = row.insertCell(7);
+                    cellPoints.textContent = team.points;
+                });
+            } else {
+                console.warn(`No teams found for group: ${group.name}`);
+            }
+        } else {
+            console.error(`Table for group ${group.name} not found. Ensure the table ID matches the group name.`);
         }
+    });
+}
+
+function generateFixtures(groups) {
+    const fixturesContainer = document.getElementById('fixtures-container');
+    fixturesContainer.innerHTML = ''; // Clear any existing fixtures
+
+    // Add Matchday 1 header
+    const matchday1Header = document.createElement('h2');
+    matchday1Header.textContent = 'Matchday 1';
+    fixturesContainer.appendChild(matchday1Header);
+
+    // Create a table for Matchday 1
+    const matchday1Table = document.createElement('table');
+    matchday1Table.innerHTML = `
+        <tr>
+            <th>Match</th>
+            <th>Group</th>
+            <th>Team 1</th>
+            <th>Result</th>
+            <th>Team 2</th>
+            <th>Action</th>
+        </tr>
+    `;
+
+    let matchNumber = 1;
+
+    groups.forEach(group => {
+        if (group.teams && typeof group.teams === 'object') {
+            const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
+                id,
+                name: team.name || team.Name || 'Unknown',
+                initialRank: parseInt(id.replace('team', ''), 10) || 0
+            })).sort((a, b) => a.initialRank - b.initialRank);
+
+            if (sortedTeams.length >= 4) {
+                // Matchday 1: Team 1 vs. Team 2, Team 3 vs. Team 4
+                const match1 = group.matches?.[`${sortedTeams[0].id}_${sortedTeams[1].id}`] || {};
+                const row1 = document.createElement('tr');
+                row1.innerHTML = `
+                    <td>${matchNumber++}</td>
+                    <td>${group.name}</td>
+                    <td>${sortedTeams[0].name}</td>
+                    <td>
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[0].id}" data-team-right="${sortedTeams[1].id}" value="${match1.leftScore ?? ''}">
+                        -
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[1].id}" data-team-right="${sortedTeams[0].id}" value="${match1.rightScore ?? ''}">
+                    </td>
+                    <td>${sortedTeams[1].name}</td>
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${sortedTeams[0].id}" data-team-right="${sortedTeams[1].id}">Submit</button></td>
+                `;
+                matchday1Table.appendChild(row1);
+
+                const match2 = group.matches?.[`${sortedTeams[2].id}_${sortedTeams[3].id}`] || {};
+                const row2 = document.createElement('tr');
+                row2.innerHTML = `
+                    <td>${matchNumber++}</td>
+                    <td>${group.name}</td>
+                    <td>${sortedTeams[2].name}</td>
+                    <td>
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[2].id}" data-team-right="${sortedTeams[3].id}" value="${match2.leftScore ?? ''}">
+                        -
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[3].id}" data-team-right="${sortedTeams[2].id}" value="${match2.rightScore ?? ''}">
+                    </td>
+                    <td>${sortedTeams[3].name}</td>
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${sortedTeams[2].id}" data-team-right="${sortedTeams[3].id}">Submit</button></td>
+                `;
+                matchday1Table.appendChild(row2);
+            }
+        }
+    });
+
+    fixturesContainer.appendChild(matchday1Table);
+
+    // Add event listeners to all submit buttons for Matchday 1
+    const submitButtons1 = document.querySelectorAll('.submit-button');
+    submitButtons1.forEach(button => {
+        button.addEventListener('click', handleScoreSubmission);
+    });
+
+    // Add Matchday 2 header
+    const matchday2Header = document.createElement('h2');
+    matchday2Header.textContent = 'Matchday 2';
+    fixturesContainer.appendChild(matchday2Header);
+
+    // Create a table for Matchday 2
+    const matchday2Table = document.createElement('table');
+    matchday2Table.innerHTML = `
+        <tr>
+            <th>Match</th>
+            <th>Group</th>
+            <th>Team 1</th>
+            <th>Result</th>
+            <th>Team 2</th>
+            <th>Action</th>
+        </tr>
+    `;
+
+    groups.forEach(group => {
+        if (group.teams && typeof group.teams === 'object') {
+            const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
+                id,
+                name: team.name || team.Name || 'Unknown',
+                initialRank: parseInt(id.replace('team', ''), 10) || 0
+            })).sort((a, b) => a.initialRank - b.initialRank);
+
+            if (sortedTeams.length >= 4) {
+                // Matchday 2: Team 1 vs. Team 3, Team 2 vs. Team 4
+                const match3 = group.matches?.[`${sortedTeams[0].id}_${sortedTeams[2].id}`] || {};
+                const row3 = document.createElement('tr');
+                row3.innerHTML = `
+                    <td>${matchNumber++}</td>
+                    <td>${group.name}</td>
+                    <td>${sortedTeams[0].name}</td>
+                    <td>
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[0].id}" data-team-right="${sortedTeams[2].id}" value="${match3.leftScore ?? ''}">
+                        -
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[2].id}" data-team-right="${sortedTeams[0].id}" value="${match3.rightScore ?? ''}">
+                    </td>
+                    <td>${sortedTeams[2].name}</td>
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${sortedTeams[0].id}" data-team-right="${sortedTeams[2].id}">Submit</button></td>
+                `;
+                matchday2Table.appendChild(row3);
+
+                const match4 = group.matches?.[`${sortedTeams[1].id}_${sortedTeams[3].id}`] || {};
+                const row4 = document.createElement('tr');
+                row4.innerHTML = `
+                    <td>${matchNumber++}</td>
+                    <td>${group.name}</td>
+                    <td>${sortedTeams[1].name}</td>
+                    <td>
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[1].id}" data-team-right="${sortedTeams[3].id}" value="${match4.leftScore ?? ''}">
+                        -
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[3].id}" data-team-right="${sortedTeams[1].id}" value="${match4.rightScore ?? ''}">
+                    </td>
+                    <td>${sortedTeams[3].name}</td>
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${sortedTeams[1].id}" data-team-right="${sortedTeams[3].id}">Submit</button></td>
+                `;
+                matchday2Table.appendChild(row4);
+            }
+        }
+    });
+
+    fixturesContainer.appendChild(matchday2Table);
+
+    // Add event listeners to all submit buttons for Matchday 2
+    const submitButtons2 = document.querySelectorAll('.submit-button');
+    submitButtons2.forEach(button => {
+        button.addEventListener('click', handleScoreSubmission);
+    });
+
+    // Add Matchday 3 header
+    const matchday3Header = document.createElement('h2');
+    matchday3Header.textContent = 'Matchday 3';
+    fixturesContainer.appendChild(matchday3Header);
+
+    // Create a table for Matchday 3
+    const matchday3Table = document.createElement('table');
+    matchday3Table.innerHTML = `
+        <tr>
+            <th>Match</th>
+            <th>Group</th>
+            <th>Team 1</th>
+            <th>Result</th>
+            <th>Team 2</th>
+            <th>Action</th>
+        </tr>
+    `;
+
+    groups.forEach(group => {
+        if (group.teams && typeof group.teams === 'object') {
+            const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
+                id,
+                name: team.name || team.Name || 'Unknown',
+                initialRank: parseInt(id.replace('team', ''), 10) || 0
+            })).sort((a, b) => a.initialRank - b.initialRank);
+
+            if (sortedTeams.length >= 4) {
+                // Matchday 3: Team 1 vs. Team 4, Team 2 vs. Team 3
+                const match5 = group.matches?.[`${sortedTeams[0].id}_${sortedTeams[3].id}`] || {};
+                const row5 = document.createElement('tr');
+                row5.innerHTML = `
+                    <td>${matchNumber++}</td>
+                    <td>${group.name}</td>
+                    <td>${sortedTeams[0].name}</td>
+                    <td>
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[0].id}" data-team-right="${sortedTeams[3].id}" value="${match5.leftScore ?? ''}">
+                        -
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[3].id}" data-team-right="${sortedTeams[0].id}" value="${match5.rightScore ?? ''}">
+                    </td>
+                    <td>${sortedTeams[3].name}</td>
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${sortedTeams[0].id}" data-team-right="${sortedTeams[3].id}">Submit</button></td>
+                `;
+                matchday3Table.appendChild(row5);
+
+                const match6 = group.matches?.[`${sortedTeams[1].id}_${sortedTeams[2].id}`] || {};
+                const row6 = document.createElement('tr');
+                row6.innerHTML = `
+                    <td>${matchNumber++}</td>
+                    <td>${group.name}</td>
+                    <td>${sortedTeams[1].name}</td>
+                    <td>
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[1].id}" data-team-right="${sortedTeams[2].id}" value="${match6.leftScore ?? ''}">
+                        -
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${sortedTeams[2].id}" data-team-right="${sortedTeams[1].id}" value="${match6.rightScore ?? ''}">
+                    </td>
+                    <td>${sortedTeams[2].name}</td>
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${sortedTeams[1].id}" data-team-right="${sortedTeams[2].id}">Submit</button></td>
+                `;
+                matchday3Table.appendChild(row6);
+            }
+        }
+    });
+
+    fixturesContainer.appendChild(matchday3Table);
+
+    // Add event listeners to all submit buttons for Matchday 3
+    const submitButtons3 = document.querySelectorAll('.submit-button');
+    submitButtons3.forEach(button => {
+        button.addEventListener('click', handleScoreSubmission);
+    });
+}
+
+async function handleScoreSubmission(event) {
+    const button = event.target;
+    const groupId = button.dataset.group;
+    const teamLeftId = button.dataset.teamLeft;
+    const teamRightId = button.dataset.teamRight;
+
+    const leftScoreInput = document.querySelector(`input[data-group="${groupId}"][data-team-left="${teamLeftId}"]`);
+    const rightScoreInput = document.querySelector(`input[data-group="${groupId}"][data-team-left="${teamRightId}"]`);
+
+    // Check if the inputs exist
+    if (!leftScoreInput || !rightScoreInput) {
+        alert('Error: Match inputs not found. Please ensure the match exists.');
+        return;
+    }
+
+    const leftScore = parseInt(leftScoreInput.value, 10);
+    const rightScore = parseInt(rightScoreInput.value, 10);
+
+    // Validate that both scores are entered
+    if (isNaN(leftScore) || isNaN(rightScore)) {
+        alert('Both scores must be entered before submitting.');
+        return;
+    }
+
+    try {
+        // Fetch the current match data from Firestore
+        const groupDoc = await db.collection('groups').doc(groupId).get();
+        const groupData = groupDoc.data();
+        const existingMatch = groupData.matches?.[`${teamLeftId}_${teamRightId}`];
+
+        const updates = {
+            [`teams.${teamLeftId}.goalsScored`]: leftScore,
+            [`teams.${teamRightId}.goalsReceived`]: leftScore,
+            [`teams.${teamRightId}.goalsScored`]: rightScore,
+            [`teams.${teamLeftId}.goalsReceived`]: rightScore,
+            [`matches.${teamLeftId}_${teamRightId}`]: { leftScore, rightScore }
+        };
+
+        // Only increment "Played" if the match is new
+        if (!existingMatch) {
+            updates[`teams.${teamLeftId}.Played`] = firebase.firestore.FieldValue.increment(1);
+            updates[`teams.${teamRightId}.Played`] = firebase.firestore.FieldValue.increment(1);
+        }
+
+        // Update win, draw, and loss stats
+        if (leftScore > rightScore) {
+            updates[`teams.${teamLeftId}.W`] = firebase.firestore.FieldValue.increment(1);
+            updates[`teams.${teamRightId}.L`] = firebase.firestore.FieldValue.increment(1);
+
+            // If the match was previously recorded, adjust stats
+            if (existingMatch) {
+                if (existingMatch.leftScore < existingMatch.rightScore) {
+                    updates[`teams.${teamRightId}.W`] = firebase.firestore.FieldValue.increment(-1);
+                    updates[`teams.${teamLeftId}.L`] = firebase.firestore.FieldValue.increment(-1);
+                } else if (existingMatch.leftScore === existingMatch.rightScore) {
+                    updates[`teams.${teamLeftId}.D`] = firebase.firestore.FieldValue.increment(-1);
+                    updates[`teams.${teamRightId}.D`] = firebase.firestore.FieldValue.increment(-1);
+                }
+            }
+        } else if (leftScore < rightScore) {
+            updates[`teams.${teamRightId}.W`] = firebase.firestore.FieldValue.increment(1);
+            updates[`teams.${teamLeftId}.L`] = firebase.firestore.FieldValue.increment(1);
+
+            // If the match was previously recorded, adjust stats
+            if (existingMatch) {
+                if (existingMatch.leftScore > existingMatch.rightScore) {
+                    updates[`teams.${teamLeftId}.W`] = firebase.firestore.FieldValue.increment(-1);
+                    updates[`teams.${teamRightId}.L`] = firebase.firestore.FieldValue.increment(-1);
+                } else if (existingMatch.leftScore === existingMatch.rightScore) {
+                    updates[`teams.${teamLeftId}.D`] = firebase.firestore.FieldValue.increment(-1);
+                    updates[`teams.${teamRightId}.D`] = firebase.firestore.FieldValue.increment(-1);
+                }
+            }
+        } else {
+            updates[`teams.${teamLeftId}.D`] = firebase.firestore.FieldValue.increment(1);
+            updates[`teams.${teamRightId}.D`] = firebase.firestore.FieldValue.increment(1);
+
+            // If the match was previously recorded, adjust stats
+            if (existingMatch) {
+                if (existingMatch.leftScore > existingMatch.rightScore) {
+                    updates[`teams.${teamLeftId}.W`] = firebase.firestore.FieldValue.increment(-1);
+                    updates[`teams.${teamRightId}.L`] = firebase.firestore.FieldValue.increment(-1);
+                } else if (existingMatch.leftScore < existingMatch.rightScore) {
+                    updates[`teams.${teamRightId}.W`] = firebase.firestore.FieldValue.increment(-1);
+                    updates[`teams.${teamLeftId}.L`] = firebase.firestore.FieldValue.increment(-1);
+                }
+            }
+        }
+
+        // Push the updates to Firestore
+        await db.collection('groups').doc(groupId).update(updates);
+    } catch (error) {
+        console.error('Error submitting scores:', error);
+        alert('An error occurred while submitting the scores.');
+    }
+}
     </script>
 </body>
 </html>
