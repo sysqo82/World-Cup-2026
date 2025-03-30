@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Round of 16</title>
-    <link rel="stylesheet" href="./styles/style.css">
+    <title>Round of 16 - World Cup 2026</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="./styles/style.css">
 </head>
 <body>
-    <h1>Round of 16</h1>
+    <h1>Round of 16 - World Cup 2026</h1>
+
     <!-- Navigation Dropdown -->
     <div class="navigation-dropdown">
         <label for="navigation-select">Navigate to:</label>
@@ -20,13 +21,12 @@
         </select>
     </div>
 
-    <!-- Round of 16 Matches -->
     <div class="round-of-16-container">
-        <!-- Tables will be dynamically created here -->
+        <!-- Matches will be dynamically generated here -->
     </div>
 
     <script>
-                // Firebase configuration
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBxdeTLscpv1RK8W7SabyJJckYiBjLQRvM",
             authDomain: "world-cup-2026-b1fda.firebaseapp.com",
@@ -36,13 +36,11 @@
             appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
             measurementId: "G-6QWWJLC2LM"
         };
-        
+
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
-        
-        // Initialize Firestore
         const db = firebase.firestore();
-        
+
         // Navigation function
         function navigateToPage() {
             const selectedPage = document.getElementById('navigation-select').value;
@@ -53,105 +51,90 @@
             }
         }
 
-// Generate Round of 16 Matches
-async function generateRoundOf16() {
-    const container = document.querySelector('.round-of-16-container');
-    container.innerHTML = ''; // Clear any existing content
-
-    // Match rules
-    const matchRules = [
-        { match: '1A vs. 2B', group1: 'group1', group2: 'group2' },
-        { match: '1C vs. 2D', group1: 'group3', group2: 'group4' },
-        { match: '1E vs. 2F', group1: 'group5', group2: 'group6' },
-        { match: '1G vs. 2H', group1: 'group7', group2: 'group8' },
-        { match: '1B vs. 2A', group1: 'group2', group2: 'group1' },
-        { match: '1D vs. 2C', group1: 'group4', group2: 'group3' },
-        { match: '1F vs. 2E', group1: 'group6', group2: 'group5' },
-        { match: '1H vs. 2G', group1: 'group8', group2: 'group7' }
-    ];
-
-    try {
-        // Fetch group data from the database
-        const groupsSnapshot = await db.collection('groups').get();
-        const groups = {};
-        groupsSnapshot.forEach(doc => {
-            groups[doc.id] = doc.data();
-        });
-
-        // Create tables for each match
-        matchRules.forEach((rule, index) => {
-            const group1 = groups[rule.group1];
-            const group2 = groups[rule.group2];
-
-            // Get the first and second teams from the group
-            const team1 = group1?.teams?.team1?.name || 'Unknown'; // Winner of group1
-            const team2 = group2?.teams?.team2?.name || 'Unknown'; // Runner-up of group2
-
-            const table = document.createElement('table');
-            table.classList.add('match-table');
-            table.innerHTML = `
-                <tr>
-                    <td class="team-name" data-team="team1">${team1}</td>
-                    <td class="score-section">
-                        <input type="number" class="score-input" placeholder="Score" data-match="${rule.match}" data-team="team1">
-                        <span class="score-divider">-</span>
-                        <input type="number" class="score-input" placeholder="Score" data-match="${rule.match}" data-team="team2">
-                    </td>
-                    <td class="team-name" data-team="team2">${team2}</td>
-                    <td>
-                        <button class="submit-button" data-match="${rule.match}" data-team1="${team1}" data-team2="${team2}">Submit</button>
-                    </td>
-                </tr>
-            `;
-            container.appendChild(table);
-
-            // Add a row break after every 4 tables
-            if ((index + 1) % 4 === 0) {
-                const rowBreak = document.createElement('div');
-                rowBreak.style.clear = 'both';
-                container.appendChild(rowBreak);
+                // Check if the user is logged in
+                firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                console.log(`User is logged in: ${user.email}`);
+            } else {
+                console.log('No user is logged in.');
             }
         });
 
-        // Add event listeners to submit buttons
-        const submitButtons = document.querySelectorAll('.submit-button');
-        submitButtons.forEach(button => {
-            button.addEventListener('click', handleScoreSubmission);
-        });
-    } catch (error) {
-        console.error('Error fetching group data:', error);
+        document.getElementById('navigation-select').addEventListener('change', navigateToPage);
+
+        // Fetch Round of 16 matches from Firestore
+        async function fetchRoundOf16Matches() {
+            try {
+                const doc = await db.collection('roundOf16Teams').doc('matches').get();
+                if (!doc.exists) {
+                    console.error('No Round of 16 matches found in Firestore.');
+                    return [];
+                }
+                return doc.data().matches || [];
+            } catch (error) {
+                console.error('Error fetching Round of 16 matches:', error);
+                return [];
+            }
+        }
+
+// Generate Round of 16 Matches
+async function generateRoundOf16() {
+    const container = document.querySelector('.round-of-16-container');
+    container.innerHTML = ''; // Clear any existing content to prevent duplicates
+
+    const matches = await fetchRoundOf16Matches();
+
+    if (matches.length === 0) {
+        container.innerHTML = '<p>No matches available for the Round of 16.</p>';
+        return;
     }
+
+    matches.forEach((match, index) => {
+        const table = document.createElement('table');
+        table.classList.add('match-table');
+        table.innerHTML = `
+            <tr>
+                <td class="team-name" data-team="team1" data-match="${match.match}">${match.team1}</td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" value="${match.team1Score || ''}">
+                    <span class="score-divider">-</span>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" value="${match.team2Score || ''}">
+                </td>
+                <td class="team-name" data-team="team2" data-match="${match.match}">${match.team2}</td>
+                <td>
+                    <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}">Submit</button>
+                </td>
+            </tr>
+        `;
+        container.appendChild(table);
+
+        // Highlight the winner if it exists
+        if (match.winner) {
+            const teamCells = table.querySelectorAll(`td[data-match="${match.match}"]`);
+            teamCells.forEach(cell => {
+                if (cell.textContent.trim() === match.winner) {
+                    cell.classList.add('winner');
+                } else {
+                    cell.classList.remove('winner');
+                }
+            });
+        }
+
+        // Add a row break after every 4 tables
+        if ((index + 1) % 4 === 0) {
+            const rowBreak = document.createElement('div');
+            rowBreak.style.clear = 'both';
+            container.appendChild(rowBreak);
+        }
+    });
+
+    // Add event listeners to submit buttons
+    const submitButtons = document.querySelectorAll('.submit-button');
+    submitButtons.forEach(button => {
+        button.addEventListener('click', handleScoreSubmission);
+    });
 }
 
-// Helper function to get the winner of a group
-function getWinner(group) {
-    if (!group || !group.teams) return 'Unknown';
-    const sortedTeams = Object.entries(group.teams)
-        .map(([id, team]) => ({
-            id,
-            name: team.name || 'Unknown',
-            points: (team.W || 0) * 3 + (team.D || 0), // Calculate points
-            goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0) // Calculate goal difference
-        }))
-        .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-    return sortedTeams[0]?.name || 'Unknown';
-}
-
-// Helper function to get the runner-up of a group
-function getRunnerUp(group) {
-    if (!group || !group.teams) return 'Unknown';
-    const sortedTeams = Object.entries(group.teams)
-        .map(([id, team]) => ({
-            id,
-            name: team.name || 'Unknown',
-            points: (team.W || 0) * 3 + (team.D || 0), // Calculate points
-            goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0) // Calculate goal difference
-        }))
-        .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-    return sortedTeams[1]?.name || 'Unknown';
-}
-
-// Handle score submission
 async function handleScoreSubmission(event) {
     const button = event.target;
     const match = button.dataset.match;
@@ -169,6 +152,33 @@ async function handleScoreSubmission(event) {
         return;
     }
 
+    // Determine if the match is a draw
+    if (team1Score === team2Score) {
+        // Check if "Extra Time" row already exists
+        const extraTimeRow = document.querySelector(`tr[data-extra-time="${match}"]`);
+        if (!extraTimeRow) {
+            // Add "Extra Time" row
+            const table = button.closest('table');
+            const row = table.insertRow();
+            row.setAttribute('data-extra-time', match);
+            row.innerHTML = `
+                <td>Extra Time</td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-extra-time="${match}" data-team="team1">
+                    <span class="score-divider">-</span>
+                    <input type="number" class="score-input" placeholder="Score" data-extra-time="${match}" data-team="team2">
+                </td>
+                <td colspan="2">
+                    <button class="submit-extra-time submit-button" data-match="${match}" data-team1="${team1}" data-team2="${team2}">Submit Extra Time</button>
+                </td>
+            `;
+
+            // Add event listener for the "Extra Time" button
+            row.querySelector('.submit-extra-time').addEventListener('click', handleExtraTimeSubmission);
+        }
+        return;
+    }
+
     // Determine the winner and loser
     let winner, loser;
     if (team1Score > team2Score) {
@@ -177,25 +187,29 @@ async function handleScoreSubmission(event) {
     } else if (team2Score > team1Score) {
         winner = team2;
         loser = team1;
-    } else {
-        alert('The match cannot end in a draw. Please adjust the scores.');
-        return;
     }
 
     // Highlight the winner
     const teamCells = document.querySelectorAll(`td[data-match="${match}"]`);
     teamCells.forEach(cell => {
-        if (cell.textContent === winner) {
-            cell.style.fontWeight = 'bold';
-            cell.style.color = 'green';
+        if (cell.textContent.trim() === winner) {
+            cell.classList.add('winner');
         } else {
-            cell.style.fontWeight = 'normal';
-            cell.style.color = 'black';
+            cell.classList.remove('winner');
         }
     });
 
     // Save the result to Firestore
     try {
+        const roundOf16TeamsDoc = await db.collection('roundOf16Teams').doc('matches').get();
+        const matches = roundOf16TeamsDoc.data().matches.map(m => {
+            if (m.match === match) {
+                return { ...m, winner, loser, team1Score, team2Score };
+            }
+            return m;
+        });
+        await db.collection('roundOf16Teams').doc('matches').update({ matches });
+
         await db.collection('roundOf16Results').add({
             match: match,
             winner: winner,
@@ -203,15 +217,171 @@ async function handleScoreSubmission(event) {
             team1Score: team1Score,
             team2Score: team2Score
         });
+
         alert(`Result saved: ${winner} wins against ${loser}`);
     } catch (error) {
         console.error('Error saving match result:', error);
         alert('Failed to save the result. Please try again.');
     }
 }
+        
+async function handleExtraTimeSubmission(event) {
+    const button = event.target;
+    const match = button.dataset.match;
+    const team1 = button.dataset.team1;
+    const team2 = button.dataset.team2;
 
-// Call the function to generate the matches
-generateRoundOf16();
+    // Get the input fields for Extra Time
+    const scoreInputs = document.querySelectorAll(`input[data-extra-time="${match}"]`);
+    const team1Score = parseInt(scoreInputs[0].value, 10);
+    const team2Score = parseInt(scoreInputs[1].value, 10);
+
+    // Validate scores
+    if (isNaN(team1Score) || isNaN(team2Score)) {
+        alert('Please enter valid scores for both teams.');
+        return;
+    }
+
+    // Determine if Extra Time is still a draw
+    if (team1Score === team2Score) {
+        // Check if "Penalty Shootout" row already exists
+        const penaltyRow = document.querySelector(`tr[data-penalty="${match}"]`);
+        if (!penaltyRow) {
+            // Add "Penalty Shootout" row
+            const table = button.closest('table');
+            const row = table.insertRow();
+            row.setAttribute('data-penalty', match);
+            row.innerHTML = `
+                <td>Penalty Shootout</td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-penalty="${match}" data-team="team1">
+                    <span class="score-divider">-</span>
+                    <input type="number" class="score-input" placeholder="Score" data-penalty="${match}" data-team="team2">
+                </td>
+                <td colspan="2">
+                    <button class="submit-penalty submit-button" data-match="${match}" data-team1="${team1}" data-team2="${team2}">Submit Penalty</button>
+                </td>
+            `;
+
+            // Add event listener for the "Penalty Shootout" button
+            row.querySelector('.submit-penalty').addEventListener('click', handlePenaltySubmission);
+        }
+        return;
+    }
+
+    // Determine the winner and loser
+    let winner, loser;
+    if (team1Score > team2Score) {
+        winner = team1;
+        loser = team2;
+    } else if (team2Score > team1Score) {
+        winner = team2;
+        loser = team1;
+    }
+
+    // Highlight the winner
+    const teamCells = document.querySelectorAll(`td[data-match="${match}"]`);
+    teamCells.forEach(cell => {
+        if (cell.textContent.trim() === winner) {
+            cell.classList.add('winner');
+        } else {
+            cell.classList.remove('winner');
+        }
+    });
+
+    // Save the result to Firestore
+    try {
+        const roundOf16TeamsDoc = await db.collection('roundOf16Teams').doc('matches').get();
+        const matches = roundOf16TeamsDoc.data().matches.map(m => {
+            if (m.match === match) {
+                return { ...m, winner, loser, extraTime: true, team1Score, team2Score };
+            }
+            return m;
+        });
+        await db.collection('roundOf16Teams').doc('matches').update({ matches });
+
+        await db.collection('roundOf16Results').add({
+            match: match,
+            winner: winner,
+            loser: loser,
+            extraTime: true,
+            team1Score: team1Score,
+            team2Score: team2Score
+        });
+
+        alert(`Result saved: ${winner} wins in Extra Time against ${loser}`);
+    } catch (error) {
+        console.error('Error saving match result:', error);
+        alert('Failed to save the result. Please try again.');
+    }
+}
+        
+async function handlePenaltySubmission(event) {
+    const button = event.target;
+    const match = button.dataset.match;
+    const team1 = button.dataset.team1;
+    const team2 = button.dataset.team2;
+
+    // Get the input fields for Penalty Shootout
+    const scoreInputs = document.querySelectorAll(`input[data-penalty="${match}"]`);
+    const team1Score = parseInt(scoreInputs[0].value, 10);
+    const team2Score = parseInt(scoreInputs[1].value, 10);
+
+    // Validate scores
+    if (isNaN(team1Score) || isNaN(team2Score)) {
+        alert('Please enter valid scores for both teams.');
+        return;
+    }
+
+    // Determine the winner and loser
+    let winner, loser;
+    if (team1Score > team2Score) {
+        winner = team1;
+        loser = team2;
+    } else if (team2Score > team1Score) {
+        winner = team2;
+        loser = team1;
+    }
+
+    // Highlight the winner
+    const teamCells = document.querySelectorAll(`td[data-match="${match}"]`);
+    teamCells.forEach(cell => {
+        if (cell.textContent.trim() === winner) {
+            cell.classList.add('winner');
+        } else {
+            cell.classList.remove('winner');
+        }
+    });
+
+    // Save the result to Firestore
+    try {
+        const roundOf16TeamsDoc = await db.collection('roundOf16Teams').doc('matches').get();
+        const matches = roundOf16TeamsDoc.data().matches.map(m => {
+            if (m.match === match) {
+                return { ...m, winner, loser, penaltyShootout: true, team1Score, team2Score };
+            }
+            return m;
+        });
+        await db.collection('roundOf16Teams').doc('matches').update({ matches });
+
+        await db.collection('roundOf16Results').add({
+            match: match,
+            winner: winner,
+            loser: loser,
+            penaltyShootout: true,
+            team1Score: team1Score,
+            team2Score: team2Score
+        });
+
+        alert(`Result saved: ${winner} wins in Penalty Shootout against ${loser}`);
+    } catch (error) {
+        console.error('Error saving match result:', error);
+        alert('Failed to save the result. Please try again.');
+    }
+}
+
+        // Generate matches on page load
+        generateRoundOf16();
     </script>
 </body>
 </html>

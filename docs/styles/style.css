@@ -290,3 +290,8 @@ h1 {
 .submit-button:hover {
     background-color: #45a049;
 }
+
+.winner {
+    font-weight: bold;
+    color: green;
+}

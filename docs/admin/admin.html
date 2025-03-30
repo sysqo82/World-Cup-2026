@@ -35,6 +35,9 @@
             <option value="">-- Select a Group --</option>
         </select>
 
+        <!-- Button to generate Round of 16 structure -->
+        <button id="generate-round-of-16" class="submit-button">Generate Round of 16</button>
+
         <!-- Teams list -->
         <div id="teams-container" style="margin-top: 20px;">
             <!-- Teams will be dynamically displayed here -->
@@ -80,22 +83,21 @@
             }
         });
 
-// Handle login
-document.getElementById('login-button').addEventListener('click', () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+        // Handle login
+        document.getElementById('login-button').addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-    firebase.auth().signInWithEmailAndPassword(email, password)
-        .then(userCredential => {
-            console.log(`Logged in as: ${userCredential.user.email}`);
-            // Redirect to the admin page or show admin content
-            window.location.href = '/admin.html';
-        })
-        .catch(error => {
-            console.error('Error during login:', error);
-            document.getElementById('auth-error').style.display = 'block';
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log(`Logged in as: ${userCredential.user.email}`);
+                    window.location.href = './admin.html';
+                })
+                .catch(error => {
+                    console.error('Error during login:', error);
+                    document.getElementById('auth-error').style.display = 'block';
+                });
         });
-});
 
         // Handle logout
         document.getElementById('logout-button').addEventListener('click', () => {
@@ -108,6 +110,59 @@ document.getElementById('login-button').addEventListener('click', () => {
                     alert('Failed to log out. Please try again.');
                 });
         });
+
+        // Add event listener for the "Generate Round of 16" button
+    document.getElementById('generate-round-of-16').addEventListener('click', async () => {
+        try {
+            // Fetch the current state of the groups
+            const groupsSnapshot = await db.collection('groups').get();
+            const groups = groupsSnapshot.docs.reduce((acc, doc) => {
+                acc[doc.id] = doc.data();
+                return acc;
+            }, {});
+
+            // Define the match rules for the Round of 16
+            const matchRules = [
+                { match: '1A vs. 2B', group1: 'group1', group2: 'group2' },
+                { match: '1C vs. 2D', group1: 'group3', group2: 'group4' },
+                { match: '1E vs. 2F', group1: 'group5', group2: 'group6' },
+                { match: '1G vs. 2H', group1: 'group7', group2: 'group8' },
+                { match: '1B vs. 2A', group1: 'group2', group2: 'group1' },
+                { match: '1D vs. 2C', group1: 'group4', group2: 'group3' },
+                { match: '1F vs. 2E', group1: 'group6', group2: 'group5' },
+                { match: '1H vs. 2G', group1: 'group8', group2: 'group7' }
+            ];
+
+            // Prepare the Round of 16 structure
+            const roundOf16Teams = matchRules.map(rule => {
+                const group1 = groups[rule.group1];
+                const group2 = groups[rule.group2];
+
+                // Ensure both groups exist
+                if (!group1 || !group2) {
+                    console.warn(`Missing data for groups: ${rule.group1} or ${rule.group2}`);
+                    return null; // Skip this match if data is missing
+                }
+
+                // Get the winner and runner-up from each group
+                const team1 = group1?.teams?.team1?.name || 'Unknown'; // Winner of group1
+                const team2 = group2?.teams?.team2?.name || 'Unknown'; // Runner-up of group2
+
+                return {
+                    match: rule.match,
+                    team1: team1,
+                    team2: team2
+                };
+            }).filter(match => match !== null); // Remove any null matches
+
+            // Save the Round of 16 structure to Firestore
+            await db.collection('roundOf16Teams').doc('matches').set({ matches: roundOf16Teams });
+            alert('Round of 16 structure generated successfully!');
+        } catch (error) {
+            console.error('Error generating Round of 16 structure:', error);
+            alert('Failed to generate Round of 16 structure. Please try again.');
+        }
+    });
 
         // Fetch all groups and populate the dropdown
         function fetchGroups() {
@@ -155,20 +210,17 @@ document.getElementById('login-button').addEventListener('click', () => {
             teamsContainer.innerHTML = ''; // Clear previous teams
 
             if (group.teams && typeof group.teams === 'object') {
-                // Convert teams object to an array and sort by points (descending)
-                const sortedTeams = Object.entries(group.teams).sort(([, a], [, b]) => (b.points || 0) - (a.points || 0));
+                // Convert teams object to an array and sort by initialRank (ascending)
+                const sortedTeams = Object.entries(group.teams).sort(([, a], [, b]) => (a.initialRank || 0) - (b.initialRank || 0));
 
                 // Iterate through sorted teams
                 sortedTeams.forEach(([teamId, team], index) => {
                     const teamDiv = document.createElement('div');
                     teamDiv.style.marginBottom = '20px';
 
-                    // Use the correct field name for the country name
                     teamDiv.innerHTML = `
                         <label>Rank ${index + 1}:</label>
                         <input type="text" id="name-${teamId}" value="${team.name || 'Unknown'}" style="margin-right: 10px;">
-                        <label>Games Played:</label>
-                        <input type="number" id="played-${teamId}" value="${team.played || 0}" style="margin-right: 10px;">
                         <button onclick="updateTeam('${group.id}', '${teamId}')">Update</button>
                     `;
 
@@ -183,24 +235,21 @@ document.getElementById('login-button').addEventListener('click', () => {
         // Function to update the team data in Firestore
         function updateTeam(groupId, teamId) {
             const nameInput = document.getElementById(`name-${teamId}`);
-            const playedInput = document.getElementById(`played-${teamId}`);
 
-            // Ensure the input elements exist
-            if (!nameInput || !playedInput) {
-                console.error(`Input fields for teamId ${teamId} not found.`);
+            // Ensure the input element exists
+            if (!nameInput) {
+                console.error(`Input field for teamId ${teamId} not found.`);
                 alert('Failed to update team. Please try again.');
                 return;
             }
 
             const updatedData = {
-                name: nameInput.value,
-                played: parseInt(playedInput.value, 10)
+                name: nameInput.value
             };
 
             // Use Firestore's update method to update only the specified fields
             db.collection('groups').doc(groupId).update({
-                [`teams.${teamId}.name`]: updatedData.name,
-                [`teams.${teamId}.played`]: updatedData.played
+                [`teams.${teamId}.name`]: updatedData.name
             })
             .catch(err => {
                 console.error('Error updating team:', err);
