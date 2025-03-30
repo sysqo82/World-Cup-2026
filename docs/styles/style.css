@@ -216,3 +216,77 @@ h1 {
     font-size: 16px;
     padding: 5px;
 }
+
+.round-of-16-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.match-table {
+    border-collapse: collapse;
+    width: 500px;
+    text-align: center;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.match-table th {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    font-size: 16px;
+}
+
+.match-table td {
+    padding: 10px;
+    font-size: 14px;
+    border-bottom: 1px solid #ddd;
+}
+
+.match-table td:last-child {
+    border-bottom: none;
+}
+
+.score-input {
+    width: 60px;
+    text-align: center;
+    padding: 5px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Align the score inputs and the divider horizontally */
+.score-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px; /* Space between the inputs and the divider */
+}
+
+.score-divider {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}
+
+.submit-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.submit-button:hover {
+    background-color: #45a049;
+}
