@@ -199,3 +199,20 @@ h1 {
 .fixtures-container table td:nth-child(4) {
     text-align: center;
 }
+
+.navigation-dropdown {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0; /* Adds spacing below the header */
+}
+
+.navigation-dropdown label {
+    font-size: 16px;
+    margin-right: 10px; /* Adds spacing between the label and the dropdown */
+}
+
+.navigation-dropdown select {
+    font-size: 16px;
+    padding: 5px;
+}

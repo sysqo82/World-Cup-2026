@@ -11,6 +11,14 @@
 </head>
 <body>
     <h1>World Cup 2026</h1>
+    <!-- Navigation Dropdown -->
+<div class="navigation-dropdown">
+    <label for="navigation-select">Navigate to:</label>
+    <select id="navigation-select" onchange="navigateToPage()">
+        <option value="group-stage" selected>Group Stage</option>
+        <option value="round-of-16">Round of 16</option>
+    </select>
+</div>
     <div class="main-container">
         <!-- Groups Section -->
         <div class="groups-container">
@@ -67,6 +75,16 @@
         }, err => {
             console.error('Error fetching groups:', err);
         });
+
+                // Navigation function
+                function navigateToPage() {
+            const selectedPage = document.getElementById('navigation-select').value;
+            if (selectedPage === 'round-of-16') {
+                window.location.href = 'round-of-16.html';
+            } else if (selectedPage === 'group-stage') {
+                window.location.href = 'index.html';
+            }
+        }
 
         function createTables(groups) {
             const container = document.getElementById('tables-container');

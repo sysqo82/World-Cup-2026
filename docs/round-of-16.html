@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Round of 16</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<body>
+    <h1>Round of 16</h1>
+    <!-- Navigation Dropdown -->
+    <div class="navigation-dropdown">
+        <label for="navigation-select">Navigate to:</label>
+        <select id="navigation-select" onchange="navigateToPage()">
+            <option value="houses-stage">Houses Stage</option>
+            <option value="round-of-16" selected>Round of 16</option>
+        </select>
+    </div>
+
+    <!-- Placeholder Content -->
+    <div class="content">
+        <p>This is the Round of 16 page. Content will be added here later.</p>
+    </div>
+
+    <script>
+        // Navigation function
+        function navigateToPage() {
+            const selectedPage = document.getElementById('navigation-select').value;
+            if (selectedPage === 'round-of-16') {
+                window.location.href = 'round-of-16.html';
+            } else if (selectedPage === 'houses-stage') {
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
