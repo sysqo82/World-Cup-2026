@@ -132,7 +132,7 @@ async function generateRoundOf16() {
                     <input type="number" class="score-input" placeholder="Score" data-extra-time="${match.match}" data-team="team2" value="${match.extraTimeTeam2Score || ''}">
                 </td>
                 <td colspan="2">
-                    <button class="submit-extra-time" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}">Submit Extra Time</button>
+                    <button class="submit-extra-time submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}">Submit Extra Time</button>
                 </td>
             `;
 
@@ -260,102 +260,11 @@ async function handleScoreSubmission(event) {
         // Save the updated matches back to Firestore
         await db.collection('roundOf16Teams').doc('matches').update({ matches: updatedMatches });
 
-async function handleScoreSubmission(event) {
-    const button = event.target;
-    const match = button.dataset.match;
-    const team1 = button.dataset.team1;
-    const team2 = button.dataset.team2;
-
-    // Get the input fields for the match
-    const scoreInputs = document.querySelectorAll(`input[data-match="${match}"]`);
-    const team1Score = parseInt(scoreInputs[0].value, 10);
-    const team2Score = parseInt(scoreInputs[1].value, 10);
-
-    // Validate scores
-    if (isNaN(team1Score) || isNaN(team2Score)) {
-        alert('Please enter valid scores for both teams.');
-        return;
-    }
-
-    // Determine if the match is a draw
-    let winner = null;
-    let loser = null;
-    if (team1Score > team2Score) {
-        winner = team1;
-        loser = team2;
-    } else if (team2Score > team1Score) {
-        winner = team2;
-        loser = team1;
-    } else {
-        // If the match is a draw, add an extra time row if it doesn't already exist
-        const extraTimeRow = document.querySelector(`tr[data-extra-time="${match}"]`);
-        if (!extraTimeRow) {
-            const table = button.closest('table');
-            const row = table.insertRow();
-            row.setAttribute('data-extra-time', match);
-            row.innerHTML = `
-                <td>Extra Time</td>
-                <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-extra-time="${match}" data-team="team1">
-                    <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-extra-time="${match}" data-team="team2">
-                </td>
-                <td colspan="2">
-                    <button class="submit-extra-time" data-match="${match}" data-team1="${team1}" data-team2="${team2}">Submit Extra Time</button>
-                </td>
-            `;
-            row.querySelector('.submit-extra-time').addEventListener('click', handleExtraTimeSubmission);
-        }
-        alert('The match is a draw. Please handle extra time.');
-        return; // Exit the function after adding the extra time row
-    }
-
-    // Highlight the winner if there is one
-    const teamCells = document.querySelectorAll(`td[data-match="${match}"]`);
-    teamCells.forEach(cell => {
-        if (winner && cell.textContent.trim() === winner) {
-            cell.classList.add('winner');
-        } else {
-            cell.classList.remove('winner');
-        }
-    });
-
-    // Save the result to Firestore
-    try {
-        const roundOf16TeamsDoc = await db.collection('roundOf16Teams').doc('matches').get();
-        if (!roundOf16TeamsDoc.exists) {
-            console.error('No Round of 16 matches document found in Firestore.');
-            return;
-        }
-
-        const matches = roundOf16TeamsDoc.data().matches;
-
-        // Update the specific match with the new scores
-        const updatedMatches = matches.map(m => {
-            if (m.match === match) {
-                return {
-                    ...m,
-                    winner: winner || null, // Save null if no winner yet
-                    loser: loser || null,  // Save null if no loser yet
-                    team1Score: team1Score,
-                    team2Score: team2Score
-                };
-            }
-            return m;
-        });
-
-        // Save the updated matches back to Firestore
-        await db.collection('roundOf16Teams').doc('matches').update({ matches: updatedMatches });
-
         // Show an alert only if the match has a winner
         if (winner) {
             alert(`Result saved: ${winner} wins`);
         }
     } catch (error) {
-        console.error('Error saving match result:', error);
-        alert('Failed to save the result. Please try again.');
-    }
-}    } catch (error) {
         console.error('Error saving match result:', error);
         alert('Failed to save the result. Please try again.');
     }
