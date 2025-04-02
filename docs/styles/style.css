@@ -138,7 +138,7 @@ button#logout-button:hover {
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .main-container {
-        font-size: 12px; /* Smaller font size for mobile */
+        font-size: 13px; /* Smaller font size for mobile */
         flex-direction: column;
         gap: 10px;
     }
@@ -156,7 +156,7 @@ button#logout-button:hover {
 /* Adjust layout for screens between 768px and 1200px */
 @media (min-width: 768px) and (max-width: 962px) {
     .main-container {
-        flex-direction: column; /* Stack the containers vertically */
+        flex-direction: row;
     }
 
     .groups-container,
