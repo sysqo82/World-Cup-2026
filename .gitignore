@@ -1,8 +1,4 @@
 node_modules/
 # Ignore exported files and sensitive data
-export.js
-firestore-export.json
-insertr-countries.js
-world-cup-2026-b1fda-firebase-adminsdk-fbsvc-997604191c.json
-clear-db.js
-add-initialrank.js
+/*.json
+/*.js
