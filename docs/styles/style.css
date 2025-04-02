@@ -132,6 +132,32 @@ button#logout-button:hover {
 }
 
 /* Responsive adjustments */
+@media (max-width: 1080px) and (min-width: 768px) {
+    .main-container {
+        flex-direction: column;
+    }
+
+    .tables-container {
+        grid-template-columns: repeat(2, 1fr); /* Two tables per row */
+    }
+
+    .fixtures-container {
+        order: 2; /* Move fixtures below tables */
+    }
+}
+
+@media (max-width: 1166px) and (min-width: 1080px) {
+    .score-input {
+        width: 50px; /* Reduce size of score inputs */
+        margin: 0 5px; /* Add spacing between inputs */
+        display: inline-block; /* Ensure inputs are side by side */
+    }
+
+    .fixtures-container td {
+        text-align: center; /* Center-align the inputs in the table cells */
+    }
+}
+
 @media (max-width: 768px) {
     .main-container {
         flex-direction: column;
