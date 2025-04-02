@@ -97,7 +97,7 @@ th {
 
 /* Score input styling */
 .score-input {
-    width: 15px;
+    width: 60px;
     text-align: center;
     padding: 5px;
     font-size: 14px;
@@ -141,6 +141,10 @@ button#logout-button:hover {
         font-size: 13px; /* Smaller font size for mobile */
         flex-direction: column;
         gap: 10px;
+    }
+
+    .score-input {
+        width: 15px;
     }
 
     .groups-container,
