@@ -41,9 +41,13 @@ h1 {
     gap: 20px;
 }
 
-.groups-container,
+.groups-container {
+    flex: 0 1 55%; /* Take 60% width */
+    min-width: 300px; /* Ensure it doesn't shrink too much */
+}
+
 .fixtures-container {
-    flex: 1 1 calc(50% - 20px); /* Take 50% width with spacing */
+    flex: 0 1 45%; /* Take 40% width */
     min-width: 300px; /* Ensure it doesn't shrink too much */
 }
 
@@ -58,7 +62,7 @@ h1 {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
     gap: 20px;
-    padding: 20px;
+    padding: 0 20px 20px 0;
 }
 
 /* Group container styling */
@@ -132,36 +136,6 @@ button#logout-button:hover {
 }
 
 /* Responsive adjustments */
-@media (max-width: 1080px) and (min-width: 768px) {
-    .main-container {
-        flex-direction: column;
-    }
-
-    .tables-container {
-        grid-template-columns: repeat(2, 1fr); /* Two tables per row */
-    }
-
-    .fixtures-container {
-        order: 2; /* Move fixtures below tables */
-    }
-}
-
-@media (max-width: 1166px) and (min-width: 1080px) {
-    .score-input {
-        width: 50px; /* Reduce size of score inputs */
-        margin: 0 5px; /* Add spacing between inputs */
-        display: inline-block; /* Ensure inputs are side by side */
-    }
-
-    .fixtures-container td {
-        text-align: center; /* Center-align the inputs in the table cells */
-    }
-    
-    .score-container {
-        gap: 3px; /* Reduce spacing between inputs */
-    }
-}
-
 @media (max-width: 768px) {
     .main-container {
         flex-direction: column;
