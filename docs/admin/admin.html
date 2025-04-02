@@ -28,10 +28,10 @@
     </div>
 
     <!-- Admin Content -->
-    <div id="admin-content" style="display: none;">
+    <div id="admin-content">
         <!-- Dropdown for groups -->
-        <label for="group-select">Select Group:</label>
-        <select id="group-select">
+        <label for="navigation-select">Select Group:</label>
+        <select id="navigation-select">
             <option value="">-- Select a Group --</option>
         </select>
 
@@ -112,7 +112,7 @@
         });
 
         // Add event listener for the "Generate Round of 16" button
-    document.getElementById('generate-round-of-16').addEventListener('click', async () => {
+        document.getElementById('generate-round-of-16').addEventListener('click', async () => {
         try {
             // Fetch the current state of the groups
             const groupsSnapshot = await db.collection('groups').get();
@@ -155,6 +155,38 @@
                 };
             }).filter(match => match !== null); // Remove any null matches
 
+            // Display the Round of 16 structure
+            const teamsContainer = document.getElementById('teams-container');
+            teamsContainer.innerHTML = '<h2>Round of 16 Matches</h2>';
+            const table = document.createElement('table');
+            table.className = 'fixtures-table';
+            table.innerHTML = `
+                <tr>
+                    <th>Match</th>
+                    <th>Team 1</th>
+                    <th>Result</th>
+                    <th>Team 2</th>
+                </tr>
+            `;
+
+            roundOf16Teams.forEach((match, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${match.team1}</td>
+                    <td>
+                        <div class="score-container">
+                            <input type="number" class="score-input" placeholder="0"> -
+                            <input type="number" class="score-input" placeholder="0">
+                        </div>
+                    </td>
+                    <td>${match.team2}</td>
+                `;
+                table.appendChild(row);
+            });
+
+            teamsContainer.appendChild(table);
+
             // Save the Round of 16 structure to Firestore
             await db.collection('roundOf16Teams').doc('matches').set({ matches: roundOf16Teams });
             alert('Round of 16 structure generated successfully!');
@@ -182,7 +214,7 @@
 
         // Populate the dropdown with groups
         function populateGroupDropdown(groups) {
-            const groupSelect = document.getElementById('group-select');
+            const groupSelect = document.getElementById('navigation-select');
             groups.forEach(group => {
                 if (group.name) {
                     const option = document.createElement('option');

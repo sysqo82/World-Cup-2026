@@ -156,6 +156,10 @@ button#logout-button:hover {
     .fixtures-container td {
         text-align: center; /* Center-align the inputs in the table cells */
     }
+    
+    .score-container {
+        gap: 3px; /* Reduce spacing between inputs */
+    }
 }
 
 @media (max-width: 768px) {
@@ -172,4 +176,29 @@ button#logout-button:hover {
     .tables-container {
         grid-template-columns: 1fr; /* Single column on small screens */
     }
+}
+
+/* Fixtures table styling */
+.fixtures-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.fixtures-table th,
+.fixtures-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.fixtures-table th {
+    background-color: #f2f2f2;
+}
+
+.score-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px; /* Add spacing between the inputs */
 }
