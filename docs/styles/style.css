@@ -42,12 +42,12 @@ h1 {
 }
 
 .groups-container {
-    flex: 0 1 55%; /* Take 60% width */
+    flex: 0 1 50%; /* Take 60% width */
     min-width: 300px; /* Ensure it doesn't shrink too much */
 }
 
 .fixtures-container {
-    flex: 0 1 45%; /* Take 40% width */
+    flex: 0 1 40%; /* Take 40% width */
     min-width: 300px; /* Ensure it doesn't shrink too much */
 }
 
@@ -62,7 +62,7 @@ h1 {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
     gap: 20px;
-    padding: 0 20px 20px 0;
+    padding: 20px;
 }
 
 /* Group container styling */
@@ -149,6 +149,18 @@ button#logout-button:hover {
 
     .tables-container {
         grid-template-columns: 1fr; /* Single column on small screens */
+    }
+}
+
+/* Adjust layout for screens between 768px and 1200px */
+@media (min-width: 768px) and (max-width: 962px) {
+    .main-container {
+        flex-direction: column; /* Stack the containers vertically */
+    }
+
+    .groups-container,
+    .fixtures-container {
+        flex: 1 1 100%; /* Full width for both containers */
     }
 }
 
