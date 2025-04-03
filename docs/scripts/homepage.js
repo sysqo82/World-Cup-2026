@@ -168,7 +168,7 @@ auth.onAuthStateChanged(user => {
                         <th></th>
                         <th>Result</th>
                         <th></th>
-                        <th>Action</th>
+                        <th></th>
                     </tr>
                 `;
 
@@ -308,7 +308,6 @@ auth.onAuthStateChanged(user => {
             leftScoreInput.value = leftScore;
             rightScoreInput.value = rightScore;
 
-            alert(`Scores submitted for Matchday ${matchday}: ${leftScore} - ${rightScore}`);
         } catch (error) {
             console.error('Error submitting scores:', error);
             alert('An error occurred while submitting the scores.');

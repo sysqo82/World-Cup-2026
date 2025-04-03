@@ -1,19 +1,5 @@
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyBxdeTLscpv1RK8W7SabyJJckYiBjLQRvM",
-    authDomain: "world-cup-2026-b1fda.firebaseapp.com",
-    projectId: "world-cup-2026-b1fda",
-    storageBucket: "world-cup-2026-b1fda.firebasestorage.app",
-    messagingSenderId: "355932893733",
-    appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
-    measurementId: "G-6QWWJLC2LM"
-};
-
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
+// Import Firebase configuration and services
+import { db, auth } from '../scripts/firebase-config.js';
 
 // Check authentication state on page load
 auth.onAuthStateChanged(user => {
@@ -42,7 +28,7 @@ document.getElementById('login-button').addEventListener('click', () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
-    firebase.auth().signInWithEmailAndPassword(email, password)
+    auth.signInWithEmailAndPassword(email, password)
         .then(userCredential => {
             console.log(`Logged in as: ${userCredential.user.email}`);
             window.location.href = './admin.html';
@@ -99,13 +85,13 @@ document.getElementById('generate-round-of-16').addEventListener('click', async 
             }
 
             // Get the winner and runner-up from each group
-            const team1 = group1?.teams?.team1?.name || 'Unknown'; // Winner of group1
-            const team2 = group2?.teams?.team2?.name || 'Unknown'; // Runner-up of group2
+            const team1 = getTeamByRank(group1, 1); // Winner of group1
+            const team2 = getTeamByRank(group2, 2); // Runner-up of group2
 
             return {
                 match: rule.match,
-                team1: team1,
-                team2: team2
+                team1: team1.name || 'Unknown',
+                team2: team2.name || 'Unknown'
             };
         }).filter(match => match !== null); // Remove any null matches
 
@@ -118,23 +104,36 @@ document.getElementById('generate-round-of-16').addEventListener('click', async 
     }
 });
 
-// Ensure groupSelect is defined before using it
-const groupSelect = document.getElementById('navigation-select');
-if (!groupSelect) {
-    console.error('Dropdown element with ID "navigation-select" not found.');
-}
+// Helper function to get a team by rank
+function getTeamByRank(group, rank) {
+    const teams = Object.entries(group.teams || {});
 
+    // Check if no matches have been played (P = 0 for all teams)
+    const noMatchesPlayed = teams.every(([, team]) => team.P === 0);
 
-groupSelect.addEventListener('change', (event) => {
-    const selectedGroupId = event.target.value;
-    console.log(`Selected group ID: ${selectedGroupId}`);
-    if (selectedGroupId) {
-        const selectedGroup = groups.find(group => group.id === selectedGroupId);
-        displayTeams(selectedGroup);
+    if (noMatchesPlayed) {
+        // Sort by initial rank (mapped to #)
+        const sortedByInitialRank = teams.sort(([, a], [, b]) => (a['#'] || 0) - (b['#'] || 0));
+        return sortedByInitialRank[rank - 1]?.[1] || {}; // Return the team at the given rank
     } else {
-        document.getElementById('teams-container').innerHTML = ''; // Clear teams list
+        // Sort by current ranking (points, goal difference, goals scored)
+        const sortedByCurrentRank = teams
+            .map(([id, team]) => ({
+                id,
+                ...team,
+                goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
+            }))
+            .sort((a, b) => {
+                return (
+                    b.points - a.points || // Sort by points
+                    b.goalDifference - a.goalDifference || // Then by goal difference
+                    b.goalsScored - a.goalsScored // Then by goals scored
+                );
+            });
+
+        return sortedByCurrentRank[rank - 1] || {}; // Return the team at the given rank
     }
-});
+}
 
 // Fetch all groups and populate the dropdown
 function fetchGroups() {
@@ -154,7 +153,7 @@ function fetchGroups() {
             populateGroupDropdown(groups);
         })
         .catch(err => {
-            console.error('Error fetching groups:', err); // Log the error
+            console.error('Error fetching groups:', err);
             alert('Failed to fetch groups. Please check your Firestore configuration or network connection.');
         });
 }
