@@ -165,9 +165,9 @@ auth.onAuthStateChanged(user => {
                     <tr>
                         <th>Match</th>
                         <th>Group</th>
-                        <th>Team 1</th>
+                        <th></th>
                         <th>Result</th>
-                        <th>Team 2</th>
+                        <th></th>
                         <th>Action</th>
                     </tr>
                 `;
