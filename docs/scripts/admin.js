@@ -211,13 +211,15 @@ function displayTeams(group) {
             `;
 
             teamsContainer.appendChild(teamDiv);
-            console.log(`Displayed team: ${team.name || 'Unknown'} (ID: ${teamId})`);
         });
     } else {
         console.warn(`No teams found for group: ${group.name}`);
         teamsContainer.innerHTML = '<p>No teams found for this group.</p>';
     }
 }
+
+// Attach updateTeam to the global window object
+window.updateTeam = updateTeam;
 
 // Function to update the team data in Firestore
 function updateTeam(groupId, teamId) {
