@@ -4,290 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Page - World Cup 2026</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="../styles/style.css">
+
+    <!-- Firebase SDKs (Browser-Compatible Versions) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
-<body>
-    <h1>Admin Page - World Cup 2026</h1>
+<body class="bg-light">
+    <div class="container text-center mt-5">
+        <div class="header-container">
+            <h1>Admin Page - World Cup 2026</h1>
+            <button id="logout-button" class="btn btn-danger">Logout</button>
+        </div>
 
-    <!-- Logout Button -->
-    <button id="logout-button" style="display: none;">Logout</button>
+        <!-- Authentication Form -->
+        <div id="auth-container" class="card mx-auto p-4 shadow-sm" style="max-width: 400px;">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email:</label>
+                <input type="email" id="email" class="form-control" placeholder="Enter email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password:</label>
+                <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+            </div>
+            <button id="login-button" class="btn btn-primary w-100">Login</button>
+            <p id="auth-error" class="text-danger mt-3" style="display: none;">Invalid email or password.</p>
+        </div>
 
-    <!-- Authentication Form -->
-    <div id="auth-container">
-        <label for="email">Email:</label>
-        <input type="email" id="email" placeholder="Enter email" required>
-        <br>
-        <label for="password">Password:</label>
-        <input type="password" id="password" placeholder="Enter password" required>
-        <br>
-        <button id="login-button">Login</button>
-        <p id="auth-error" style="color: red; display: none;">Invalid email or password.</p>
-    </div>
-
-    <!-- Admin Content -->
-    <div id="admin-content">
-        <!-- Dropdown for groups -->
-        <label for="navigation-select">Select Group:</label>
-        <select id="navigation-select">
-            <option value="">-- Select a Group --</option>
-        </select>
-
-        <!-- Button to generate Round of 16 structure -->
-        <button id="generate-round-of-16" class="submit-button">Generate Round of 16</button>
-
-        <!-- Teams list -->
-        <div id="teams-container" style="margin-top: 20px;">
-            <!-- Teams will be dynamically displayed here -->
+        <!-- Admin Content -->
+        <div id="admin-content" class="mt-5">
+            <!-- Dropdown for groups and Generate button -->
+              <div class="mb-4 d-flex justify-content-center align-items-center">
+                <label for="navigation-select" class="form-label me-2" style="padding-top: 10px;">Select Group:</label>
+                <select id="navigation-select" class="form-select" style="width: auto;">
+                    <option value="">-- Select a Group --</option>
+                </select>
+                <button id="generate-round-of-16" class="submit-button ms-3">Generate Round of 16</button>
+            </div>
+        
+            <!-- Teams list -->
+            <div id="teams-container" class="mt-4">
+                <!-- Teams will be dynamically displayed here -->
+            </div>
         </div>
     </div>
-
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBxdeTLscpv1RK8W7SabyJJckYiBjLQRvM",
-            authDomain: "world-cup-2026-b1fda.firebaseapp.com",
-            projectId: "world-cup-2026-b1fda",
-            storageBucket: "world-cup-2026-b1fda.firebasestorage.app",
-            messagingSenderId: "355932893733",
-            appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
-            measurementId: "G-6QWWJLC2LM"
-        };
-
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        // Check authentication state on page load
-        auth.onAuthStateChanged(user => {
-            const logoutButton = document.getElementById('logout-button');
-            const authContainer = document.getElementById('auth-container');
-            const adminContent = document.getElementById('admin-content');
-
-            if (user) {
-                // User is logged in
-                authContainer.style.display = 'none';
-                adminContent.style.display = 'block';
-                logoutButton.style.display = 'block';
-
-                // Fetch groups
-                fetchGroups();
-            } else {
-                // User is not logged in
-                authContainer.style.display = 'block';
-                adminContent.style.display = 'none';
-                logoutButton.style.display = 'none';
-            }
-        });
-
-        // Handle login
-        document.getElementById('login-button').addEventListener('click', () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    console.log(`Logged in as: ${userCredential.user.email}`);
-                    window.location.href = './admin.html';
-                })
-                .catch(error => {
-                    console.error('Error during login:', error);
-                    document.getElementById('auth-error').style.display = 'block';
-                });
-        });
-
-        // Handle logout
-        document.getElementById('logout-button').addEventListener('click', () => {
-            auth.signOut()
-                .then(() => {
-                    location.reload(); // Reload the page to show the login form
-                })
-                .catch(err => {
-                    console.error('Error during logout:', err);
-                    alert('Failed to log out. Please try again.');
-                });
-        });
-
-        // Add event listener for the "Generate Round of 16" button
-        document.getElementById('generate-round-of-16').addEventListener('click', async () => {
-        try {
-            // Fetch the current state of the groups
-            const groupsSnapshot = await db.collection('groups').get();
-            const groups = groupsSnapshot.docs.reduce((acc, doc) => {
-                acc[doc.id] = doc.data();
-                return acc;
-            }, {});
-
-            // Define the match rules for the Round of 16
-            const matchRules = [
-                { match: '1A vs. 2B', group1: 'group1', group2: 'group2' },
-                { match: '1C vs. 2D', group1: 'group3', group2: 'group4' },
-                { match: '1E vs. 2F', group1: 'group5', group2: 'group6' },
-                { match: '1G vs. 2H', group1: 'group7', group2: 'group8' },
-                { match: '1B vs. 2A', group1: 'group2', group2: 'group1' },
-                { match: '1D vs. 2C', group1: 'group4', group2: 'group3' },
-                { match: '1F vs. 2E', group1: 'group6', group2: 'group5' },
-                { match: '1H vs. 2G', group1: 'group8', group2: 'group7' }
-            ];
-
-            // Prepare the Round of 16 structure
-            const roundOf16Teams = matchRules.map(rule => {
-                const group1 = groups[rule.group1];
-                const group2 = groups[rule.group2];
-
-                // Ensure both groups exist
-                if (!group1 || !group2) {
-                    console.warn(`Missing data for groups: ${rule.group1} or ${rule.group2}`);
-                    return null; // Skip this match if data is missing
-                }
-
-                // Get the winner and runner-up from each group
-                const team1 = group1?.teams?.team1?.name || 'Unknown'; // Winner of group1
-                const team2 = group2?.teams?.team2?.name || 'Unknown'; // Runner-up of group2
-
-                return {
-                    match: rule.match,
-                    team1: team1,
-                    team2: team2
-                };
-            }).filter(match => match !== null); // Remove any null matches
-
-            // Display the Round of 16 structure
-            const teamsContainer = document.getElementById('teams-container');
-            teamsContainer.innerHTML = '<h2>Round of 16 Matches</h2>';
-            const table = document.createElement('table');
-            table.className = 'fixtures-table';
-            table.innerHTML = `
-                <tr>
-                    <th>Match</th>
-                    <th>Team 1</th>
-                    <th>Result</th>
-                    <th>Team 2</th>
-                </tr>
-            `;
-
-            roundOf16Teams.forEach((match, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${match.team1}</td>
-                    <td>
-                        <div class="score-container">
-                            <input type="number" class="score-input" placeholder="0"> -
-                            <input type="number" class="score-input" placeholder="0">
-                        </div>
-                    </td>
-                    <td>${match.team2}</td>
-                `;
-                table.appendChild(row);
-            });
-
-            teamsContainer.appendChild(table);
-
-            // Save the Round of 16 structure to Firestore
-            await db.collection('roundOf16Teams').doc('matches').set({ matches: roundOf16Teams });
-            alert('Round of 16 structure generated successfully!');
-        } catch (error) {
-            console.error('Error generating Round of 16 structure:', error);
-            alert('Failed to generate Round of 16 structure. Please try again.');
-        }
-    });
-
-        // Fetch all groups and populate the dropdown
-        function fetchGroups() {
-            db.collection('groups').get()
-                .then(groupsSnapshot => {
-                    const groups = groupsSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-
-                    populateGroupDropdown(groups);
-                })
-                .catch(err => {
-                    console.error('Error fetching groups:', err);
-                });
-        }
-
-        // Populate the dropdown with groups
-        function populateGroupDropdown(groups) {
-            const groupSelect = document.getElementById('navigation-select');
-            groups.forEach(group => {
-                if (group.name) {
-                    const option = document.createElement('option');
-                    option.value = group.id;
-                    option.textContent = group.name;
-                    groupSelect.appendChild(option);
-                }
-            });
-
-            // Add event listener for group selection
-            groupSelect.addEventListener('change', (event) => {
-                const selectedGroupId = event.target.value;
-                if (selectedGroupId) {
-                    const selectedGroup = groups.find(group => group.id === selectedGroupId);
-                    displayTeams(selectedGroup);
-                } else {
-                    document.getElementById('teams-container').innerHTML = ''; // Clear teams list
-                }
-            });
-        }
-
-        // Display teams for the selected group
-        function displayTeams(group) {
-            const teamsContainer = document.getElementById('teams-container');
-            teamsContainer.innerHTML = ''; // Clear previous teams
-
-            if (group.teams && typeof group.teams === 'object') {
-                // Convert teams object to an array and sort by initialRank (ascending)
-                const sortedTeams = Object.entries(group.teams).sort(([, a], [, b]) => (a.initialRank || 0) - (b.initialRank || 0));
-
-                // Iterate through sorted teams
-                sortedTeams.forEach(([teamId, team], index) => {
-                    const teamDiv = document.createElement('div');
-                    teamDiv.style.marginBottom = '20px';
-
-                    teamDiv.innerHTML = `
-                        <label>Rank ${index + 1}:</label>
-                        <input type="text" id="name-${teamId}" value="${team.name || 'Unknown'}" style="margin-right: 10px;">
-                        <button onclick="updateTeam('${group.id}', '${teamId}')">Update</button>
-                    `;
-
-                    teamsContainer.appendChild(teamDiv);
-                });
-            } else {
-                console.warn(`No teams found for group: ${group.name}`);
-                teamsContainer.innerHTML = '<p>No teams found for this group.</p>';
-            }
-        }
-
-        // Function to update the team data in Firestore
-        function updateTeam(groupId, teamId) {
-            const nameInput = document.getElementById(`name-${teamId}`);
-
-            // Ensure the input element exists
-            if (!nameInput) {
-                console.error(`Input field for teamId ${teamId} not found.`);
-                alert('Failed to update team. Please try again.');
-                return;
-            }
-
-            const updatedData = {
-                name: nameInput.value
-            };
-
-            // Use Firestore's update method to update only the specified fields
-            db.collection('groups').doc(groupId).update({
-                [`teams.${teamId}.name`]: updatedData.name
-            })
-            .catch(err => {
-                console.error('Error updating team:', err);
-                alert('Failed to update team. Please try again.');
-            });
-        }
-    </script>
+    <!-- Include the external JavaScript file -->
+    <script src="../scripts/admin.js"></script>
 </body>
 </html>
