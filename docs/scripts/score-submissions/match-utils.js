@@ -17,8 +17,8 @@ export async function saveMatchResult(match, team1Score, team2Score, winner, los
                 if (type === 'regular') {
                     return {
                         ...m,
-                        team1Score,
-                        team2Score,
+                        regularTimeTeam1Score: team1Score,
+                        regularTimeTeam2Score: team2Score,
                         winner,
                         loser,
                         type,
