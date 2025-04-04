@@ -60,7 +60,7 @@ async function generateRoundOf16() {
         return;
     }
 
-    matches.forEach((match, index) => {
+    matches.forEach((match) => {
         const table = document.createElement('table');
         table.classList.add('match-table');
         table.innerHTML = `
@@ -73,12 +73,12 @@ async function generateRoundOf16() {
                 </td>
                 <td class="team-name" data-team="team2" data-match="${match.match}">${match.team2}</td>
                 <td>
-                    <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}">Submit</button>
+                    <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="${match.type}">Submit</button>
                 </td>
             </tr>
         `;
         container.appendChild(table);
-
+    
         // Highlight the winner if it exists
         if (match.winner) {
             const teamCells = table.querySelectorAll(`td[data-match="${match.match}"]`);
@@ -90,20 +90,18 @@ async function generateRoundOf16() {
                 }
             });
         }
-
-        // Add event listeners to submit buttons
-        const submitButtons = document.querySelectorAll('.submit-button');
-        submitButtons.forEach(button => {
-            button.addEventListener('click', (event) => {
-                const matchType = match.type; // Assume match.type indicates "regular", "extra", or "penalty"
-                if (matchType === 'regular') {
-                    handleRegularTimeSubmission(event);
-                } else if (matchType === 'extra') {
-                    handleExtraTimeSubmission(event);
-                } else if (matchType === 'penalty') {
-                    handlePenaltyShootoutsSubmission(event);
-                }
-            });
+    
+        // Add event listener to the submit button for this match
+        const submitButton = table.querySelector('.submit-button');
+        submitButton.addEventListener('click', async (event) => {
+            const matchType = match.type; // "regular", "extra", or "penalty"
+            if (matchType === 'regular') {
+                await handleRegularTimeSubmission(event, table);
+            } else if (matchType === 'extra') {
+                await handleExtraTimeSubmission(event, table);
+            } else if (matchType === 'penalty') {
+                await handlePenaltyShootoutsSubmission(event, table);
+            }
         });
     });
 }

@@ -91,7 +91,8 @@ document.getElementById('generate-round-of-16').addEventListener('click', async 
             return {
                 match: rule.match,
                 team1: team1.name || 'Unknown',
-                team2: team2.name || 'Unknown'
+                team2: team2.name || 'Unknown',
+                type: 'regular'
             };
         }).filter(match => match !== null); // Remove any null matches
 
