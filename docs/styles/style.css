@@ -171,7 +171,7 @@ button#logout-button:hover {
         position: static;
         margin: 0;
     }
-    
+
     .main-container {
         font-size: 13px;
         flex-direction: column;
@@ -190,18 +190,18 @@ button#logout-button:hover {
     .tables-container {
         grid-template-columns: 1fr;
     }
-    
+
     /* Adjust the team name container to be smaller */
     .round-of-16-container .team-name {
         width: 70px;
     }
-    
+
     /* Increase the size of the score input section */
     .round-of-16-container .score-section {
         height: 49px;
         gap: 10px;
     }
-    
+
     /* Adjust the score input width for better usability */
     .round-of-16-container .score-input {
         width: 50px;
@@ -215,9 +215,11 @@ button#logout-button:hover {
         flex-direction: row;
     }
 
-    .groups-container,
+    .groups-container {
+        flex: 0 1 60%;
+    }
     .fixtures-container {
-        flex: 1 1 100%;
+        flex: 0 1 35%;
     }
 }
 
