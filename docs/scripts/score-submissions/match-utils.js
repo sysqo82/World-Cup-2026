@@ -57,7 +57,6 @@ export async function saveMatchResult(match, team1Score, team2Score, winner, los
         });
 
         await docRef.update({ matches: updatedMatches });
-        console.log(`Match ${match} updated successfully.`);
     } catch (error) {
         console.error('Error saving match result:', error);
     }

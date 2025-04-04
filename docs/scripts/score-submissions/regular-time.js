@@ -43,9 +43,9 @@ export async function handleRegularTimeSubmission(event, table) {
         // Save the result to Firestore
         await saveMatchResult(match, team1Score, team2Score, winner, loser, 'regular');
     } else {
-        // If it's a draw, add extra time
+        // If it's a draw, update the match type to "extra" and add extra time
         alert('The match ended in a draw. Adding extra time...');
-        await saveMatchResult(match, team1Score, team2Score, winner, loser, 'regular');
+        await saveMatchResult(match, team1Score, team2Score, winner, loser, 'extra');
         addExtraTimeRow(table, match, team1, team2);
     }
 }
@@ -56,9 +56,9 @@ function addExtraTimeRow(table, match, team1, team2) {
     extraTimeRow.innerHTML = `
         <td colspan="4">
             <p>Extra Time</p>
-            <input type="number" class="score-input" placeholder="Score" data-match="${match}" data-team="team1">
+            <input type="number" class="score-input" placeholder="Score" data-match="${match}" data-team="team1" data-type="extra">
             <span class="score-divider">-</span>
-            <input type="number" class="score-input" placeholder="Score" data-match="${match}" data-team="team2">
+            <input type="number" class="score-input" placeholder="Score" data-match="${match}" data-team="team2" data-type="extra">
             <button class="submit-button" data-match="${match}" data-team1="${team1}" data-team2="${team2}" data-type="extra">Submit Extra Time</button>
         </td>
     `;

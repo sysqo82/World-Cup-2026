@@ -6,8 +6,8 @@ export async function handlePenaltyShootoutsSubmission(event, table) {
     const team1 = button.dataset.team1;
     const team2 = button.dataset.team2;
 
-    // Get the input fields for the match
-    const scoreInputs = table.querySelectorAll(`input[data-match="${match}"]`);
+    // Get the input fields for the penalty shootouts match
+    const scoreInputs = table.querySelectorAll(`input[data-match="${match}"][data-type="penalty"]`);
     const team1Score = parseInt(scoreInputs[0].value, 10);
     const team2Score = parseInt(scoreInputs[1].value, 10);
 
