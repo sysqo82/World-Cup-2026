@@ -6,7 +6,7 @@ export async function handlePenaltyShootoutsSubmission(event, table) {
     const team1 = button.dataset.team1;
     const team2 = button.dataset.team2;
 
-    // Get the input fields for the penalty shootouts match
+    // Get the input fields for the penalty shootout match
     const scoreInputs = table.querySelectorAll(`input[data-match="${match}"][data-type="penalty"]`);
     const team1Score = parseInt(scoreInputs[0].value, 10);
     const team2Score = parseInt(scoreInputs[1].value, 10);
@@ -27,27 +27,29 @@ export async function handlePenaltyShootoutsSubmission(event, table) {
         winner = team2;
         loser = team1;
     } else {
-        // Penalty shootouts cannot end in a draw
-        alert('Penalty shootouts must have a winner. Please enter valid scores.');
+        // This case should never happen in penalty shootouts
+        alert('Penalty shootouts must have a winner. Please check the scores.');
         return;
     }
 
-    // Highlight the winner
-    const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
-    teamCells.forEach(cell => {
-        if (cell.textContent.trim() === winner) {
-            cell.classList.add('winner');
-        } else {
-            cell.classList.remove('winner');
-        }
-    });
-
-    // Save the result to Firestore
     try {
+        // Update Firestore with the penalty shootout scores
         await saveMatchResult(match, team1Score, team2Score, winner, loser, 'penalty');
-        alert(`Penalty shootouts result saved: ${winner} wins!`);
+
+        // Highlight the winner
+        const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
+        teamCells.forEach(cell => {
+            if (cell.textContent.trim() === winner) {
+                cell.classList.add('winner');
+            } else {
+                cell.classList.remove('winner');
+            }
+        });
+
+        // Lock the score inputs and disable the submit button
+        scoreInputs.forEach(input => input.disabled = true);
+        button.disabled = true;
     } catch (error) {
-        console.error('Error saving penalty shootouts result:', error);
-        alert('Failed to save the result. Please try again.');
+        console.error('Error updating penalty shootout scores:', error);
     }
 }

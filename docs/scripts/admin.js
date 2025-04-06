@@ -92,7 +92,17 @@ document.getElementById('generate-round-of-16').addEventListener('click', async 
                 match: rule.match,
                 team1: team1.name || 'Unknown',
                 team2: team2.name || 'Unknown',
-                type: 'regular'
+                type: 'regular',
+                regularTimeTeam1Score: null,
+                regularTimeTeam2Score: null,
+                extraTimeTeam1Score: null,
+                extraTimeTeam2Score: null,
+                penaltyShootoutsTeam1Score: null,
+                penaltyShootoutsTeam2Score: null,
+                winner: null,
+                loser: null,
+                displayExtraTime: false,
+                displayPenaltyShootouts: false,
             };
         }).filter(match => match !== null); // Remove any null matches
 

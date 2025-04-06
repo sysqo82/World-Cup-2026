@@ -1,6 +1,6 @@
 import { db } from '../firebase-config.js';
 
-export async function saveMatchResult(match, team1Score, team2Score, winner, loser, type) {
+export async function saveMatchResult(match, team1Score, team2Score, winner, loser, type, displayExtraTime = false, displayPenaltyShootouts = false) {
     try {
         const docRef = db.collection('roundOf16Teams').doc('matches');
         const doc = await docRef.get();
@@ -22,9 +22,11 @@ export async function saveMatchResult(match, team1Score, team2Score, winner, los
                         winner,
                         loser,
                         type,
-                        extraTimeTeam1Score: null, // Prepare for extra time
+                        displayExtraTime,
+                        extraTimeTeam1Score: null,
                         extraTimeTeam2Score: null,
-                        penaltyShootoutsTeam1Score: null, // Prepare for penalty shootouts
+                        displayPenaltyShootouts: false,
+                        penaltyShootoutsTeam1Score: null,
                         penaltyShootoutsTeam2Score: null,
                     };
                 }
@@ -38,6 +40,7 @@ export async function saveMatchResult(match, team1Score, team2Score, winner, los
                         winner,
                         loser,
                         type,
+                        displayPenaltyShootouts,
                     };
                 }
 

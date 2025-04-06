@@ -290,3 +290,31 @@ button#logout-button:hover {
     font-weight: bold;
     border: 2px solid #c3e6cb;
 }
+
+.hidden {
+    display: none;
+}
+
+button.submit-button {
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+button.submit-button:hover {
+    background-color: #45a049;
+}
+
+/* Style for disabled submit button */
+button.submit-button:disabled {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+}
+
+/* Prevent hover effect on disabled buttons */
+button.submit-button:disabled:hover {
+    background-color: #cccccc; /* Keep the disabled background color */
+    color: #666666; /* Keep the disabled text color */
+    cursor: not-allowed; /* Ensure the cursor remains not-allowed */
+}
