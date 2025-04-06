@@ -77,20 +77,28 @@ async function generateRoundOf16() {
                 </td>
             </tr>
             <tr class="extra-time-row ${match.displayExtraTime ? '' : 'hidden'}" data-match="${match.match}">
-                <td colspan="4">Extra Time: 
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score || ''}">
+                <td class="extra-time-label">Extra Time</td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score || ''}">
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score || ''}">
-                    <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="extra">Submit Extra Time</button>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score || ''}">
                 </td>
+                <td>
+                    <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="extra">Submit</button>
+                </td>
+                <td></td>
             </tr>
-            <tr class="penalty-row ${match.displayPenaltyShootouts ? '' : 'hidden'}" data-match="${match.match}">
-                <td colspan="4">Penalty Shootouts: 
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score || ''}">
+            <tr class="penalty-row ${match.displayPenaltyShootouts ? '' : 'hidden'}" data-match="${match.match}         ">
+                <td>Penalties</td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score || ''}">
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score || ''}">
-                    <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="penalty">Submit Penalty</button>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score || ''}">
                 </td>
+                <td>
+                    <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="penalty">Submit</button>
+                </td>
+                <td></td>
             </tr>
         `;
         container.appendChild(table);
@@ -110,6 +118,11 @@ async function generateRoundOf16() {
                     cell.classList.add('winner');
                 } else {
                     cell.classList.remove('winner');
+                }
+                if (cell.textContent.trim() === match.loser) {
+                    cell.classList.add('loser');
+                } else {
+                    cell.classList.remove('loser');
                 }
             });
         }
