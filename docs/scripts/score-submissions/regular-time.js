@@ -1,5 +1,4 @@
 import { saveMatchResult } from './match-utils.js';
-import { handleExtraTimeSubmission } from './extra-time.js';
 
 export async function handleRegularTimeSubmission(event, table) {
     const button = event.target;
@@ -29,44 +28,24 @@ export async function handleRegularTimeSubmission(event, table) {
         loser = team1;
     }
 
-    if (winner) {
-        // Highlight the winner
-        const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
-        teamCells.forEach(cell => {
-            if (cell.textContent.trim() === winner) {
-                cell.classList.add('winner');
-            } else {
-                cell.classList.remove('winner');
-            }
-        });
+    try {
+        // Update Firestore with the regular time scores and displayExtraTime flag
+        const displayExtraTime = team1Score === team2Score;
 
-        // Save the result to Firestore
-        await saveMatchResult(match, team1Score, team2Score, winner, loser, 'regular');
-    } else {
-        // If it's a draw, update the match type to "extra" and add extra time
-        alert('The match ended in a draw. Adding extra time...');
-        await saveMatchResult(match, team1Score, team2Score, winner, loser, 'extra');
-        addExtraTimeRow(table, match, team1, team2);
+        await saveMatchResult(match, team1Score, team2Score, winner, loser, 'regular', displayExtraTime);
+
+        // Highlight the winner if it exists
+        if (winner) {
+            const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
+            teamCells.forEach(cell => {
+                if (cell.textContent.trim() === winner) {
+                    cell.classList.add('winner');
+                } else {
+                    cell.classList.remove('winner');
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error updating regular time scores:', error);
     }
-}
-
-function addExtraTimeRow(table, match, team1, team2) {
-    const extraTimeRow = document.createElement('tr');
-    extraTimeRow.classList.add('extra-time-row');
-    extraTimeRow.innerHTML = `
-        <td colspan="4">
-            <p>Extra Time</p>
-            <input type="number" class="score-input" placeholder="Score" data-match="${match}" data-team="team1" data-type="extra">
-            <span class="score-divider">-</span>
-            <input type="number" class="score-input" placeholder="Score" data-match="${match}" data-team="team2" data-type="extra">
-            <button class="submit-button" data-match="${match}" data-team1="${team1}" data-team2="${team2}" data-type="extra">Submit Extra Time</button>
-        </td>
-    `;
-    table.appendChild(extraTimeRow);
-
-    // Add event listener for the extra time submit button
-    const submitButton = extraTimeRow.querySelector('.submit-button');
-    submitButton.addEventListener('click', async (event) => {
-        await handleExtraTimeSubmission(event, table);
-    });
 }
