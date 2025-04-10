@@ -1,7 +1,7 @@
 function navigateToPage() {
     const selectedPage = document.getElementById('navigation-select').value;
     if (selectedPage === 'group-stage') {
-        window.location.href = 'index.html';
+        window.location.href = '/';
     } else if (selectedPage === 'round-of-16') {
         window.location.href = 'round-of-16.html';
     } else if (selectedPage === 'quarter-final') {
