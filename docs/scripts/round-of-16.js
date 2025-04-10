@@ -1,8 +1,5 @@
-// Import Firebase services
 import { auth } from './config/firebase-config.js';
 import { generateRoundMatches } from './create-round-matches/create-round-matches.js';
-
-
 
 // Check if the user is logged in
 auth.onAuthStateChanged(user => {
