@@ -32,22 +32,26 @@
         <!-- Admin Content -->
         <div id="admin-content" class="mt-5">
             <!-- Dropdown for groups and Generate button -->
-              <div class="mb-4 d-flex justify-content-center align-items-center">
+            <div class="mb-4 text-center">
                 <label for="navigation-select" class="form-label me-2" style="padding-top: 10px;">Select Group:</label>
-                <select id="navigation-select" class="form-select" style="width: auto;">
+                <select id="navigation-select" class="form-select d-inline-block" style="width: auto;">
                     <option value="">-- Select a Group --</option>
                 </select>
-                <button id="generate-round-of-16" class="submit-button ms-3">Generate Round of 16</button>
             </div>
-        
             <!-- Teams list -->
             <div id="teams-container" class="mt-4">
                 <!-- Teams will be dynamically displayed here -->
             </div>
+            <!-- Buttons arranged in a single column -->
+            <div class="d-flex flex-column align-items-center">
+                <button id="generate-round-of-16" class="submit-button mb-2">Generate Round of 16</button>
+                <button id="generate-quarter-finals" class="submit-button mb-2">Generate Quarter Finals</button>
+                <button id="generate-semi-finals" class="submit-button mb-2">Generate Semi Finals</button>
+                <button id="generate-final" class="submit-button mb-2">Generate Final</button>
+                <button id="generate-third-place-playoff" class="submit-button">Generate Third Place Playoff</button>
+                </div>
+            </div>
         </div>
-    </div>
-    <!-- Include the external JavaScript file -->
-    <!-- Firebase SDKs (Browser-Compatible Versions) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>

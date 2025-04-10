@@ -3,7 +3,7 @@ import { db, auth } from './firebase-config.js';
 import { handleRegularTimeSubmission } from './score-submissions/regular-time.js';
 import { handleExtraTimeSubmission } from './score-submissions/extra-time.js';
 import { handlePenaltyShootoutsSubmission } from './score-submissions/penalty-shootouts.js';
-const dataBase = 'roundOf16Teams';
+const dataBase = 'quarterFinalsTeams';
 
 // Navigation function
 function navigateToPage() {
@@ -38,34 +38,34 @@ auth.onAuthStateChanged(user => {
 // Add event listener for navigation dropdown
 document.getElementById('navigation-select').addEventListener('change', navigateToPage);
 
-// Fetch Round of 16 matches from Firestore
-async function fetchRoundOf16Matches() {
+// Fetch Quarter Finals Matches from Firestore
+async function fetchQuarterFinalsMatches() {
     try {
-        const doc = await db.collection('roundOf16Teams').doc('matches').get();
+        const doc = await db.collection(`${dataBase}`).doc('matches').get();
         if (!doc.exists) {
-            console.error('No Round of 16 matches found in Firestore.');
+            console.error('No Quarter Finals matches found in Firestore.');
             return [];
         }
         return doc.data().matches || [];
     } catch (error) {
-        console.error('Error fetching Round of 16 matches:', error);
+        console.error('Error fetching Quarter Finals matches:', error);
         return [];
     }
 }
 
-// Generate Round of 16 Matches
-async function generateRoundOf16() {
-    const container = document.querySelector('.round-of-16-container');
+// Generate the quarter-final matches
+async function generateQuarterFinalMatches() {
+    const container = document.querySelector('.quarter-finals-container');
     if (!container) {
-        console.error('Error: Element with class "round-of-16-container" not found.');
+        console.error('Container for quarter-final matches not found.');
         return;
     }
-    container.innerHTML = ''; // Clear any existing content to prevent duplicates
+    container.innerHTML = ''; // Clear previous matches
 
-    const matches = await fetchRoundOf16Matches();
-
+    const matches = await fetchQuarterFinalsMatches();
+    
     if (matches.length === 0) {
-        container.innerHTML = '<p>No matches available for the Round of 16.</p>';
+        container.innerHTML = '<p>No matches available.</p>';
         return;
     }
 
@@ -192,11 +192,13 @@ async function generateRoundOf16() {
             await handlePenaltyShootoutsSubmission(dataBase, event, table);
 
             // Disable inputs and buttons after penalty shootouts
-            const inputs = table.querySelectorAll(`input[data-match="${match.match}"]`);
-            inputs.forEach(input => input.disabled = true);
+            if (match.winner) {
+                const inputs = table.querySelectorAll(`input[data-match="${match.match}"]`);
+                inputs.forEach(input => input.disabled = true);
 
-            const buttons = table.querySelectorAll(`button[data-match="${match.match}"]`);
-            buttons.forEach(button => button.disabled = true);
+                const buttons = table.querySelectorAll(`button[data-match="${match.match}"]`);
+                buttons.forEach(button => button.disabled = true);
+            }
         });
     });
 }
@@ -218,4 +220,4 @@ async function fetchMatchFromDB(dataBase, matchId) {
 }
 
 // Generate matches on page load
-document.addEventListener('DOMContentLoaded', generateRoundOf16);
+document.addEventListener('DOMContentLoaded', generateQuarterFinalMatches);

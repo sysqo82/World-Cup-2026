@@ -192,17 +192,20 @@ button#logout-button:hover {
     }
 
     /* Increase the size of the score input section */
+    .quarter-finals-container .score-section,
     .round-of-16-container .score-section {
         height: 49px;
         gap: 10px;
     }
 
     /* Adjust the score input width for better usability */
+    .quarter-finals-container .score-input,
     .round-of-16-container .score-input {
         width: 50px;
         font-size: 16px;
     }
 
+    .quarter-finals-container .extra-time-label,
     .round-of-16-container .extra-time-label {
         font-size: 12px;
         white-space: nowrap;
@@ -248,6 +251,7 @@ button#logout-button:hover {
     gap: 5px;
 }
 
+.quarter-finals-container,
 .round-of-16-container {
     display: flex;
     flex-direction: column;
@@ -260,17 +264,20 @@ button#logout-button:hover {
     gap: 15px;
 }
 
-/* Center all content inside the <td> elements */
+/* Center the score inputs and the score divider */
+.quarter-finals-container td,
 .round-of-16-container td {
     text-align: center;
     vertical-align: middle;
 }
 
+.quarter-finals-container .team-name,
 .round-of-16-container .team-name {
     width: 100px;
 }
 
 /* Center the score inputs and the score divider */
+.quarter-finals-container .score-section,
 .round-of-16-container .score-section {
     display: flex;
     justify-content: center;

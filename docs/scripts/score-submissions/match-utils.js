@@ -1,12 +1,12 @@
 import { db } from '../firebase-config.js';
 
-export async function saveMatchResult(match, team1Score, team2Score, winner, loser, type, displayExtraTime = false, displayPenaltyShootouts = false) {
+export async function saveMatchResult(dataBase, match, team1Score, team2Score, winner, loser, type, displayExtraTime = false, displayPenaltyShootouts = false) {
     try {
-        const docRef = db.collection('roundOf16Teams').doc('matches');
+        const docRef = db.collection(`${dataBase}`).doc('matches');
         const doc = await docRef.get();
 
         if (!doc.exists) {
-            console.error('No document found in the "roundOf16Teams/matches" path.');
+            console.error(`No matches found in the "${dataBase}/matches" path.`);
             return;
         }
 
