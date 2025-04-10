@@ -24,6 +24,7 @@ function setSelectedPage() {
 
     switch (currentPage) {
         case 'index.html':
+        case '':    
             navigationSelect.value = 'group-stage';
             break;
         case 'round-of-16.html':
