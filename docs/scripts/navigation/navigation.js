@@ -1,7 +1,7 @@
 function navigateToPage() {
     const selectedPage = document.getElementById('navigation-select').value;
     if (selectedPage === 'group-stage') {
-        window.location.href = '/';
+        window.location.href = 'index.html';
     } else if (selectedPage === 'round-of-16') {
         window.location.href = 'round-of-16.html';
     } else if (selectedPage === 'quarter-final') {
@@ -24,7 +24,6 @@ function setSelectedPage() {
 
     switch (currentPage) {
         case 'index.html':
-        case '/':    
         case '':    
             navigationSelect.value = 'group-stage';
             break;
