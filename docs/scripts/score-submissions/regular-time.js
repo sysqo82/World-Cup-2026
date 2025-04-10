@@ -1,6 +1,6 @@
 import { saveMatchResult } from './match-utils.js';
 
-export async function handleRegularTimeSubmission(event, table) {
+export async function handleRegularTimeSubmission(dataBase, event, table) {
     const button = event.target;
     const match = button.dataset.match;
     const team1 = button.dataset.team1;
@@ -32,7 +32,7 @@ export async function handleRegularTimeSubmission(event, table) {
         // Update Firestore with the regular time scores and displayExtraTime flag
         const displayExtraTime = team1Score === team2Score;
 
-        await saveMatchResult(match, team1Score, team2Score, winner, loser, 'regular', displayExtraTime);
+        await saveMatchResult(dataBase, match, team1Score, team2Score, winner, loser, 'regular', displayExtraTime);
 
         // Highlight the winner if it exists
         if (winner) {
@@ -42,6 +42,11 @@ export async function handleRegularTimeSubmission(event, table) {
                     cell.classList.add('winner');
                 } else {
                     cell.classList.remove('winner');
+                }
+                if (cell.textContent.trim() === loser) {
+                    cell.classList.add('loser');
+                } else {
+                    cell.classList.remove('loser');
                 }
             });
         }
