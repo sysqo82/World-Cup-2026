@@ -42,7 +42,7 @@ function setSelectedPage() {
             navigationSelect.value = 'third-place';
             break;
         default:
-            navigationSelect.value = ''; // Default to no selection
+            navigationSelect.value = 'group-stage';
             break;
     }
 }
