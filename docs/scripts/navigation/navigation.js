@@ -24,6 +24,7 @@ function setSelectedPage() {
 
     switch (currentPage) {
         case 'index.html':
+        case '/':    
         case '':    
             navigationSelect.value = 'group-stage';
             break;
