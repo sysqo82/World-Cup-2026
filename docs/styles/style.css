@@ -206,6 +206,13 @@ button#logout-button:hover {
             font-size: 12px;
             white-space: nowrap;
         }
+
+        img {
+            grid-column: 2 / span 2;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+        }
 }
 
 /* Adjust layout for screens between 768px and 1200px */
@@ -217,6 +224,13 @@ button#logout-button:hover {
 
     #fixtures-container {
         grid-column: 1 / span 6; /* Full width for fixtures */
+    }
+
+    img {
+        grid-column: 2 / span 2;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
     }
 }
 
@@ -325,4 +339,21 @@ button.submit-button:disabled:hover {
     background-color: #fff3cd; /* Light yellow */
     color: #856404; /* Dark yellow */
     font-weight: bold;
+}
+
+/* Make images responsive */
+img {
+    grid-column: 2 / span 4;
+    height: auto;
+    display: grid;
+    margin: 0 auto;
+}
+
+#content-placeholder {
+    font-family: Barlow, ui-sans-serif;
+    font-size: 20px;
+    grid-column: 2 / span 4;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
 }
