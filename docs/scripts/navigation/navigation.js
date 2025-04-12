@@ -6,14 +6,14 @@ const pageMap = {
     'quarter-final': 'quarter-final.html',
     'semi-final': 'semi-final.html',
     'final': 'final.html',
-    'third-place': 'third-place.html',
+    'third-place-playoff': 'third-place-playoff.html',
     'group-stage.html': 'group-stage',
     '': 'group-stage',
     'round-of-16.html': 'round-of-16',
     'quarter-final.html': 'quarter-final',
     'semi-final.html': 'semi-final',
     'final.html': 'final',
-    'third-place.html': 'third-place'
+    'third-place-playoff.html': 'third-place-playoff'
 };
 
 function navigateToPage() {
