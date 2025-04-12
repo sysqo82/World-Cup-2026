@@ -10,7 +10,7 @@
     <div class="container text-center mt-5">
         <!-- Header -->
         <div class="header-container">
-            <h1>World Cup 2026 - Homepage</h1>
+            <h1>World Cup 2026 - Groups</h1>
         </div>
 
         <!-- Navigation Dropdown -->
@@ -28,8 +28,17 @@
 
         <!-- Main Content -->
         <div class="main-container">
-            <!-- Placeholder for content -->
-             <p>Loading...</p>
+            <!-- Groups Section -->
+            <div id="tables-container">
+                <h1>Groups</h1>
+                <!-- Tables will be dynamically created here -->
+            </div>
+
+            <!-- Fixtures Section -->
+            <div id="fixtures-container">
+                <h1>Fixtures</h1>
+                <!-- Fixtures will be dynamically created here -->
+            </div>
         </div>
     </div>
 
@@ -37,7 +46,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script type="module" src="./scripts/homepage.js"></script>
+    <script type="module" src="scripts/group-stage.js"></script>
     <script type="module" src="scripts/navigation/navigation.js"></script>
     <script type="module" src="scripts/config/firebase-config.js"></script>
 </body>
