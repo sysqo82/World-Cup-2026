@@ -186,6 +186,26 @@ button#logout-button:hover {
         width: 12px; /* Adjust input width for smaller screens */
         font-size: 12px; /* Reduce font size for better fit */
     }
+
+        /* Increase the size of the score input section */
+        .quarter-finals-container .score-section,
+        .round-of-16-container .score-section {
+            height: 49px;
+            gap: 10px;
+        }
+    
+        /* Adjust the score input width for better usability */
+        .quarter-finals-container .score-input,
+        .round-of-16-container .score-input {
+            width: 50px;
+            font-size: 16px;
+        }
+    
+        .quarter-finals-container .extra-time-label,
+        .round-of-16-container .extra-time-label {
+            font-size: 12px;
+            white-space: nowrap;
+        }
 }
 
 /* Adjust layout for screens between 768px and 1200px */
@@ -223,6 +243,46 @@ button#logout-button:hover {
     justify-content: center;
     align-items: center;
     gap: 5px;
+}
+
+.quarter-finals-container,
+.round-of-16-container {
+    grid-column: 1 / span 6; /* Full width for knockout stages */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px auto;
+    width: 100%;
+    max-width: 700px;
+    text-align: center;
+    gap: 15px;
+}
+
+/* Center the score inputs and the score divider */
+.quarter-finals-container td,
+.round-of-16-container td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.quarter-finals-container .team-name,
+.round-of-16-container .team-name {
+    width: 100px;
+}
+
+/* Center the score inputs and the score divider */
+.quarter-finals-container .score-section,
+.round-of-16-container .score-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    height: 40px;
+}
+
+/* Center the submit button */
+.round-of-16-container .submit-button {
+    margin: 0 auto;
 }
 
 .hidden {
