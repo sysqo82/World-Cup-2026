@@ -4,6 +4,7 @@ body {
     background-color: #f4f4f9;
     margin: 0;
     padding: 0;
+    padding-bottom: 50px; /* Space for footer */
     color: #333;
 }
 
@@ -356,4 +357,18 @@ img {
     align-items: center;
     height: 100vh;
     text-align: center;
+}
+
+.footer {
+    position: fixed; /* Stick to the bottom of the viewport */
+    bottom: 0;
+    left: 0;
+    width: 100%; /* Full width */
+    background-color: #f4f4f9; /* Dark background */
+    color: #333; /* White text */
+    text-align: left; /* Center the text */
+    padding: 0 10px 10px 10px; /* Add some padding */
+    font-size: 14px; /* Adjust font size */
+    z-index: 1000; /* Ensure it stays on top */
+    height: 20px; /* Set a fixed height for the footer */
 }
