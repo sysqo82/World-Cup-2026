@@ -53,43 +53,39 @@ h1 {
 
 /* Main container layout */
 .main-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    padding: 20px;
-    gap: 20px;
-}
-
-.groups-container {
-    flex: 0 1 50%;
-    min-width: 300px;
-}
-
-.fixtures-container {
-    flex: 0 1 40%;
-    min-width: 300px;
-}
-
-.groups-container h1,
-.fixtures-container h1 {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-/* Tables container */
-.tables-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(6, 1fr); /* 6 columns for layout */
     gap: 20px;
     padding: 20px;
+}
+
+/* Groups container layout */
+#tables-container {
+    grid-column: 2 / span 4; /* Groups take up columns 2-5 */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 columns for groups */
+    gap: 20px;
+    padding: 20px;
+    justify-content: center; /* Center the columns horizontally */
+}
+
+/* Fixtures container layout */
+#fixtures-container {
+    grid-column: 2 / span 4; /* Fixtures take up columns 2-5 */
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
 }
 
 /* Group container styling */
-.tables-container div {
+.group-container {
     border: 1px solid #ccc;
     padding: 10px;
     border-radius: 5px;
     background-color: #f9f9f9;
+    white-space: nowrap;
 }
 
 /* Table styling */
@@ -101,17 +97,11 @@ table {
 th, td {
     border: 1px solid #ddd;
     padding: 8px;
-    text-align: left;
+    text-align: center;
 }
 
 th {
     background-color: #f2f2f2;
-}
-
-/* Fixtures table */
-.fixtures-container table th:nth-child(4),
-.fixtures-container table td:nth-child(4) {
-    text-align: center;
 }
 
 /* Score input styling */
@@ -156,12 +146,6 @@ button#logout-button:hover {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .header-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 10px;
-    }
     h1 {
         font-size: 24px;
         margin: 0;
@@ -172,57 +156,47 @@ button#logout-button:hover {
         margin: 0;
     }
 
-    .main-container {
-        font-size: 13px;
-        flex-direction: column;
-        gap: 10px;
+    #tables-container {
+        grid-column: 1 / span 6; /* Full width for smaller screens */
+        grid-template-columns: 1fr; /* Single column for groups */
+    }
+
+    #fixtures-container {
+        grid-column: 1 / span 6; /* Full width for fixtures */
+    }
+
+    /* Make the fixture table responsive */
+    #fixtures-container table {
+        width: 100%; /* Ensure the table fits within the container */
+        max-width: 100%; /* Prevent stretching beyond the screen */
+        overflow-x: auto; /* Enable horizontal scrolling if needed */
+        border-collapse: collapse;
+    }
+
+    #fixtures-container th, #fixtures-container td {
+        font-size: 12px; /* Adjust font size for smaller screens */
+        padding: 6px; /* Reduce padding for better fit */
+    }
+
+    #fixtures-container th {
+        text-align: center;
     }
 
     .score-input {
-        width: 15px;
-    }
-
-    .groups-container,
-    .fixtures-container {
-        flex: 1 1 100%;
-    }
-
-    .tables-container {
-        grid-template-columns: 1fr;
-    }
-
-    /* Increase the size of the score input section */
-    .quarter-finals-container .score-section,
-    .round-of-16-container .score-section {
-        height: 49px;
-        gap: 10px;
-    }
-
-    /* Adjust the score input width for better usability */
-    .quarter-finals-container .score-input,
-    .round-of-16-container .score-input {
-        width: 50px;
-        font-size: 16px;
-    }
-
-    .quarter-finals-container .extra-time-label,
-    .round-of-16-container .extra-time-label {
-        font-size: 12px;
-        white-space: nowrap;
+        width: 12px; /* Adjust input width for smaller screens */
+        font-size: 12px; /* Reduce font size for better fit */
     }
 }
 
 /* Adjust layout for screens between 768px and 1200px */
-@media (min-width: 768px) and (max-width: 1512px) {
-    .main-container {
-        flex-direction: row;
+@media (min-width: 768px) and (max-width: 1200px) {
+    #tables-container {
+        grid-column: 1 / span 6; /* Full width for medium screens */
+        grid-template-columns: repeat(2, 1fr); /* 2 columns for groups */
     }
 
-    .groups-container {
-        flex: 0 1 60%;
-    }
-    .fixtures-container {
-        flex: 0 1 38%;
+    #fixtures-container {
+        grid-column: 1 / span 6; /* Full width for fixtures */
     }
 }
 
@@ -251,61 +225,6 @@ button#logout-button:hover {
     gap: 5px;
 }
 
-.quarter-finals-container,
-.round-of-16-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 20px auto;
-    width: 100%;
-    max-width: 700px;
-    text-align: center;
-    gap: 15px;
-}
-
-/* Center the score inputs and the score divider */
-.quarter-finals-container td,
-.round-of-16-container td {
-    text-align: center;
-    vertical-align: middle;
-}
-
-.quarter-finals-container .team-name,
-.round-of-16-container .team-name {
-    width: 100px;
-}
-
-/* Center the score inputs and the score divider */
-.quarter-finals-container .score-section,
-.round-of-16-container .score-section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-    height: 40px;
-}
-
-/* Center the submit button */
-.round-of-16-container .submit-button {
-    margin: 0 auto;
-}
-
-.winner {
-    background-color: #d4edda;
-    color: #155724;
-    font-weight: bold;
-    border: 2px solid #c3e6cb;
-}
-
-.loser {
-    background-color: #f8d7da;
-    color: #721c24;
-    font-weight: bold;
-    border: 2px solid #f5c6cb;
-    text-decoration: line-through;
-}
-
 .hidden {
     display: none;
 }
@@ -314,26 +233,36 @@ td:empty {
     border: none;
 }
 
-button.submit-button {
-    background-color: #4CAF50;
-    color: white;
-    cursor: pointer;
-}
-
-button.submit-button:hover {
-    background-color: #45a049;
-}
-
-/* Style for disabled submit button */
 button.submit-button:disabled {
     background-color: #cccccc;
     color: #666666;
     cursor: not-allowed;
 }
 
-/* Prevent hover effect on disabled buttons */
 button.submit-button:disabled:hover {
-    background-color: #cccccc; /* Keep the disabled background color */
-    color: #666666; /* Keep the disabled text color */
-    cursor: not-allowed; /* Ensure the cursor remains not-allowed */
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+}
+
+/* Highlight winner */
+.winner {
+    background-color: #d4edda; /* Light green */
+    color: #155724; /* Dark green */
+    font-weight: bold;
+}
+
+/* Highlight loser */
+.loser {
+    background-color: #f8d7da; /* Light red */
+    color: #721c24; /* Dark red */
+    font-weight: bold;
+    text-decoration: line-through;
+}
+
+/* Highlight draw */
+.draw {
+    background-color: #fff3cd; /* Light yellow */
+    color: #856404; /* Dark yellow */
+    font-weight: bold;
 }
