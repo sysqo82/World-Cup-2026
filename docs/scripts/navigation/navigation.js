@@ -27,7 +27,7 @@ function setSelectedPage() {
     if (!navigationSelect) return;
 
     const currentPage = window.location.pathname.split('/').pop();
-    navigationSelect.value = pageMap[currentPage] || 'group-stage';
+    navigationSelect.value = pageMap[currentPage] || 'home';
 }
 
 window.navigateToPage = navigateToPage;
