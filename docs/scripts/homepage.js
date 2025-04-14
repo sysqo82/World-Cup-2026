@@ -2,6 +2,7 @@ import { functionsURL } from './config/firebase-config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('registration-form');
+    const submitButton = form.querySelector('.submit-button');
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault(); // Prevent form from refreshing the page
@@ -15,7 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        try {
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+
+
+      try {
             const response = await fetch(functionsURL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -25,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 alert('Registration successful!');
                 form.reset();
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Register';
             } else {
                 const error = await response.text();
                 alert(`Error: ${error}`);
