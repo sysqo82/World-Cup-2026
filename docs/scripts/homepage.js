@@ -1,7 +1,9 @@
+import { functionsURL } from './config/firebase-config.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('registration-form');
 
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
         event.preventDefault(); // Prevent form from refreshing the page
 
         const firstName = document.getElementById('first-name').value.trim();
@@ -13,15 +15,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Save user data to localStorage
-        const users = JSON.parse(localStorage.getItem('registeredUsers')) || [];
-        users.push({ firstName, lastName, email });
-        localStorage.setItem('registeredUsers', JSON.stringify(users));
+        try {
+            const response = await fetch(functionsURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firstName, lastName, email }),
+            });
 
-        // Show a confirmation message
-        alert('Registration successful!');
-
-        // Clear the form
-        form.reset();
+            if (response.ok) {
+                alert('Registration successful!');
+                form.reset();
+            } else {
+                const error = await response.text();
+                alert(`Error: ${error}`);
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            alert('Failed to register. Please try again.');
+        }
     });
 });

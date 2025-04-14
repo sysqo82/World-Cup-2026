@@ -6,7 +6,8 @@ const firebaseConfig = {
     storageBucket: "world-cup-2026-b1fda.firebasestorage.app",
     messagingSenderId: "355932893733",
     appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
-    measurementId: "G-6QWWJLC2LM"
+    measurementId: "G-6QWWJLC2LM",
+    functionsURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/registerUser"
 };
 
 // Initialize Firebase
@@ -16,3 +17,4 @@ const auth = firebase.auth();
 
 // Export Firebase services
 export { app, db, auth };
+export const functionsURL = firebaseConfig.functionsURL;
