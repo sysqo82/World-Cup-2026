@@ -12,7 +12,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
     container.innerHTML = ''; // Clear previous matches
 
     const matches = await fetchRoundMatches(dataBase, round);
-    
+
     if (matches.length === 0) {
         container.innerHTML = '<p>No matches available.</p>';
         return;
@@ -25,9 +25,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr>
                 <td class="team-name" data-team="team1" data-type="regular" data-match="${match.match}">${match.team1}</td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score || ''}">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score ?? ''}">
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score || ''}">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score ?? ''}">
                 </td>
                 <td class="team-name" data-team="team2" data-type="regular" data-match="${match.match}">${match.team2}</td>
                 <td>
@@ -37,9 +37,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr class="extra-time-row ${match.displayExtraTime ? '' : 'hidden'}" data-match="${match.match}">
                 <td class="extra-time-label">Extra Time</td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score || ''}">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score ?? ''}">
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score || ''}">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score ?? ''}">
                 </td>
                 <td>
                     <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="extra">Submit</button>
@@ -49,9 +49,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr class="penalty-row ${match.displayPenaltyShootouts ? '' : 'hidden'}" data-match="${match.match}">
                 <td>Penalties</td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score || ''}">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score ?? ''}">
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score || ''}">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}"data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score ?? ''}">
                 </td>
                 <td>
                     <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="penalty">Submit</button>
@@ -65,10 +65,10 @@ export async function generateRoundMatches(selector, dataBase, round) {
         if (match.winner) {
             const inputs = table.querySelectorAll(`input[data-match="${match.match}"]`);
             inputs.forEach(input => input.disabled = true);
-        
+
             const buttons = table.querySelectorAll(`button[data-match="${match.match}"]`);
             buttons.forEach(button => button.disabled = true);
-        
+
             // Highlight the winner's name
             const teamCells = table.querySelectorAll(`td[data-match="${match.match}"]`);
             teamCells.forEach(cell => {
