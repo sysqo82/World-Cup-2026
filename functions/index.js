@@ -33,14 +33,14 @@ exports.registerUser = functions.https.onRequest((req, res) => {
         firstName,
         lastName,
         email,
-        team: teamData.name,
+        team: teamData.fullName,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       // Mark the team as assigned
       await teamsRef.doc(teamDoc.id).update({ assigned: true });
 
-      res.status(200).send(`User registered successfully. Assigned team: ${teamData.name}`);
+      res.status(200).send(`User registered successfully. Assigned team: ${teamData.fullName}`);
     } catch (error) {
       res.status(500).send("Error registering user: " + error.message);
     }

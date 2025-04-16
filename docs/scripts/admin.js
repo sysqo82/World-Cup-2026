@@ -324,33 +324,7 @@ function updateTeam(groupId, teamId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const usersToSubmitTableBody = document.querySelector('#users-to-submit-table tbody');
     const registeredUsersTableBody = document.querySelector('#registered-users-table tbody');
-
-    // Load users from localStorage and populate the "Users to Submit" table
-    function loadUsersToSubmit() {
-        const users = JSON.parse(localStorage.getItem('registeredUsers')) || [];
-        usersToSubmitTableBody.innerHTML = ''; // Clear existing rows
-
-        if (users.length === 0) {
-            const row = usersToSubmitTableBody.insertRow();
-            const cell = row.insertCell(0);
-            cell.colSpan = 5;
-            cell.textContent = 'No users to submit.';
-            cell.style.textAlign = 'center';
-        } else {
-            users.forEach((user, index) => {
-                const row = usersToSubmitTableBody.insertRow();
-                row.insertCell(0).textContent = index + 1; // Row number
-                row.insertCell(1).textContent = user.firstName;
-                row.insertCell(2).textContent = user.lastName;
-                row.insertCell(3).textContent = user.email;
-                row.insertCell(4).innerHTML = `
-                    <button class="submit-button" onclick="submitUser(${index})">Submit</button>
-                `;
-            });
-        }
-    }
 
     // Fetch registered users from Firestore and populate the "Registered Users" table
     function loadRegisteredUsers() {
@@ -373,11 +347,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     let rowNumber = 1; // Initialize row counter
                     users.forEach(user => {
                         const row = registeredUsersTableBody.insertRow();
-                        row.insertCell(0).textContent = rowNumber++; // Increment row number
+                        row.insertCell(0).textContent = rowNumber++;
                         row.insertCell(1).textContent = user.firstName;
                         row.insertCell(2).textContent = user.lastName;
                         row.insertCell(3).textContent = user.email;
-                        row.insertCell(4).innerHTML = `
+                        row.insertCell(4).textContent = user.team;
+                        row.insertCell(5).innerHTML = `
                             <button class="submit-button" onclick="deleteUser(${user.index})">Delete</button>
                         `;
                     });
@@ -388,87 +363,44 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // Submit a user to Firestore and remove them from localStorage
-    window.submitUser = (index) => {
-        const users = JSON.parse(localStorage.getItem('registeredUsers')) || [];
-        if (index >= 0 && index < users.length) {
-            const user = users[index];
-    
-            // Fetch the current highest index from Firestore
-            db.collection('users').orderBy('index', 'desc').limit(1).get()
-                .then(snapshot => {
-                    let nextIndex = 1; // Default to 1 if no users exist
-                    if (!snapshot.empty) {
-                        const lastUser = snapshot.docs[0].data();
-                        nextIndex = lastUser.index + 1; // Increment the highest index
-                    }
-    
-                    // Add the user to Firestore with the new index
-                    db.collection('users').add({
-                        ...user,
-                        index: nextIndex // Add the calculated index
-                    })
-                        .then(() => {
-                            // Remove the user from localStorage
-                            users.splice(index, 1);
-                            localStorage.setItem('registeredUsers', JSON.stringify(users));
-                            alert(`User ${user.firstName} ${user.lastName} submitted successfully with index ${nextIndex}!`);
-                            loadUsersToSubmit(); // Refresh the "Users to Submit" table
-                            loadRegisteredUsers(); // Refresh the "Registered Users" table
-                        })
-                        .catch(err => {
-                            console.error('Error submitting user:', err);
-                            alert('Failed to submit user. Please try again.');
-                        });
-                })
-                .catch(err => {
-                    console.error('Error fetching the highest index:', err);
-                    alert('Failed to fetch the current index. Please try again.');
-                });
-        } else {
-            console.error('Invalid user index:', index);
-        }
-    };
-
     // Delete a user from Firestore based on their index
-    window.deleteUser = (index) => {
+    // window.deleteUser = (index) => {
     
-        if (typeof index === 'undefined' || index === null) {
-            console.error('Invalid index value:', index);
-            alert('Failed to delete user. Invalid index.');
-            return;
-        }
+    //     if (typeof index === 'undefined' || index === null) {
+    //         console.error('Invalid index value:', index);
+    //         alert('Failed to delete user. Invalid index.');
+    //         return;
+    //     }
     
-        db.collection('users')
-            .where('index', '==', index) // Query for the document with the matching index
-            .get()
-            .then(snapshot => {
-                if (snapshot.empty) {
-                    alert(`No user found with index ${index}.`);
-                    console.error(`No user found with index ${index}.`);
-                    return;
-                }
+    //     db.collection('users')
+    //         .where('index', '==', index) // Query for the document with the matching index
+    //         .get()
+    //         .then(snapshot => {
+    //             if (snapshot.empty) {
+    //                 alert(`No user found with index ${index}.`);
+    //                 console.error(`No user found with index ${index}.`);
+    //                 return;
+    //             }
     
-                // Delete the document(s) with the matching index
-                snapshot.forEach(doc => {
-                    db.collection('users').doc(doc.id).delete()
-                        .then(() => {
-                            alert(`User with index ${index} deleted successfully!`);
-                            loadRegisteredUsers(); // Refresh the "Registered Users" table
-                        })
-                        .catch(err => {
-                            console.error('Error deleting user:', err);
-                            alert('Failed to delete user. Please try again.');
-                        });
-                });
-            })
-            .catch(err => {
-                console.error('Error querying user by index:', err);
-                alert('Failed to delete user. Please try again.');
-            });
-    };
+    //             // Delete the document(s) with the matching index
+    //             snapshot.forEach(doc => {
+    //                 db.collection('users').doc(doc.id).delete()
+    //                     .then(() => {
+    //                         alert(`User with index ${index} deleted successfully!`);
+    //                         loadRegisteredUsers(); // Refresh the "Registered Users" table
+    //                     })
+    //                     .catch(err => {
+    //                         console.error('Error deleting user:', err);
+    //                         alert('Failed to delete user. Please try again.');
+    //                     });
+    //             });
+    //         })
+    //         .catch(err => {
+    //             console.error('Error querying user by index:', err);
+    //             alert('Failed to delete user. Please try again.');
+    //         });
+    // };
 
     // Initial load
-    loadUsersToSubmit();
     loadRegisteredUsers();
 });
