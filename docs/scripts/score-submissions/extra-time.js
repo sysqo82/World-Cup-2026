@@ -1,4 +1,4 @@
-import { saveMatchResult } from './match-utils.js';
+import { saveMatchResult } from '../utils/match-utils.js';
 
 export async function handleExtraTimeSubmission(dataBase, event, table) {
     const button = event.target;
