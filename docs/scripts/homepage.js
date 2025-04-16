@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (response.ok) {
-        const message = await response.text();
-        alert(message); // Notify the user of their assigned team
+        const { message, assignedTeam } = await response.json(); // Expecting a JSON response
+        alert(`${message} You have been assigned to: ${assignedTeam}`);
         form.reset();
       } else {
         const error = await response.text();

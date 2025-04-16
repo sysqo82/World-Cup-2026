@@ -19,28 +19,34 @@ exports.registerUser = functions.https.onRequest((req, res) => {
 
     try {
       const teamsRef = admin.firestore().collection("teams");
-      const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).limit(1).get();
+      const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
 
       if (availableTeamsSnapshot.empty) {
         return res.status(400).send("No teams available");
       }
 
-      const teamDoc = availableTeamsSnapshot.docs[0];
-      const teamData = teamDoc.data();
+      const availableTeams = availableTeamsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-      // Assign the team to the user
+      const randomIndex = Math.floor(Math.random() * availableTeams.length);
+      const selectedTeam = availableTeams[randomIndex];
+
       await admin.firestore().collection("users").add({
         firstName,
         lastName,
         email,
-        team: teamData.fullName,
+        team: selectedTeam.fullName,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // Mark the team as assigned
-      await teamsRef.doc(teamDoc.id).update({ assigned: true });
+      await teamsRef.doc(selectedTeam.id).update({ assigned: true });
 
-      res.status(200).send(`User registered successfully. Assigned team: ${teamData.fullName}`);
+      res.status(200).json({
+        message: "User registered successfully.",
+        assignedTeam: selectedTeam.fullName,
+      });
     } catch (error) {
       res.status(500).send("Error registering user: " + error.message);
     }
