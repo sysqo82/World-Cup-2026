@@ -351,9 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         row.insertCell(1).textContent = user.firstName;
                         row.insertCell(2).textContent = user.lastName;
                         row.insertCell(3).textContent = user.email;
-                        row.insertCell(4).textContent = user.team;
+                        row.insertCell(4).textContent = user.team || 'N/A'; // Display team or 'N/A' if not available
                         row.insertCell(5).innerHTML = `
-                            <button class="submit-button" onclick="deleteUser(${user.index})">Delete</button>
+                            <button class="submit-button" onclick="deleteUser('${user.email}')">Delete</button>
                         `;
                     });
                 }
@@ -363,44 +363,91 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // Delete a user from Firestore based on their index
-    // window.deleteUser = (index) => {
+    // Delete a user from Firestore based on their email and update the team's assigned flag
+    window.deleteUserFromRow = (button) => {
+        const row = button.closest('tr'); // Get the closest table row
+        const email = row.cells[3].textContent; // Get the email from the 4th cell (index 3)
     
-    //     if (typeof index === 'undefined' || index === null) {
-    //         console.error('Invalid index value:', index);
-    //         alert('Failed to delete user. Invalid index.');
-    //         return;
-    //     }
+        if (!email) {
+            console.error('Invalid email value:', email);
+            alert('Failed to delete user. Invalid email.');
+            return;
+        }
     
-    //     db.collection('users')
-    //         .where('index', '==', index) // Query for the document with the matching index
-    //         .get()
-    //         .then(snapshot => {
-    //             if (snapshot.empty) {
-    //                 alert(`No user found with index ${index}.`);
-    //                 console.error(`No user found with index ${index}.`);
-    //                 return;
-    //             }
+        // Call the deleteUser function with the fetched email
+        deleteUser(email);
+    };
     
-    //             // Delete the document(s) with the matching index
-    //             snapshot.forEach(doc => {
-    //                 db.collection('users').doc(doc.id).delete()
-    //                     .then(() => {
-    //                         alert(`User with index ${index} deleted successfully!`);
-    //                         loadRegisteredUsers(); // Refresh the "Registered Users" table
-    //                     })
-    //                     .catch(err => {
-    //                         console.error('Error deleting user:', err);
-    //                         alert('Failed to delete user. Please try again.');
-    //                     });
-    //             });
-    //         })
-    //         .catch(err => {
-    //             console.error('Error querying user by index:', err);
-    //             alert('Failed to delete user. Please try again.');
-    //         });
-    // };
-
+    window.deleteUser = (email) => {
+        db.collection('users')
+            .where('email', '==', email) // Query for the document with the matching email
+            .get()
+            .then(snapshot => {
+                if (snapshot.empty) {
+                    alert(`No user found with email ${email}.`);
+                    console.error(`No user found with email ${email}.`);
+                    return;
+                }
+    
+                // Delete the user and update the team's assigned flag
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    const userId = doc.id;
+    
+                    // Delete the user document
+                    db.collection('users').doc(userId).delete()
+                        .then(() => {
+                            console.log(`User with email ${email} deleted successfully.`);
+    
+                            // Update the team's assigned flag to false
+                            if (user.team) {
+                                db.collection('teams')
+                                    .where('fullName', '==', user.team) // Find the team by name
+                                    .get()
+                                    .then(teamSnapshot => {
+                                        if (!teamSnapshot.empty) {
+                                            teamSnapshot.forEach(teamDoc => {
+                                                db.collection('teams').doc(teamDoc.id).update({
+                                                    assigned: false
+                                                })
+                                                .then(() => {
+                                                    console.log(`Team ${user.team}'s assigned flag set to false.`);
+                                                    alert(`User with email ${email} deleted successfully, and team ${user.team} is now unassigned.`);
+                                                    loadRegisteredUsers(); // Refresh the "Registered Users" table
+                                                })
+                                                .catch(err => {
+                                                    console.error(`Error updating team ${user.team}:`, err);
+                                                    alert('Failed to update team assignment. Please try again.');
+                                                });
+                                            });
+                                        } else {
+                                            console.warn(`No team found with name ${user.team}.`);
+                                            alert(`User deleted, but no team assignment was found for ${user.team}.`);
+                                            loadRegisteredUsers(); // Refresh the "Registered Users" table
+                                        }
+                                    })
+                                    .catch(err => {
+                                        console.error('Error querying team by name:', err);
+                                        alert('Failed to update team assignment. Please try again.');
+                                    });
+                            } else {
+                                console.warn('User has no assigned team.');
+                                alert(`User with email ${email} deleted successfully.`);
+                                loadRegisteredUsers(); // Refresh the "Registered Users" table
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error deleting user:', err);
+                            alert('Failed to delete user. Please try again.');
+                        });
+                });
+            })
+            .catch(err => {
+                console.error('Error querying user by email:', err);
+                alert('Failed to delete user. Please try again.');
+            });
+    };
+    
     // Initial load
     loadRegisteredUsers();
 });
