@@ -1,5 +1,5 @@
 // Import Firebase configuration and services
-import { db, auth } from '../scripts/firebase-config.js';
+import { db, auth } from '../scripts/config/firebase-config.js';
 
 // Check authentication state on page load
 auth.onAuthStateChanged(user => {
@@ -143,10 +143,6 @@ document.getElementById('generate-quarter-finals').addEventListener('click', asy
         const quarterFinalsTeams = matchRules.map(rule => {
             const match1Winner = roundOf16Matches[rule.match1]?.winner;
             const match2Winner = roundOf16Matches[rule.match2]?.winner;
-        
-            // Debugging: Log the winners
-            console.log(`Match ${rule.match1} Winner:`, match1Winner);
-            console.log(`Match ${rule.match2} Winner:`, match2Winner);
         
             // Ensure both winners exist
             if (!match1Winner || !match2Winner) {
@@ -326,3 +322,85 @@ function updateTeam(groupId, teamId) {
         alert('Failed to update team. Please try again.');
     });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const registeredUsersTableBody = document.querySelector('#registered-users-table tbody');
+
+    // Fetch registered users from Firestore and populate the "Registered Users" table
+    function loadRegisteredUsers() {
+        db.collection('users').get()
+            .then(snapshot => {
+                registeredUsersTableBody.innerHTML = ''; // Clear existing rows
+    
+                if (snapshot.empty) {
+                    const row = registeredUsersTableBody.insertRow();
+                    const cell = row.insertCell(0);
+                    cell.colSpan = 5;
+                    cell.textContent = 'No registered users found.';
+                    cell.style.textAlign = 'center';
+                } else {
+                    // Fetch and sort users by their index field
+                    const users = snapshot.docs
+                        .map(doc => doc.data())
+                        .sort((a, b) => a.index - b.index); // Sort by index in ascending order
+    
+                    let rowNumber = 1; // Initialize row counter
+                    users.forEach(user => {
+                        const row = registeredUsersTableBody.insertRow();
+                        row.insertCell(0).textContent = rowNumber++;
+                        row.insertCell(1).textContent = user.firstName;
+                        row.insertCell(2).textContent = user.lastName;
+                        row.insertCell(3).textContent = user.email;
+                        row.insertCell(4).textContent = user.team;
+                        row.insertCell(5).innerHTML = `
+                            <button class="submit-button" onclick="deleteUser(${user.index})">Delete</button>
+                        `;
+                    });
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching registered users:', err);
+            });
+    }
+
+    // Delete a user from Firestore based on their index
+    // window.deleteUser = (index) => {
+    
+    //     if (typeof index === 'undefined' || index === null) {
+    //         console.error('Invalid index value:', index);
+    //         alert('Failed to delete user. Invalid index.');
+    //         return;
+    //     }
+    
+    //     db.collection('users')
+    //         .where('index', '==', index) // Query for the document with the matching index
+    //         .get()
+    //         .then(snapshot => {
+    //             if (snapshot.empty) {
+    //                 alert(`No user found with index ${index}.`);
+    //                 console.error(`No user found with index ${index}.`);
+    //                 return;
+    //             }
+    
+    //             // Delete the document(s) with the matching index
+    //             snapshot.forEach(doc => {
+    //                 db.collection('users').doc(doc.id).delete()
+    //                     .then(() => {
+    //                         alert(`User with index ${index} deleted successfully!`);
+    //                         loadRegisteredUsers(); // Refresh the "Registered Users" table
+    //                     })
+    //                     .catch(err => {
+    //                         console.error('Error deleting user:', err);
+    //                         alert('Failed to delete user. Please try again.');
+    //                     });
+    //             });
+    //         })
+    //         .catch(err => {
+    //             console.error('Error querying user by index:', err);
+    //             alert('Failed to delete user. Please try again.');
+    //         });
+    // };
+
+    // Initial load
+    loadRegisteredUsers();
+});

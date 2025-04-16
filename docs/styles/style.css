@@ -372,3 +372,45 @@ img {
     z-index: 1000; /* Ensure it stays on top */
     height: 20px; /* Set a fixed height for the footer */
 }
+
+.registration-form-container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.registration-form-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#registration-form div {
+    margin-bottom: 15px;
+}
+
+#registration-form label {
+    width: 100%;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+#registration-form input {
+    max-width: 400px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#users-to-submit-table th,
+#users-to-submit-table td,
+#registered-users-table th,
+#registered-users-table td {
+    text-align: center;
+    vertical-align: middle;
+}
