@@ -1,8 +1,8 @@
 // Import Firebase services
 import { db, auth } from '../scripts/config/firebase-config.js';
+import { fetchCountryMap, getCountryFullName } from '../scripts/utils/country-utils.js';
 import { generateFixtures } from './create-round-matches/group-stage-fixtures.js';
 
-// Check if the user is logged in
 auth.onAuthStateChanged(user => {
     if (user) {
         console.log(`User is logged in: ${user.email}`);
@@ -11,17 +11,18 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// Homepage features:
-// Real-time listener for groups and teams
-db.collection('groups').onSnapshot(snapshot => {
+db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
 
+    // Fetch the country map
+    const countryMap = await fetchCountryMap();
+
     createTables(groups);
-    populateTables(groups);
-    generateFixtures(groups);
+    populateTables(groups, countryMap);
+    generateFixtures(groups, countryMap);
 }, err => {
     console.error('Error fetching groups:', err);
 });
@@ -31,12 +32,6 @@ function createTables(groups) {
     container.innerHTML = ''; // Clear any existing tables
 
     groups.forEach(group => {
-        if (!group.name) {
-            console.warn(`Group with ID ${group.id} is missing the 'name' field.`);
-            return; // Skip this group
-        }
-
-        // Create a table for each group
         const groupDiv = document.createElement('div');
         groupDiv.classList.add('group-container');
         groupDiv.innerHTML = `
@@ -58,7 +53,7 @@ function createTables(groups) {
     });
 }
 
-function populateTables(groups) {
+function populateTables(groups, countryMap) {
     groups.forEach(group => {
         const tableId = group.name.replace(/[^a-zA-Z0-9_-]/g, '-');
         const table = document.querySelector(`#${tableId}-table`);
@@ -69,12 +64,9 @@ function populateTables(groups) {
             }
 
             if (group.teams && typeof group.teams === 'object') {
-                const matchesPlayed = Object.values(group.teams).some(team => team.P > 0);
-
                 const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
                     id,
                     name: team.name || 'Unknown',
-                    initialRank: team['#'] || 0,
                     played: team.P || 0,
                     wins: team.W || 0,
                     draws: team.D || 0,
@@ -83,16 +75,7 @@ function populateTables(groups) {
                     goalsReceived: team.goalsReceived || 0,
                     points: (team.W || 0) * 3 + (team.D || 0),
                     goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
-                })).sort((a, b) => {
-                    if (!matchesPlayed) {
-                        return a.initialRank - b.initialRank;
-                    }
-                    return (
-                        b.points - a.points ||
-                        b.goalDifference - a.goalDifference ||
-                        b.goalsScored - a.goalsScored
-                    );
-                });
+                }));
 
                 sortedTeams.forEach((team, index) => {
                     const row = table.insertRow();
@@ -101,7 +84,8 @@ function populateTables(groups) {
                     cellRank.textContent = index + 1;
 
                     const cellCountry = row.insertCell(1);
-                    cellCountry.innerHTML = `<strong>${team.name}</strong>`;
+                    const teamFullName = getCountryFullName(countryMap, team.name);
+                    cellCountry.innerHTML = `<strong title="${teamFullName}">${team.name}</strong>`;
 
                     const cellPlayed = row.insertCell(2);
                     cellPlayed.textContent = team.played;
@@ -121,11 +105,7 @@ function populateTables(groups) {
                     const cellPoints = row.insertCell(7);
                     cellPoints.textContent = team.points;
                 });
-            } else {
-                console.warn(`No teams found for group: ${group.name}`);
             }
-        } else {
-            console.error(`Table for group ${group.name} not found. Ensure the table ID matches the group name.`);
         }
     });
 }
