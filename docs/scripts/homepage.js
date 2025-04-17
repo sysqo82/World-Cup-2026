@@ -1,4 +1,10 @@
 import { functionsURL } from './config/firebase-config.js';
+import { openEncryptedURL } from './utils/payment-utils.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const paymentButton = document.getElementById('payment');
+    paymentButton.addEventListener('click', openEncryptedURL);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('registration-form');
@@ -28,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (response.ok) {
         const { message, assignedTeam } = await response.json(); // Expecting a JSON response
-        alert(`${message} You have been assigned to: ${assignedTeam}`);
+        alert(`${message} You drew ${assignedTeam} as your winning team, good luck!`);
         form.reset();
       } else {
         const error = await response.text();
