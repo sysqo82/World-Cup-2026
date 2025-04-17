@@ -1,15 +1,7 @@
 // Import Firebase services
-import { db, auth } from '../scripts/config/firebase-config.js';
+import { db } from '../scripts/config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../scripts/utils/country-utils.js';
 import { generateFixtures } from './create-round-matches/group-stage-fixtures.js';
-
-auth.onAuthStateChanged(user => {
-    if (user) {
-        console.log(`User is logged in: ${user.email}`);
-    } else {
-        console.log('No user is logged in.');
-    }
-});
 
 db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({
