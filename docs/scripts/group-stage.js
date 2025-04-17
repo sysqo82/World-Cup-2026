@@ -64,9 +64,12 @@ function populateTables(groups, countryMap) {
             }
 
             if (group.teams && typeof group.teams === 'object') {
+                const matchesPlayed = Object.values(group.teams).some(team => team.P > 0);
+
                 const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
                     id,
                     name: team.name || 'Unknown',
+                    initialRank: team['#'] || 0,
                     played: team.P || 0,
                     wins: team.W || 0,
                     draws: team.D || 0,
@@ -75,7 +78,16 @@ function populateTables(groups, countryMap) {
                     goalsReceived: team.goalsReceived || 0,
                     points: (team.W || 0) * 3 + (team.D || 0),
                     goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
-                }));
+                })).sort((a, b) => {
+                    if (!matchesPlayed) {
+                        return a.initialRank - b.initialRank;
+                    }
+                    return (
+                        b.points - a.points ||
+                        b.goalDifference - a.goalDifference ||
+                        b.goalsScored - a.goalsScored
+                    );
+                });
 
                 sortedTeams.forEach((team, index) => {
                     const row = table.insertRow();
