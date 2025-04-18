@@ -1,12 +1,13 @@
 import { functionsURL } from './config/firebase-config.js';
 import { openEncryptedURL } from './utils/payment-utils.js';
+import { updatePrizePotCounter } from './utils/prize-pot-counter.js';
+
 
 document.addEventListener('DOMContentLoaded', () => {
-    const paymentButton = document.getElementById('payment');
-    paymentButton.addEventListener('click', openEncryptedURL);
-});
+  updatePrizePotCounter();
+  const paymentButton = document.getElementById('payment');
+  paymentButton.addEventListener('click', openEncryptedURL);
 
-document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('registration-form');
   const submitButton = form.querySelector('.submit-button');
 
