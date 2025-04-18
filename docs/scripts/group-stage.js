@@ -2,6 +2,7 @@
 import { db } from '../scripts/config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../scripts/utils/country-utils.js';
 import { generateFixtures } from './create-round-matches/group-stage-fixtures.js';
+import { setCookie, getCookie } from '../scripts/utils/cookie-utils.js';
 
 db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({
@@ -136,23 +137,6 @@ export function getMatchdayMatches(matchday, teams) {
     }
 }
 
-// Utility function to set a cookie
-function setCookie(name, value, days) {
-    const date = new Date();
-    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-    document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/`;
-}
-
-// Utility function to get a cookie
-function getCookie(name) {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [key, value] = cookie.trim().split('=');
-        if (key === name) return value;
-    }
-    return null;
-}
-
 // Add event listener for the team discovery button
 const discoverTeamsButton = document.getElementById('discover-teams-button');
 const modal = document.getElementById('team-discovery-modal');
@@ -186,7 +170,7 @@ window.addEventListener('click', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
     const assignedTeam = getCookie('assignedTeam');
     if (assignedTeam) {
-        assignedTeamDisplay.innerHTML = `Your assigned team is: <strong>${assignedTeam}</strong>`;
+        assignedTeamDisplay.innerHTML = `Your winning team is: <strong>${assignedTeam}</strong>`;
         assignedTeamDisplay.classList.remove('hidden');
     }
 });
@@ -211,7 +195,7 @@ teamDiscoveryForm.addEventListener('submit', async (event) => {
 
         if (assignedTeam) {
             // Display the assigned team and save it in a cookie
-            assignedTeamDisplay.innerHTML = `Your assigned team is: <strong>${assignedTeam}</strong>`;
+            assignedTeamDisplay.innerHTML = `Your winning team is: <strong>${assignedTeam}</strong>`;
             setCookie('assignedTeam', assignedTeam, 7); // Save for 7 days
         } else {
             assignedTeamDisplay.innerHTML = `<strong>You've not yet registered. Please register first.</strong>`;
