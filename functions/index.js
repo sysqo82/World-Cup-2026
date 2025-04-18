@@ -39,6 +39,7 @@ exports.registerUser = functions.https.onRequest((req, res) => {
         email,
         team: selectedTeam.fullName,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        hasPaid: false,
       });
 
       await teamsRef.doc(selectedTeam.id).update({ assigned: true });
