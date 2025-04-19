@@ -39,14 +39,13 @@ exports.registerUser = functions.https.onRequest((req, res) => {
         email,
         team: selectedTeam.fullName,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        hasPaid: false,
+        hasPaid: 'Pending',
       });
 
       await teamsRef.doc(selectedTeam.id).update({ assigned: true });
 
       res.status(200).json({
         message: "User registered successfully.",
-        assignedTeam: selectedTeam.fullName,
       });
     } catch (error) {
       res.status(500).send("Error registering user: " + error.message);

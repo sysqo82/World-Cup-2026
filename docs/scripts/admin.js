@@ -356,7 +356,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button class="submit-button" onclick="deleteUser('${user.email}')">Delete</button>
                         `;
                         row.insertCell(6).innerHTML = `
-                            <input type="checkbox" class="form-check-input" id="user-${user.email}" ${user.hasPaid ? 'checked' : ''} onchange="updateHasPaid('${user.email}', this.checked)">
+                            <input type="checkbox" class="form-check-input" id="user-${user.email}" 
+                                ${user.hasPaid === true ? 'checked' : ''} 
+                                onchange="updateHasPaid('${user.email}', this.checked)">
                         `;
                     });
                 }
@@ -452,36 +454,36 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
         window.updateHasPaid = (email, hasPaid) => {
-        db.collection('users')
-            .where('email', '==', email) // Query for the document with the matching email
-            .get()
-            .then(snapshot => {
-                if (snapshot.empty) {
-                    alert(`No user found with email ${email}.`);
-                    console.error(`No user found with email ${email}.`);
-                    return;
-                }
-    
-                snapshot.forEach(doc => {
-                    const userId = doc.id;
-    
-                    // Update the hasPaid flag in the database
-                    db.collection('users').doc(userId).update({ hasPaid })
-                        .then(() => {
-                            console.log(`User with email ${email} updated successfully. hasPaid: ${hasPaid}`);
-                            alert(`Payment status updated for ${email}.`);
-                        })
-                        .catch(err => {
-                            console.error('Error updating payment status:', err);
-                            alert('Failed to update payment status. Please try again.');
-                        });
+            db.collection('users')
+                .where('email', '==', email) // Query for the document with the matching email
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        alert(`No user found with email ${email}.`);
+                        console.error(`No user found with email ${email}.`);
+                        return;
+                    }
+        
+                    snapshot.forEach(doc => {
+                        const userId = doc.id;
+        
+                        // Update the hasPaid flag in the database
+                        db.collection('users').doc(userId).update({ hasPaid: hasPaid === true })
+                            .then(() => {
+                                console.log(`User with email ${email} updated successfully. hasPaid: ${hasPaid}`);
+                                alert(`Payment status updated for ${email}.`);
+                            })
+                            .catch(err => {
+                                console.error('Error updating payment status:', err);
+                                alert('Failed to update payment status. Please try again.');
+                            });
+                    });
+                })
+                .catch(err => {
+                    console.error('Error querying user by email:', err);
+                    alert('Failed to update payment status. Please try again.');
                 });
-            })
-            .catch(err => {
-                console.error('Error querying user by email:', err);
-                alert('Failed to update payment status. Please try again.');
-            });
-    };
+        };
     
     // Initial load
     loadRegisteredUsers();
