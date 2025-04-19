@@ -42,6 +42,19 @@ export function initializeHomepage() {
     // Hide the navigation dropdown initially
     navigationDropdown.classList.add("hidden");
 
+    // Delete the user's cookie if the user is not found in the database
+    window.addEventListener('DOMContentLoaded', async () => {
+        const userEmail = getCookie("userDetails") ? JSON.parse(getCookie("userDetails")).email : null;
+        if (userEmail) {
+            const snapshot = await db.collection("users").where("email", "==", userEmail).get();
+            if (snapshot.empty) {
+                alert("Your user was not found in the database. Please register again.");
+                deleteCookie("userDetails");
+                window.location.reload();
+            }
+        }
+    });
+
     // Check for existing cookie on page load
     const userDetailsCookie = getCookie("userDetails");
     if (userDetailsCookie) {
