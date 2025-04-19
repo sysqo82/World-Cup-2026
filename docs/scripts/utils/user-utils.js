@@ -235,3 +235,27 @@ export function initializeHomepage() {
         }
     });
 }
+
+// Display the winning team on every page
+export function getAssignedTeam() {
+    const userDetails = getCookie('userDetails');
+    if (!userDetails) {
+        console.error('No user details found in cookies.');
+        return;
+    }
+
+    try {
+        const userDetailsObj = JSON.parse(userDetails);
+        const assignedTeam = userDetailsObj.assignedTeam || null;
+
+        const winningTeam = document.getElementById('winning-team');
+        if (winningTeam) {
+            winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
+        }
+
+        return assignedTeam;
+    } catch (error) {
+        console.error('Error parsing user details:', error);
+        return null;
+    }
+}

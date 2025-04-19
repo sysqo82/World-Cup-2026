@@ -11,26 +11,8 @@
         <!-- Header -->
         <div class="header-container">
             <h1>World Cup 2026 - Group Stage</h1>
-            <div class="team-discovery">
-                <h2>What's my team?!</h2>
-                <p>Click the button below to find out your team</p>
-                <button id="discover-teams-button" class="submit-button">Find Out</button>
-                <p id="assigned-team-display" class="assigned-team-display hidden"></p>
-            </div>
-        </div>
-            
-            <!-- Modal for Team Discovery -->
-            <div id="team-discovery-modal" class="modal hidden">
-                <div class="modal-content">
-                    <span id="close-modal" class="close">&times;</span>
-                    <h2>Find Your Team</h2>
-                    <form id="team-discovery-form">
-                        <label for="email">Enter your registered email address:</label>
-                        <input type="email" id="email" name="email" required>
-                        <button type="submit" class="submit-button">Find Out</button>
-                    </form>
-                    <p id="team-result" class="team-result hidden"></p>
-                </div>
+            <div class="winning-team-display">
+                <h2>My winning team is: <span id="winning-team"></span></h2>
             </div>
         </div>
 
@@ -71,5 +53,6 @@
     <script type="module" src="scripts/footer.js"></script>
     <script type="module" src="scripts/navigation/navigation.js"></script>
     <script type="module" src="scripts/config/firebase-config.js"></script>
+
 </body>
 </html>

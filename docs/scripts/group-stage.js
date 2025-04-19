@@ -2,7 +2,7 @@
 import { db } from '../scripts/config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../scripts/utils/country-utils.js';
 import { generateFixtures } from './create-round-matches/group-stage-fixtures.js';
-import { setCookie, getCookie } from '../scripts/utils/cookie-utils.js';
+import { getAssignedTeam } from '../scripts/utils/user-utils.js';
 
 db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({
@@ -137,75 +137,4 @@ export function getMatchdayMatches(matchday, teams) {
     }
 }
 
-// Add event listener for the team discovery button
-const discoverTeamsButton = document.getElementById('discover-teams-button');
-const modal = document.getElementById('team-discovery-modal');
-const closeModal = document.getElementById('close-modal');
-const teamDiscoveryForm = document.getElementById('team-discovery-form');
-const teamResult = document.getElementById('team-result');
-const assignedTeamDisplay = document.getElementById('assigned-team-display');
-
-// Open the modal when the button is clicked
-discoverTeamsButton.addEventListener('click', () => {
-    modal.style.display = 'block';
-});
-
-// Close the modal when the close button is clicked
-closeModal.addEventListener('click', () => {
-    modal.style.display = 'none';
-    teamResult.classList.add('hidden'); // Hide the result
-    teamDiscoveryForm.reset(); // Reset the form
-});
-
-// Close the modal when clicking outside the modal content
-window.addEventListener('click', (event) => {
-    if (event.target === modal) {
-        modal.style.display = 'none';
-        teamResult.classList.add('hidden'); // Hide the result
-        teamDiscoveryForm.reset(); // Reset the form
-    }
-});
-
-// Check for an existing cookie on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const assignedTeam = getCookie('assignedTeam');
-    if (assignedTeam) {
-        assignedTeamDisplay.innerHTML = `Your winning team is: <strong>${assignedTeam}</strong>`;
-        assignedTeamDisplay.classList.remove('hidden');
-    }
-});
-
-// Handle form submission
-teamDiscoveryForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const email = document.getElementById('email').value.trim();
-
-    try {
-        // Query the database for the user's assigned team
-        const snapshot = await db.collection('users').where('email', '==', email).get();
-        if (snapshot.empty) {
-            assignedTeamDisplay.innerHTML = `<strong>You've not yet registered. Please register first.</strong>`;
-            assignedTeamDisplay.classList.remove('hidden');
-            modal.style.display = 'none'; // Close the modal
-            return;
-        }
-
-        const userData = snapshot.docs[0].data();
-        const assignedTeam = userData.team;
-
-        if (assignedTeam) {
-            // Display the assigned team and save it in a cookie
-            assignedTeamDisplay.innerHTML = `Your winning team is: <strong>${assignedTeam}</strong>`;
-            setCookie('assignedTeam', assignedTeam, 7); // Save for 7 days
-        } else {
-            assignedTeamDisplay.innerHTML = `<strong>You've not yet registered. Please register first.</strong>`;
-        }
-        assignedTeamDisplay.classList.remove('hidden');
-        modal.style.display = 'none'; // Close the modal
-    } catch (error) {
-        console.error('Error fetching team:', error);
-        assignedTeamDisplay.textContent = 'An error occurred. Please try again.';
-        assignedTeamDisplay.classList.remove('hidden');
-        modal.style.display = 'none'; // Close the modal
-    }
-});
+getAssignedTeam()
