@@ -97,6 +97,23 @@ export function initializeHomepage() {
         registerSubmitButton.disabled = true;
         registerSubmitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
 
+        // Don't allow duplicate email registrations
+        try {
+            const normalizedEmail = email.toLowerCase().trim();
+            const snapshot = await db.collection("users").where("email", "==", normalizedEmail).get();
+
+            if (!snapshot.empty) {
+                alert("Email already registered. Please log in.");
+                registerSubmitButton.disabled = false;
+                registerSubmitButton.innerHTML = 'Register';
+                registrationForm.reset();
+                document.getElementById("email-login").value = normalizedEmail;
+                return;
+            }
+        } catch (error) {
+            console.error("Error checking email:", error);
+        }
+        
         if (!firstName || !lastName || !email) {
             alert("Please fill out all fields.");
             registerSubmitButton.disabled = false;
