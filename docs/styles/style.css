@@ -362,9 +362,6 @@ img {
     grid-column: 2 / span 4;
     align-items: center;
     text-align: center;
-    overflow: hidden; /* Prevent content from overflowing */
-    padding: 20px; /* Add padding for spacing */
-    box-sizing: border-box; /* Include padding in the height calculation */
 }
 
 .footer {
