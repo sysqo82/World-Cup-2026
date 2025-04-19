@@ -361,7 +361,6 @@ img {
     font-size: 20px;
     grid-column: 2 / span 4;
     align-items: center;
-    height: 100vh;
     text-align: center;
 }
 
@@ -379,9 +378,10 @@ img {
     height: 20px; /* Set a fixed height for the footer */
 }
 
-.registration-form-container {
+.registration-form-container,
+.login-form-container {
     margin-top: 20px;
-    padding: 20px;
+    padding: 20px 20px 20px 10px;
     background-color: #f9f9f9;
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -390,22 +390,27 @@ img {
     margin-right: auto;
 }
 
-.registration-form-container h2 {
+.registration-form-container h2,
+.login-form-container h2 {
     text-align: center;
     margin-bottom: 20px;
+    margin-top: 0;
 }
 
-#registration-form div {
+#registration-form div,
+#login-form div {
     margin-bottom: 15px;
 }
 
-#registration-form label {
+#registration-form label,
+#login-form label {
     width: 100%;
     font-weight: bold;
     margin-bottom: 5px;
 }
 
-#registration-form input {
+#registration-form input,
+#login-form input {
     max-width: 400px;
     padding: 8px;
     border: 1px solid #ccc;
