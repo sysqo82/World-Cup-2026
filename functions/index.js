@@ -32,11 +32,12 @@ exports.registerUser = functions.https.onRequest((req, res) => {
 
       const randomIndex = Math.floor(Math.random() * availableTeams.length);
       const selectedTeam = availableTeams[randomIndex];
+      const normalizedEmail = email.toLowerCase().trim();
 
       await admin.firestore().collection("users").add({
         firstName,
         lastName,
-        email,
+        email: normalizedEmail,
         team: selectedTeam.fullName,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         hasPaid: 'Pending',

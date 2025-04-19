@@ -149,7 +149,8 @@ export function initializeHomepage() {
 
         try {
             // Query the database for the user's details
-            const snapshot = await db.collection("users").where("email", "==", email).get();
+            const normalizedEmail = email.toLowerCase().trim();
+            const snapshot = await db.collection("users").where("email", "==", normalizedEmail).get();
 
             if (snapshot.empty) {
                 alert("No user found with this email. Please register first.");

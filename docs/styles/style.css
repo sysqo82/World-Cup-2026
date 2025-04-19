@@ -384,7 +384,7 @@ img {
 .registration-form-container,
 .login-form-container {
     margin-top: 20px;
-    padding: 20px;
+    padding: 20px 20px 20px 10px;
     background-color: #f9f9f9;
     border: 1px solid #ccc;
     border-radius: 5px;
