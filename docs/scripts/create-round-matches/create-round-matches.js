@@ -38,47 +38,57 @@ export async function generateRoundMatches(selector, dataBase, round) {
             const table = document.createElement('table');
             table.classList.add('match-table');
             table.innerHTML = `
-                <tr>
-                    <td class="team-name" data-team="team1" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team1)}">${match.team1}</td>
-                    <td class="score-section">
-                        <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
-                        <span class="score-divider">-</span>
-                        <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+            <tr>
+                <td class="team-name" data-team="team1" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team1).fullName}">
+                    <span class="country-container">
+                        <span class="fi fi-${getCountryFullName(countryMap, match.team1).flagCode}"></span>
+                        <strong>${match.team1}</strong>
+                    </span>
+                </td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <span class="score-divider">-</span>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                </td>
+                <td class="team-name" data-team="team2" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team2).fullName}">
+                    <span class="country-container">
+                        <strong>${match.team2}</strong>
+                        <span class="fi fi-${getCountryFullName(countryMap, match.team2).flagCode}"></span>
+                    </span>
+                </td>
+                ${isLoggedIn ? `
+                    <td>
+                        <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="regular" ${match.winner ? 'disabled' : ''}>Submit</button>
                     </td>
-                    <td class="team-name" data-team="team2" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team2)}">${match.team2}</td>
-                    ${isLoggedIn ? `
-                        <td>
-                            <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="regular" ${match.winner ? 'disabled' : ''}>Submit</button>
-                        </td>
-                    ` : ''}
-                </tr>
-                <tr class="extra-time-row ${match.displayExtraTime ? '' : 'hidden'}" data-match="${match.match}">
-                    <td class="extra-time-label">Extra Time</td>
-                    <td class="score-section">
-                        <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
-                        <span class="score-divider">-</span>
-                        <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                ` : ''}
+            </tr>
+            <tr class="extra-time-row ${match.displayExtraTime ? '' : 'hidden'}" data-match="${match.match}">
+                <td class="extra-time-label">Extra Time</td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <span class="score-divider">-</span>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                </td>
+                ${isLoggedIn ? `
+                    <td>
+                        <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="extra" ${match.winner ? 'disabled' : ''}>Submit</button>
                     </td>
-                    ${isLoggedIn ? `
-                        <td>
-                            <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="extra" ${match.winner ? 'disabled' : ''}>Submit</button>
-                        </td>
-                    ` : ''}
-                </tr>
-                <tr class="penalty-row ${match.displayPenaltyShootouts ? '' : 'hidden'}" data-match="${match.match}">
-                    <td>Penalties</td>
-                    <td class="score-section">
-                        <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
-                        <span class="score-divider">-</span>
-                        <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                ` : ''}
+            </tr>
+            <tr class="penalty-row ${match.displayPenaltyShootouts ? '' : 'hidden'}" data-match="${match.match}">
+                <td>Penalties</td>
+                <td class="score-section">
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <span class="score-divider">-</span>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                </td>
+                ${isLoggedIn ? `
+                    <td>
+                        <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="penalty" ${match.winner ? 'disabled' : ''}>Submit</button>
                     </td>
-                    ${isLoggedIn ? `
-                        <td>
-                            <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="penalty" ${match.winner ? 'disabled' : ''}>Submit</button>
-                        </td>
-                    ` : ''}
-                </tr>
-            `;
+                ` : ''}
+            </tr>
+        `;
             container.appendChild(table);
 
             // Disable all inputs and buttons if the match has ended
@@ -132,25 +142,6 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 }
             }
         });
-    }
-
-    // Initial render
-    renderMatches();
-}
-
-// Helper function to fetch a single match from the database
-async function fetchMatchFromDB(dataBase, matchId) {
-    try {
-        const doc = await db.collection(`${dataBase}`).doc('matches').get();
-        if (!doc.exists) {
-            console.error(`Match with ID ${matchId} not found in Firestore.`);
-            return null;
-        }
-        const matches = doc.data().matches || [];
-        return matches.find(match => match.match === matchId);
-    } catch (error) {
-        console.error('Error fetching match from Firestore:', error);
-        return null;
     }
 }
 

@@ -89,8 +89,14 @@ function populateTables(groups, countryMap) {
                     cellRank.textContent = index + 1;
 
                     const cellCountry = row.insertCell(1);
-                    const teamFullName = getCountryFullName(countryMap, team.name);
-                    cellCountry.innerHTML = `<strong title="${teamFullName}">${team.name}</strong>`;
+
+                    const { fullName: teamFullName, flagCode: teamFlagCode } = getCountryFullName(countryMap, team.name);
+                    cellCountry.innerHTML = `
+                    <span class="country-container" title="${teamFullName}">
+                        <span class="fi fi-${teamFlagCode}"></span>
+                        <strong>${team.name}</strong>
+                    </span>
+                `;
 
                     const cellPlayed = row.insertCell(2);
                     cellPlayed.textContent = team.played;

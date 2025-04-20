@@ -196,20 +196,29 @@ button#logout-button:hover {
 
         /* Increase the size of the score input section */
         .quarter-finals-container .score-section,
-        .round-of-16-container .score-section {
+        .round-of-16-container .score-section,
+        .semi-finals-container .score-section,
+        .final-container .score-section,
+        .third-place-playoff-container .score-section {
             height: 49px;
             gap: 10px;
         }
     
         /* Adjust the score input width for better usability */
         .quarter-finals-container .score-input,
-        .round-of-16-container .score-input {
+        .round-of-16-container .score-input,
+        .semi-finals-container .score-input,
+        .final-container .score-input,
+        .third-place-playoff-container .score-input {
             width: 50px;
             font-size: 16px;
         }
     
         .quarter-finals-container .extra-time-label,
-        .round-of-16-container .extra-time-label {
+        .round-of-16-container .extra-time-label,
+        .semi-finals-container .extra-time-label,
+        .final-container .extra-time-label,
+        .third-place-playoff-container .extra-time-label {
             font-size: 12px;
             white-space: nowrap;
         }
@@ -267,7 +276,10 @@ button#logout-button:hover {
 }
 
 .quarter-finals-container,
-.round-of-16-container {
+.semi-finals-container,
+.final-container,
+.round-of-16-container,
+.third-place-playoff-container {
     grid-column: 1 / span 6; /* Full width for knockout stages */
     display: flex;
     flex-direction: column;
@@ -281,19 +293,28 @@ button#logout-button:hover {
 
 /* Center the score inputs and the score divider */
 .quarter-finals-container td,
-.round-of-16-container td {
+.semi-finals-container td,
+.round-of-16-container td,
+.final-container td,
+.third-place-playoff-container td {
     text-align: center;
     vertical-align: middle;
 }
 
 .quarter-finals-container .team-name,
-.round-of-16-container .team-name {
+.semi-finals-container .team-name,
+.round-of-16-container .team-name,
+.final-container .team-name,
+.third-place-playoff-container .team-name {
     width: 100px;
 }
 
 /* Center the score inputs and the score divider */
 .quarter-finals-container .score-section,
-.round-of-16-container .score-section {
+.semi-finals-container .score-section,
+.round-of-16-container .score-section,
+.final-container .score-section,
+.third-place-playoff-container .score-section {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -474,4 +495,24 @@ img {
 
 #team-discovery-form input {
     margin-bottom: 5px;
+}
+
+.country-container {
+    position: relative;
+    display: inline-block;
+}
+
+.country-container .country-name {
+    margin-left: 8px;
+}
+
+.country-container .fi,
+#fixtures-container .fi {
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+.loser .country-container {
+    text-decoration: line-through;
 }
