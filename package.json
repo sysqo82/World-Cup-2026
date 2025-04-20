@@ -19,6 +19,7 @@
     "firebase-tools": "13.6.1",
     "pm2": "^6.0.5",
     "sqlite": "^4.0.23",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "flag-icons": "^7.3.2"
   }
 }

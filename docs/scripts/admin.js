@@ -1,5 +1,10 @@
 // Import Firebase configuration and services
 import { db, auth } from '../scripts/config/firebase-config.js';
+import { genereateRoundOf16Matches } from './create-round-matches/admin-helper/generate-round-of-16.js';
+import { generateQuarterFinalsMatches } from './create-round-matches/admin-helper/generate-quarter-finals.js';
+import { generateSemiFinalsMatches } from './create-round-matches/admin-helper/generate-semi-finals.js';
+import { generateFinalMatch } from './create-round-matches/admin-helper/generate-final.js';
+import { generateThirdPlacePlayoffMatch } from './create-round-matches/admin-helper/generate-third-forth-playoff.js';
 
 // Check authentication state on page load
 auth.onAuthStateChanged(user => {
@@ -51,138 +56,24 @@ document.getElementById('logout-button').addEventListener('click', () => {
         });
 });
 
-// Add event listener for the "Generate Round of 16" button
 document.getElementById('generate-round-of-16').addEventListener('click', async () => {
-    try {
-        // Fetch the current state of the groups
-        const groupsSnapshot = await db.collection('groups').get();
-        const groups = groupsSnapshot.docs.reduce((acc, doc) => {
-            acc[doc.id] = doc.data();
-            return acc;
-        }, {});
-
-        // Define the match rules for the Round of 16
-        const matchRules = [
-            { match: '1A vs. 2B', group1: 'group1', group2: 'group2' },
-            { match: '1C vs. 2D', group1: 'group3', group2: 'group4' },
-            { match: '1E vs. 2F', group1: 'group5', group2: 'group6' },
-            { match: '1G vs. 2H', group1: 'group7', group2: 'group8' },
-            { match: '1B vs. 2A', group1: 'group2', group2: 'group1' },
-            { match: '1D vs. 2C', group1: 'group4', group2: 'group3' },
-            { match: '1F vs. 2E', group1: 'group6', group2: 'group5' },
-            { match: '1H vs. 2G', group1: 'group8', group2: 'group7' }
-        ];
-
-        // Prepare the Round of 16 structure
-        const roundOf16Teams = matchRules.map(rule => {
-            const group1 = groups[rule.group1];
-            const group2 = groups[rule.group2];
-
-            // Ensure both groups exist
-            if (!group1 || !group2) {
-                console.warn(`Missing data for groups: ${rule.group1} or ${rule.group2}`);
-                return null; // Skip this match if data is missing
-            }
-
-            // Get the winner and runner-up from each group
-            const team1 = getTeamByRank(group1, 1); // Winner of group1
-            const team2 = getTeamByRank(group2, 2); // Runner-up of group2
-
-            return {
-                match: rule.match,
-                team1: team1.name || 'Unknown',
-                team2: team2.name || 'Unknown',
-                type: 'regular',
-                regularTimeTeam1Score: null,
-                regularTimeTeam2Score: null,
-                extraTimeTeam1Score: null,
-                extraTimeTeam2Score: null,
-                penaltyShootoutsTeam1Score: null,
-                penaltyShootoutsTeam2Score: null,
-                winner: null,
-                loser: null,
-                displayExtraTime: false,
-                displayPenaltyShootouts: false,
-            };
-        }).filter(match => match !== null); // Remove any null matches
-
-        // Save the Round of 16 structure to Firestore
-        await db.collection('roundOf16Teams').doc('matches').set({ matches: roundOf16Teams });
-        alert('Round of 16 structure generated successfully!');
-    } catch (error) {
-        console.error('Error generating Round of 16 structure:', error);
-        alert('Failed to generate Round of 16 structure. Please try again.');
-    }
+    genereateRoundOf16Matches();
+});
+document.getElementById('generate-quarter-finals').addEventListener('click', async () => {
+    generateQuarterFinalsMatches();
+});
+document.getElementById('generate-semi-finals').addEventListener('click', async () => {
+    generateSemiFinalsMatches();
+});
+document.getElementById('generate-final').addEventListener('click', async () => {
+    generateFinalMatch();
+});
+document.getElementById('generate-third-place-playoff').addEventListener('click', async () => {
+    generateThirdPlacePlayoffMatch();
 });
 
-
-// Add event listener for the "Generate Quarter Finals" button
-document.getElementById('generate-quarter-finals').addEventListener('click', async () => {
-    try {
-        // Fetch the Round of 16 matches
-        const roundOf16Snapshot = await db.collection('roundOf16Teams').doc('matches').get();
-        const roundOf16Data = roundOf16Snapshot.data();
-
-        if (!roundOf16Data || !roundOf16Data.matches) {
-            console.warn('No Round of 16 matches found in Firestore.');
-            alert('No Round of 16 matches available. Please generate them first.');
-            return;
-        }
-
-        const roundOf16Matches = roundOf16Data.matches;
-
-        // Define the match rules for the Quarter Finals
-        const matchRules = [
-            { match: 'Winner of roundOf16-1 vs. Winner of roundOf16-2', match1: 0, match2: 1 },
-            { match: 'Winner of roundOf16-3 vs. Winner of roundOf16-4', match1: 2, match2: 3 },
-            { match: 'Winner of roundOf16-5 vs. Winner of roundOf16-6', match1: 4, match2: 5 },
-            { match: 'Winner of roundOf16-7 vs. Winner of roundOf16-8', match1: 6, match2: 7 }
-        ];
-
-        // Prepare the Quarter Finals structure
-        const quarterFinalsTeams = matchRules.map(rule => {
-            const match1Winner = roundOf16Matches[rule.match1]?.winner;
-            const match2Winner = roundOf16Matches[rule.match2]?.winner;
-        
-            // Ensure both winners exist
-            if (!match1Winner || !match2Winner) {
-                console.warn(`Missing winners for matches: ${rule.match1} or ${rule.match2}`);
-                return null; // Skip this match if data is missing
-            }
-            
-            // Handle cases where the winner is a string
-            const team1Name = typeof match1Winner === 'string' ? match1Winner : match1Winner.name || 'Unknown';
-            const team2Name = typeof match2Winner === 'string' ? match2Winner : match2Winner.name || 'Unknown';
-
-            return {
-                match: rule.match,
-                team1: team1Name,
-                team2: team2Name,
-                type: 'regular',
-                regularTimeTeam1Score: null,
-                regularTimeTeam2Score: null,
-                extraTimeTeam1Score: null,
-                extraTimeTeam2Score: null,
-                penaltyShootoutsTeam1Score: null,
-                penaltyShootoutsTeam2Score: null,
-                winner: null,
-                loser: null,
-                displayExtraTime: false,
-                displayPenaltyShootouts: false,
-            };
-        }).filter(match => match !== null); // Remove any null matches
-
-        // Save the Quarter Finals structure to Firestore
-        await db.collection('quarterFinalsTeams').doc('matches').set({ matches: quarterFinalsTeams });
-        alert('Quarter Finals structure generated successfully!');
-    } catch (error) {
-        console.error('Error generating Quarter Finals structure:', error);
-        alert('Failed to generate Quarter Finals structure. Please try again.');
-    }
-});         
-
 // Helper function to get a team by rank
-function getTeamByRank(group, rank) {
+export function getTeamByRank(group, rank) {
     const teams = Object.entries(group.teams || {});
 
     // Check if no matches have been played (P = 0 for all teams)
@@ -369,20 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Delete a user from Firestore based on their email and update the team's assigned flag
-    window.deleteUserFromRow = (button) => {
-        const row = button.closest('tr'); // Get the closest table row
-        const email = row.cells[3].textContent; // Get the email from the 4th cell (index 3)
-    
-        if (!email) {
-            console.error('Invalid email value:', email);
-            alert('Failed to delete user. Invalid email.');
-            return;
-        }
-    
-        // Call the deleteUser function with the fetched email
-        deleteUser(email);
-    };
-    
     window.deleteUser = (email) => {
         db.collection('users')
             .where('email', '==', email) // Query for the document with the matching email

@@ -57,13 +57,17 @@ export async function generateFixtures(groups) {
                         matches.forEach(match => {
                             const existingMatch = group.matchdays?.[matchday]?.[`${match.team1.id}_${match.team2.id}`] || {};
                             const row = document.createElement('tr');
-                            const team1FullName = getCountryFullName(countryMap, match.team1.name);
-                            const team2FullName = getCountryFullName(countryMap, match.team2.name);
+                            const { fullName: team1FullName } = getCountryFullName(countryMap, match.team1.name);
+                            const { fullName: team2FullName } = getCountryFullName(countryMap, match.team2.name);
+                            const team1FlagCode = countryMap[match.team1.name]?.flagCode || 'unknown';
+                            const team2FlagCode = countryMap[match.team2.name]?.flagCode || 'unknown';
 
                             row.innerHTML = `
                                 <td>${matchNumber++}</td>
                                 <td>${group.name}</td>
-                                <td class="team1" title="${team1FullName}">${match.team1.name}</td>
+                                <td class="team1" title="${team1FullName}">
+                                    <span class="fi fi-${team1FlagCode}"></span> ${match.team1.name}
+                                </td>
                                 <td>
                                     <div class="score-container">
                                         <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined ? 'disabled' : ''}>
@@ -71,7 +75,9 @@ export async function generateFixtures(groups) {
                                         <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team2.id}" data-team-right="${match.team1.id}" data-matchday="${matchday}" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined ? 'disabled' : ''}>
                                     </div>
                                 </td>
-                                <td class="team2" title="${team2FullName}">${match.team2.name}</td>
+                                <td class="team2" title="${team2FullName}">
+                                   ${match.team2.name} <span class="fi fi-${team2FlagCode}"></span>
+                                </td>
                                 ${isLoggedIn ? `
                                     <td><button class="submit-button" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
                                 ` : ''}
