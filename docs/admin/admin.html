@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page - World Cup 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="../styles/style.css">
+</head>
+<body class="bg-light">
+    <div class="container text-center mt-5">
+        <div class="header-container">
+            <h1>Admin Page - World Cup 2026</h1>
+            <button id="logout-button" class="btn btn-danger">Logout</button>
+        </div>
+
+        <!-- Authentication Form -->
+        <div id="auth-container" class="card mx-auto p-4 shadow-sm" style="max-width: 400px;">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email:</label>
+                <input type="email" id="email" class="form-control" placeholder="Enter email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password:</label>
+                <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+            </div>
+            <button id="login-button" class="btn btn-primary w-100">Login</button>
+            <p id="auth-error" class="text-danger mt-3" style="display: none;">Invalid email or password.</p>
+        </div>
+
+        <!-- Admin Content -->
+        <div id="admin-content" class="mt-5">
+            <!-- Dropdown for groups and Generate button -->
+            <div class="mb-4 text-center">
+                <label for="navigation-select" class="form-label me-2" style="padding-top: 10px;">Select Group:</label>
+                <select id="navigation-select" class="form-select d-inline-block" style="width: auto;">
+                    <option value="">-- Select a Group --</option>
+                </select>
+            </div>
+            <!-- Teams list -->
+            <div id="teams-container" class="mt-4">
+                <!-- Teams will be dynamically displayed here -->
+            </div>
+            <!-- Buttons arranged in a single column -->
+            <div class="d-flex flex-column align-items-center">
+                <button id="generate-round-of-16" class="submit-button mb-2">Generate Round of 16</button>
+                <button id="generate-quarter-finals" class="submit-button mb-2">Generate Quarter Finals</button>
+                <button id="generate-semi-finals" class="submit-button mb-2">Generate Semi Finals</button>
+                <button id="generate-final" class="submit-button mb-2">Generate Final</button>
+                <button id="generate-third-place-playoff" class="submit-button">Generate Third Place Playoff</button>
+
+
+            <!-- Registered Users -->
+            <div id="registered-users-container" class="mt-5">
+                <h2>Registered Users</h2>
+                <table id="registered-users-table" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Assigned Team</th>
+                            <th></th>
+                            <th>Paid</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Registered users will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="../scripts/config/firebase-config.js" type="module"></script>
+    <script src="../scripts/admin.js" type="module"></script>
+    <script src="../scripts/create-round-matches/admin-helper/generate-round-of-16.js" type="module"></script>
+    <script src="../scripts/create-round-matches/admin-helper/generate-quarter-finals.js" type="module"></script>
+    <script src="../scripts/create-round-matches/admin-helper/generate-semi-finals.js" type="module"></script>
+    <script src="../scripts/create-round-matches/admin-helper/generate-final.js" type="module"></script>
+    <script src="../scripts/create-round-matches/admin-helper/generate-third-forth-playoff.js" type="module"></script>
+</body>
+</html>
