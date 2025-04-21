@@ -1,4 +1,4 @@
-import { getMatchdayMatches } from '../group-stage.js';
+import { getMatchdayMatches } from '../src/group-stage.js';
 import { handleGroupStageScoreSubmission } from '../score-submissions/groups-stage.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { auth } from '../config/firebase-config.js';

@@ -3,7 +3,7 @@
  * @returns {Promise<Object>} A map where the key is the abbreviation and the value is an object containing the full name and flag code.
  */
 export async function fetchCountryMap() {
-    const response = await fetch('./Countries/countries.txt');
+    const response = await fetch('../Countries/countries.txt');
     if (!response.ok) {
         throw new Error(`Failed to fetch countries: ${response.statusText}`);
     }
