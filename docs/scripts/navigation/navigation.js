@@ -32,10 +32,12 @@ function setSelectedPage() {
 
     const currentPath = window.location.pathname.replace(/\\/g, '/');
     const isLocal = window.location.hostname === '127.0.0.1';
-    const basePath = isLocal ? '/docs/' : '/';
+    const basePath = isLocal ? '/docs/' : '/World-Cup-2026/';
 
-    const currentPage = currentPath.split(basePath).pop() || 'index.html';
+    // Remove the base path to get the current page
+    const currentPage = currentPath.replace(basePath, '') || 'index.html';
 
+    // Reverse map the current page to the dropdown value
     const reversePageMap = Object.entries(pageMap).reduce((acc, [key, value]) => {
         acc[value] = key;
         return acc;
