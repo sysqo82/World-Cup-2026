@@ -4,7 +4,7 @@ This project is a web-based application designed to manage and display data for 
 
 ---
 
-## **Features**
+## **Features** 
 
 ### **1. Group Stage Management**
 - **Dynamic Group Tables**:
