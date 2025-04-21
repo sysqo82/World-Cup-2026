@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
@@ -9,35 +9,35 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Setup Hugo
-      uses: peaceiris/actions-hugo@v2
-      with:
-        hugo-version: 'latest'
+      # 1. Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Build
-      run: hugo --destination ./docs/pages
+      # 2. Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v3
-      if: github.ref == 'refs/heads/main'
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: yarn install
 
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # 4. Build your app (if applicable, e.g., React/Vue/Next.js)
+      - name: Build
+        run: yarn build  # Replace with your build script if different
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
+      # 6. Create symlink so /docs/index.html points to /docs/pages/index.html
+      - name: Create symlink for GitHub Pages
+        run: ln -s pages/index.html docs/index.html
 
-    - name: Install dependencies
-      run: yarn install
-
-    # - name: Start server
-    #   run: yarn start
+      # 7. Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs  # Deploy the entire /docs folder
