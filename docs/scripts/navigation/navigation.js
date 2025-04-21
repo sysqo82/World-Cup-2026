@@ -1,14 +1,14 @@
 const pageMap = {
+    '': 'index.html',
     'home': 'index.html',
     'index.html': 'home',
-    'group-stage': 'group-stage.html',
-    'round-of-16': 'round-of-16.html',
-    'quarter-final': 'quarter-final.html',
-    'semi-final': 'semi-final.html',
-    'final': 'final.html',
-    'third-place-playoff': 'third-place-playoff.html',
+    'group-stage': 'pages/group-stage.html',
+    'round-of-16': 'pages/round-of-16.html',
+    'quarter-final': 'pages/quarter-final.html',
+    'semi-final': 'pages/semi-final.html',
+    'final': 'pages/final.html',
+    'third-place-playoff': 'pages/third-place-playoff.html',
     'group-stage.html': 'group-stage',
-    '': 'index.html',
     'round-of-16.html': 'round-of-16',
     'quarter-final.html': 'quarter-final',
     'semi-final.html': 'semi-final',
@@ -19,7 +19,9 @@ const pageMap = {
 function navigateToPage() {
     const selectedPage = document.getElementById('navigation-select').value;
     const targetUrl = pageMap[selectedPage] || 'index.html';
-    window.location.href = targetUrl;
+
+    const basePath = '/World-Cup-2026/docs/';
+    window.location.href = `${basePath}${targetUrl}`;
 }
 
 function setSelectedPage() {
@@ -27,8 +29,14 @@ function setSelectedPage() {
     if (!navigationSelect) return;
 
     const currentPath = window.location.pathname.replace(/\\/g, '/');
-    const currentPage = currentPath.split('/docs/pages/').pop();
-    navigationSelect.value = pageMap[currentPage] || 'home';
+    const currentPage = currentPath.split('/docs/').pop() || 'index.html';
+
+    const reversePageMap = Object.entries(pageMap).reduce((acc, [key, value]) => {
+        acc[value] = key;
+        return acc;
+    }, {});
+
+    navigationSelect.value = reversePageMap[currentPage] || 'home';
 }
 
 window.navigateToPage = navigateToPage;
