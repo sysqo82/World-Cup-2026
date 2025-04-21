@@ -18,9 +18,9 @@ jobs:
       with:
         hugo-version: 'latest'
 
-    - name: Build
+    - name: Redirect to docs folder
       run: hugo --destination ./docs/pages
-      
+
     - name: Checkout code
       uses: actions/checkout@v3
 
