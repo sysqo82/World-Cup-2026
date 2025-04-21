@@ -18,7 +18,7 @@ jobs:
       with:
         hugo-version: 'latest'
 
-    - name: Redirect to docs folder
+    - name: Biuld
       run: hugo --destination ./docs/pages
 
     - name: Checkout code
