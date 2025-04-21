@@ -30,6 +30,9 @@ jobs:
     - name: Install dependencies
       run: yarn install
 
+    - name: Remove .lock files
+      run: find docs/ -name ".lock" -type f -delete
+
     - name: Upload-artifacts
       uses: actions/upload-artifact@v4
       with:
