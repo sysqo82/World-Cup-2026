@@ -30,14 +30,35 @@ jobs:
     - name: Install dependencies
       run: yarn install
 
-    - name: Remove .lock files
-      run: find docs/ -name ".lock" -type f -delete
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./docs/_site
+        name: github-pages
+        retention-days: 1
 
-    - name: Upload-artifacts
+    - name: Archive artifact
+      run: |
+        echo ::group::Archive artifact
+        tar \
+          --dereference --hard-dereference \
+          --directory "./docs/_site" \
+          -cvf "$RUNNER_TEMP/artifact.tar" \
+          --exclude=.git \
+          --exclude=.github \
+          .
+        echo ::endgroup::
+
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: github-pages
-        path: docs
+        path: $RUNNER_TEMP/artifact.tar
+        retention-days: 1
+        if-no-files-found: error
+        compression-level: 6
+        overwrite: false
+        include-hidden-files: false
 
 
   deploy:
