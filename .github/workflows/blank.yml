@@ -30,13 +30,6 @@ jobs:
     - name: Install dependencies
       run: yarn install
 
-    - name: Upload Pages artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: ./docs/
-        name: github-pages
-        retention-days: 1
-
     - name: Archive artifact
       run: |
         echo ::group::Archive artifact
