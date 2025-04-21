@@ -1,0 +1,6 @@
+{
+  baseURL: "https://sysqo82.github.io/World-Cup-2026/",
+  languageCode: "en-us",
+  title: "World Cup 2026",
+  publishDir: "docs"
+}
