@@ -27,17 +27,12 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      # 4. Build your app (if applicable, e.g., React/Vue/Next.js)
-      - name: Build
-        run: yarn build  # Replace with your build script if different
+      # Only create symlink (no mkdir needed since /docs exists)
+      - name: Link /docs/index.html to /docs/pages/index.html
+        run: ln -sfn pages/index.html docs/index.html
 
-      # 6. Create symlink so /docs/index.html points to /docs/pages/index.html
-      - name: Create symlink for GitHub Pages
-        run: ln -s pages/index.html docs/index.html
-
-      # 7. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs  # Deploy the entire /docs folder
+          publish_dir: ./docs
