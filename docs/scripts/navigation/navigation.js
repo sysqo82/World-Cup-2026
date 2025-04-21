@@ -13,7 +13,7 @@ const pageMap = {
     'quarter-final.html': 'quarter-final',
     'semi-final.html': 'semi-final',
     'final.html': 'final',
-    'third-place-playoff.html': 'third-place-playoff'
+    'third-place-playoff.html': 'third-place-playoff',
 };
 
 function navigateToPage() {
@@ -26,7 +26,8 @@ function setSelectedPage() {
     const navigationSelect = document.getElementById('navigation-select');
     if (!navigationSelect) return;
 
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html'; // Default to homepage
+    const currentPath = window.location.pathname.replace(/\\/g, '/');
+    const currentPage = currentPath.split('/docs/pages/').pop();
     navigationSelect.value = pageMap[currentPage] || 'home';
 }
 

@@ -1,8 +1,8 @@
 // Import Firebase services
-import { db } from '../scripts/config/firebase-config.js';
-import { fetchCountryMap, getCountryFullName } from '../scripts/utils/country-utils.js';
-import { generateFixtures } from './create-round-matches/group-stage-fixtures.js';
-import { getAssignedTeam } from '../scripts/utils/user-utils.js';
+import { db } from '../config/firebase-config.js';
+import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
+import { generateFixtures } from '../create-round-matches/group-stage-fixtures.js';
+import { getAssignedTeam } from '../utils/user-utils.js';
 
 db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({

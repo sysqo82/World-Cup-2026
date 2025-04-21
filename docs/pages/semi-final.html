@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Cup 2026 - Group Stage</title>
-    <link rel="stylesheet" href="styles/style.css">
+    <title>World Cup 2026 - Semi Final</title>
+    <link rel="stylesheet" href="../styles/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
 </head>
 <body class="bg-light">
     <div class="container text-center mt-5">
         <!-- Header -->
         <div class="header-container">
-            <h1>World Cup 2026 - Group Stage</h1>
+            <h1>World Cup 2026 - Semi Final</h1>
             <div class="winning-team-display">
                 <h2>My winning team is: <span id="winning-team"></span></h2>
             </div>
@@ -21,10 +21,10 @@
         <div class="navigation-dropdown">
             <select id="navigation-select" onchange="navigateToPage()">
                 <option value="home">Homepage</option>
-                <option value="group-stage" selected>Group Stage</option>
+                <option value="group-stage">Group Stage</option>
                 <option value="round-of-16">Round of 16</option>
                 <option value="quarter-final">Quarter Final</option>
-                <option value="semi-final">Semi Final</option>
+                <option value="semi-final" selected>Semi Final</option>
                 <option value="final">Final</option>
                 <option value="third-place-playoff">Third Place Playoff</option>
             </select>
@@ -32,16 +32,8 @@
 
         <!-- Main Content -->
         <div class="main-container">
-            <!-- Groups Section -->
-            <div id="tables-container">
-                <h1>Groups</h1>
-                <!-- Tables will be dynamically created here -->
-            </div>
-
-            <!-- Fixtures Section -->
-            <div id="fixtures-container">
-                <h1>Fixtures</h1>
-                <!-- Fixtures will be dynamically created here -->
+            <div class="semi-finals-container">
+                <!-- Content will be dynamically generated here -->
             </div>
         </div>
     </div>
@@ -50,10 +42,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script type="module" src="scripts/group-stage.js"></script>
-    <script type="module" src="scripts/footer.js"></script>
-    <script type="module" src="scripts/navigation/navigation.js"></script>
-    <script type="module" src="scripts/config/firebase-config.js"></script>
-
+    <script type="module" src="../scripts/navigation/navigation.js"></script>
+    <script type="module" src="../scripts/config/firebase-config.js"></script>
+    <script type="module" src="../scripts/src/semi-final.js"></script>
+    <script type="module" src="../scripts/src/footer.js"></script>
+    <script type="module" src="../scripts/score-submissions/regular-time.js"></script>
+    <script type="module" src="../scripts/score-submissions/penalty-shootouts.js"></script>
+    <script type="module" src="../scripts/score-submissions/extra-time.js"></script>
+    <script type="module" src="../scripts/create-round-matches/create-round-matches.js"></script>
 </body>
 </html>
