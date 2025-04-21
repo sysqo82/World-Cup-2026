@@ -38,8 +38,9 @@ jobs:
 
 
   deploy:
+    environment: github-pages
     runs-on: ubuntu-latest
-    needs: build  # Ensure deploy runs after build
+    needs: build
 
     steps:
     - name: Checkout code
