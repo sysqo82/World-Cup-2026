@@ -20,7 +20,9 @@ function navigateToPage() {
     const selectedPage = document.getElementById('navigation-select').value;
     const targetUrl = pageMap[selectedPage] || 'index.html';
 
-    const basePath = '/World-Cup-2026/docs/';
+    const isLocal = window.location.hostname === '127.0.0.1';
+    const basePath = isLocal ? '/World-Cup-2026/docs/' : '/World-Cup-2026/';
+
     window.location.href = `${basePath}${targetUrl}`;
 }
 
@@ -29,7 +31,10 @@ function setSelectedPage() {
     if (!navigationSelect) return;
 
     const currentPath = window.location.pathname.replace(/\\/g, '/');
-    const currentPage = currentPath.split('/docs/').pop() || 'index.html';
+    const isLocal = window.location.hostname === '127.0.0.1';
+    const basePath = isLocal ? '/docs/' : '/';
+
+    const currentPage = currentPath.split(basePath).pop() || 'index.html';
 
     const reversePageMap = Object.entries(pageMap).reduce((acc, [key, value]) => {
         acc[value] = key;
