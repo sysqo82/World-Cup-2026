@@ -23,12 +23,20 @@ jobs:
 
     - name: Install dependencies
       run: yarn install
-  
+
+    - name: Build project
+      run: yarn build
+
   deploy:
     runs-on: ubuntu-latest
+    needs: build  # Ensure deploy runs after build
+
     steps:
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
