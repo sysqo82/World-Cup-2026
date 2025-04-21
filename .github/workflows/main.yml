@@ -27,12 +27,9 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      # Only create symlink (no mkdir needed since /docs exists)
-      - name: Link /docs/index.html to /docs/pages/index.html
-        run: ln -sfn docs/pages/index.html docs/index.html
-
+      # 4. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          publish_dir: ./docs/pages
