@@ -12,6 +12,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
     }
     container.innerHTML = ''; // Clear previous matches
 
+    // Check if it's the final
+    let isFinal = round === 'Final';
+
     // Fetch the country map
     const countryMap = await fetchCountryMap();
 
@@ -41,8 +44,10 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr>
                 <td class="team-name" data-team="team1" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team1).fullName}">
                     <span class="country-container">
-                        <span class="fi fi-${getCountryFullName(countryMap, match.team1).flagCode}"></span>
-                        <strong>${match.team1}</strong>
+                        ${isFinal 
+                            ? `<strong>${match.team1}</strong><span class="fi fi-${getCountryFullName(countryMap, match.team1).flagCode} large-flag"></span>` 
+                            : `<span class="${isFinal ? 'large-flag' : ''} fi fi-${getCountryFullName(countryMap, match.team1).flagCode}"></span><strong>${match.team1}</strong>`
+                        }
                     </span>
                 </td>
                 <td class="score-section">
@@ -52,8 +57,10 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 </td>
                 <td class="team-name" data-team="team2" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team2).fullName}">
                     <span class="country-container">
-                        <strong>${match.team2}</strong>
-                        <span class="fi fi-${getCountryFullName(countryMap, match.team2).flagCode}"></span>
+                        ${isFinal 
+                            ? `<strong>${match.team2}</strong><span class="fi fi-${getCountryFullName(countryMap, match.team2).flagCode} large-flag"></span>` 
+                            : `<span class="${isFinal ? 'large-flag' : ''} fi fi-${getCountryFullName(countryMap, match.team2).flagCode}"></span><strong>${match.team2}</strong>`
+                        }
                     </span>
                 </td>
                 ${isLoggedIn ? `

@@ -66,11 +66,11 @@ h1 {
     padding: 20px;
 }
 
-/* Groups container layout */
-#tables-container {
-    grid-column: 2 / span 4; /* Groups take up columns 2-5 */
+#tables-container,
+#groups-container {
+    grid-column: 2 / 5; /* Groups take up columns 2-5 */
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4 columns for groups */
+    grid-template-columns: repeat(3, 1fr); /* 4 columns for groups */
     gap: 20px;
     padding: 20px;
     justify-content: center; /* Center the columns horizontally */
@@ -78,7 +78,7 @@ h1 {
 
 /* Fixtures container layout */
 #fixtures-container {
-    grid-column: 2 / span 4; /* Fixtures take up columns 2-5 */
+    grid-column: 1 / span 5; /* Fixtures take up columns 2-5 */
     margin-top: 20px;
     padding: 20px;
     background-color: #fff;
@@ -151,6 +151,49 @@ button#logout-button:hover {
     background-color: #e60000;
 }
 
+.large-flag {
+    font-size: 13rem; /* Adjust size as needed */
+}
+
+.final-container .score-section {
+    height: 70px;
+    white-space: nowrap;
+}
+
+/* Center the score inputs and the score divider */
+.quarter-finals-container .score-section,
+.semi-finals-container .score-section,
+.round-of-16-container .score-section,
+.third-place-playoff-container .score-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    height: 40px;
+}
+
+@media (min-width: 1521px) {
+    #tables-container,
+    #groups-container {
+        grid-column: 2 / span 4; /* Groups take up columns 2-5 */
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* 4 columns for groups */
+        gap: 20px;
+        padding: 20px;
+        justify-content: center; /* Center the columns horizontally */
+    }
+    
+    /* Fixtures container layout */
+    #fixtures-container {
+        grid-column: 2 / span 4; /* Fixtures take up columns 2-5 */
+        margin-top: 20px;
+        padding: 20px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     h1 {
@@ -180,7 +223,8 @@ button#logout-button:hover {
         border-collapse: collapse;
     }
 
-    #fixtures-container th, #fixtures-container td {
+    #fixtures-container th,
+    #fixtures-container td {
         font-size: 12px; /* Adjust font size for smaller screens */
         padding: 6px; /* Reduce padding for better fit */
     }
@@ -194,48 +238,54 @@ button#logout-button:hover {
         font-size: 12px; /* Reduce font size for better fit */
     }
 
-        /* Increase the size of the score input section */
-        .quarter-finals-container .score-section,
-        .round-of-16-container .score-section,
-        .semi-finals-container .score-section,
-        .final-container .score-section,
-        .third-place-playoff-container .score-section {
-            height: 49px;
-            gap: 10px;
-        }
-    
-        /* Adjust the score input width for better usability */
-        .quarter-finals-container .score-input,
-        .round-of-16-container .score-input,
-        .semi-finals-container .score-input,
-        .final-container .score-input,
-        .third-place-playoff-container .score-input {
-            width: 50px;
-            font-size: 16px;
-        }
-    
-        .quarter-finals-container .extra-time-label,
-        .round-of-16-container .extra-time-label,
-        .semi-finals-container .extra-time-label,
-        .final-container .extra-time-label,
-        .third-place-playoff-container .extra-time-label {
-            font-size: 12px;
-            white-space: nowrap;
-        }
+    .final-container .score-section {
+        height: 70px;
+    }
 
-        img {
-            grid-column: 2 / span 2;
-            max-width: 100%;
-            height: auto;
-            margin: 0 auto;
-        }
+    /* Increase the size of the score input section */
+    .quarter-finals-container .score-section,
+    .round-of-16-container .score-section,
+    .semi-finals-container .score-section,
+    .third-place-playoff-container .score-section {
+        height: 49px;
+        gap: 10px;
+    }
+
+    /* Adjust the score input width for better usability */
+    .quarter-finals-container .score-input,
+    .round-of-16-container .score-input,
+    .semi-finals-container .score-input,
+    .final-container .score-input,
+    .third-place-playoff-container .score-input {
+        width: 50px;
+        font-size: 16px;
+    }
+
+    .quarter-finals-container .extra-time-label,
+    .round-of-16-container .extra-time-label,
+    .semi-finals-container .extra-time-label,
+    .final-container .extra-time-label,
+    .third-place-playoff-container .extra-time-label {
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    img {
+        grid-column: 2 / span 2;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+    }
+    .large-flag {
+        font-size: 3rem; /* Adjust size as needed */
+    }
 }
 
-/* Adjust layout for screens between 768px and 1200px */
-@media (min-width: 768px) and (max-width: 1200px) {
-    #tables-container {
-        grid-column: 1 / span 6; /* Full width for medium screens */
-        grid-template-columns: repeat(2, 1fr); /* 2 columns for groups */
+/* Adjust layout for screens between 768px and 1520px */
+@media (min-width: 768px) and (max-width: 1520px) {
+    #tables-container,
+    .main-container {
+        grid-column: 1 / span 5; /* Full width for medium screens */
+        grid-template-columns: repeat(3, 1fr); /* 3 columns for groups */
     }
 
     #fixtures-container {
@@ -307,19 +357,6 @@ button#logout-button:hover {
 .final-container .team-name,
 .third-place-playoff-container .team-name {
     width: 100px;
-}
-
-/* Center the score inputs and the score divider */
-.quarter-finals-container .score-section,
-.semi-finals-container .score-section,
-.round-of-16-container .score-section,
-.final-container .score-section,
-.third-place-playoff-container .score-section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-    height: 40px;
 }
 
 /* Center the submit button */

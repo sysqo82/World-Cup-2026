@@ -40,6 +40,9 @@ export async function handleRegularTimeSubmission(dataBase, event, table) {
             teamCells.forEach(cell => {
                 if (cell.textContent.trim() === winner) {
                     cell.classList.add('winner');
+                    button.disabled = true;
+                    scoreInputs[0].disabled = true;
+                    scoreInputs[1].disabled = true;
                 } else {
                     cell.classList.remove('winner');
                 }

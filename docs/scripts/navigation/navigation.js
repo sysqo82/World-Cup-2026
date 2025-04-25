@@ -16,12 +16,17 @@ const pageMap = {
     'third-place-playoff.html': 'third-place-playoff',
 };
 
+const LOCAL_HOSTNAMES = [
+  '127.0.0.1',
+  'localhost',
+  ];
+
+const isLocal = LOCAL_HOSTNAMES.includes(window.location.hostname);
+const basePath = isLocal ? '/World-Cup-2026/docs/' : '/World-Cup-2026/';
+
 function navigateToPage() {
     const selectedPage = document.getElementById('navigation-select').value;
     const targetUrl = pageMap[selectedPage] || 'index.html';
-
-    const isLocal = window.location.hostname === '127.0.0.1';
-    const basePath = isLocal ? '/World-Cup-2026/docs/' : '/World-Cup-2026/';
 
     window.location.href = `${basePath}${targetUrl}`;
 }
@@ -31,13 +36,9 @@ function setSelectedPage() {
     if (!navigationSelect) return;
 
     const currentPath = window.location.pathname.replace(/\\/g, '/');
-    const isLocal = window.location.hostname === '127.0.0.1';
-    const basePath = isLocal ? '/World-Cup-2026/docs/' : '/World-Cup-2026/';
 
-    // Remove the base path to get the current page
     const currentPage = currentPath.replace(basePath, '').replace(/^\/+/, '') || 'index.html';
 
-    // Reverse map the current page to the dropdown value
     const reversePageMap = Object.entries(pageMap).reduce((acc, [key, value]) => {
         acc[value] = key;
         return acc;
