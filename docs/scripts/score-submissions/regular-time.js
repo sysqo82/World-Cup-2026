@@ -1,4 +1,6 @@
 import { saveMatchResult } from '../utils/match-utils.js';
+import { EmailTemplate } from '../utils/email-template.js';
+import { sendEmailNotification } from '../utils/email-service.js';
 
 export async function handleRegularTimeSubmission(dataBase, event, table) {
     const button = event.target;
@@ -32,10 +34,49 @@ export async function handleRegularTimeSubmission(dataBase, event, table) {
         // Update Firestore with the regular time scores and displayExtraTime flag
         const displayExtraTime = team1Score === team2Score;
 
-        await saveMatchResult(dataBase, match, team1Score, team2Score, winner, loser, 'regular', displayExtraTime);
+        await saveMatchResult(
+            dataBase,
+            match, 
+            team1Score, 
+            team2Score, 
+            winner, 
+            loser, 
+            'regular', 
+            displayExtraTime
+        );
 
         // Highlight the winner if it exists
         if (winner) {
+            const emailTemplate = new EmailTemplate(winner, loser, match);
+      
+            const { 
+                winnerEmail,
+                loserEmail,
+                winningCountryFullName,
+                losingCountryFullName, 
+                winnerOwnersName, 
+                loserOwnersName 
+            } = await emailTemplate.fetchEmailAndOwnersName();
+      
+            const emails = emailTemplate.buildEmailTemplate(
+                winnerEmail, 
+                loserEmail, 
+                winningCountryFullName, 
+                losingCountryFullName, 
+                winnerOwnersName, 
+                loserOwnersName
+            );
+      
+            if (emails.winner) {
+              await sendEmailNotification(emails.winner.email, emails.winner.subject, emails.winner.message);
+              console.log(`Email sent to winner: ${emails.winner.email}`);
+            }
+      
+            if (emails.loser) {
+              await sendEmailNotification(emails.loser.email, emails.loser.subject, emails.loser.message);
+              console.log(`Email sent to loser: ${emails.loser.email}`);
+            }
+
             const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
             teamCells.forEach(cell => {
                 if (cell.textContent.trim() === winner) {

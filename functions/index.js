@@ -1,0 +1,108 @@
+const { google } = require("googleapis");
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const cors = require("cors");
+const fs = require("fs");
+
+admin.initializeApp();
+const corsHandler = cors({ origin: true });
+
+exports.registerUser = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    const { firstName, lastName, email } = req.body;
+
+    if (!firstName || !lastName || !email) {
+      return res.status(400).send("Missing required fields");
+    }
+
+    try {
+      const teamsRef = admin.firestore().collection("teams");
+      const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
+
+      if (availableTeamsSnapshot.empty) {
+        return res.status(400).send("No teams available");
+      }
+
+      const availableTeams = availableTeamsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      const randomIndex = Math.floor(Math.random() * availableTeams.length);
+      const selectedTeam = availableTeams[randomIndex];
+      const normalizedEmail = email.toLowerCase().trim();
+
+      await admin.firestore().collection("users").add({
+        firstName,
+        lastName,
+        email: normalizedEmail,
+        team: selectedTeam.fullName,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        hasPaid: 'Pending',
+      });
+
+      await teamsRef.doc(selectedTeam.id).update({ assigned: true });
+
+      res.status(200).json({
+        message: "User registered successfully.",
+      });
+    } catch (error) {
+      res.status(500).send("Error registering user: " + error.message);
+    }
+  });
+});
+
+// Load OAuth2 credentials
+const credentials = JSON.parse(fs.readFileSync("./credentials.json"));
+const { client_id, client_secret, redirect_uris } = credentials.web;
+const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+// Set the refresh token (replace with your own refresh token)
+oAuth2Client.setCredentials({
+  refresh_token: "1//037dqLRsnjjUQCgYIARAAGAMSNwF-L9IrTA3wVQfAAvyvd-aW5kgszU3q28o8kn6AdTfdifhXi4r_NVAEpwnjq2jKyveQ7fqSB6o",
+});
+
+// Cloud Function to send email notifications
+exports.sendEmail = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    const { recipient, subject, message } = req.body;
+
+    if (!recipient || !subject || !message) {
+      return res.status(400).send("Missing required fields");
+    }
+
+    try {
+      const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+      const email = [
+        `From: "Immediate World Cup 2026 Updates" <${functions.config().email.user}>`, // Use display name and email
+        `To: ${recipient}`,
+        `Subject: ${subject}`,
+        "",
+        `${message}`,
+      ].join("\n");
+
+      const encodedEmail = Buffer.from(email).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: encodedEmail,
+        },
+      });
+
+      res.status(200).send("Email sent successfully!");
+    } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(500).send("Failed to send email: " + error.message);
+    }
+  });
+});
