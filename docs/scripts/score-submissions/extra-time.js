@@ -1,4 +1,5 @@
 import { saveMatchResult } from '../utils/match-utils.js';
+import { sendMatchEmails } from '../utils/email-notifications.js';
 
 export async function handleExtraTimeSubmission(dataBase, event, table) {
     const button = event.target;
@@ -36,6 +37,8 @@ export async function handleExtraTimeSubmission(dataBase, event, table) {
 
         // Highlight the winner if it exists
         if (winner) {
+            await sendMatchEmails(winner, loser, match);
+
             const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
             teamCells.forEach(cell => {
                 if (cell.textContent.trim() === winner) {

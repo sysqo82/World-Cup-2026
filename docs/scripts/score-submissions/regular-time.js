@@ -1,6 +1,5 @@
 import { saveMatchResult } from '../utils/match-utils.js';
-import { EmailTemplate } from '../utils/email-template.js';
-import { sendEmailNotification } from '../utils/email-service.js';
+import { sendMatchEmails } from '../utils/email-notifications.js';
 
 export async function handleRegularTimeSubmission(dataBase, event, table) {
     const button = event.target;
@@ -47,35 +46,7 @@ export async function handleRegularTimeSubmission(dataBase, event, table) {
 
         // Highlight the winner if it exists
         if (winner) {
-            const emailTemplate = new EmailTemplate(winner, loser, match);
-      
-            const { 
-                winnerEmail,
-                loserEmail,
-                winningCountryFullName,
-                losingCountryFullName, 
-                winnerOwnersName, 
-                loserOwnersName 
-            } = await emailTemplate.fetchEmailAndOwnersName();
-      
-            const emails = emailTemplate.buildEmailTemplate(
-                winnerEmail, 
-                loserEmail, 
-                winningCountryFullName, 
-                losingCountryFullName, 
-                winnerOwnersName, 
-                loserOwnersName
-            );
-      
-            if (emails.winner) {
-              await sendEmailNotification(emails.winner.email, emails.winner.subject, emails.winner.message);
-              console.log(`Email sent to winner: ${emails.winner.email}`);
-            }
-      
-            if (emails.loser) {
-              await sendEmailNotification(emails.loser.email, emails.loser.subject, emails.loser.message);
-              console.log(`Email sent to loser: ${emails.loser.email}`);
-            }
+            await sendMatchEmails(winner, loser, match);
 
             const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
             teamCells.forEach(cell => {
