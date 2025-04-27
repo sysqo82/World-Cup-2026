@@ -1,4 +1,4 @@
-import { db, sendEmailURL } from '../config/firebase-config.js';
+import { sendEmailURL } from '../config/firebase-config.js';
 
 // Function to send email notifications
 export async function sendEmailNotification(recipient, subject, message) {
