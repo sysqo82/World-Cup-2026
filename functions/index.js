@@ -58,12 +58,13 @@ exports.registerUser = functions.https.onRequest((req, res) => {
 
 // Load OAuth2 credentials
 const credentials = JSON.parse(fs.readFileSync("./credentials.json"));
-const { client_id, client_secret, redirect_uris } = credentials.web;
+const { client_id, client_secret, redirect_uris, refresh_token } = credentials.web;
+
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-// Set the refresh token (replace with your own refresh token)
+// Set the refresh token
 oAuth2Client.setCredentials({
-  refresh_token: "1//037dqLRsnjjUQCgYIARAAGAMSNwF-L9IrTA3wVQfAAvyvd-aW5kgszU3q28o8kn6AdTfdifhXi4r_NVAEpwnjq2jKyveQ7fqSB6o",
+  refresh_token: refresh_token,
 });
 
 // Cloud Function to send email notifications
