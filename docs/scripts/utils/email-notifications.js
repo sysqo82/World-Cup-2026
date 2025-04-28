@@ -1,9 +1,9 @@
 import { EmailTemplate } from './email-template.js';
 import { sendEmailNotification } from './email-service.js';
 
-export async function sendMatchEmails(winner, loser, match) {
+export async function sendMatchEmails(winner, loser, match, stage, winnersScore, losersScore) {
   try {
-    const emailTemplate = new EmailTemplate(winner, loser, match);
+    const emailTemplate = new EmailTemplate(winner, loser, match, stage);
 
     // Fetch emails and full names for both winner and loser
     const {
@@ -22,7 +22,10 @@ export async function sendMatchEmails(winner, loser, match) {
       winningCountryFullName,
       losingCountryFullName,
       winnerOwnersName,
-      loserOwnersName
+      loserOwnersName,
+      stage,
+      winnersScore,
+      losersScore
     );
 
     // Send emails only if they exist

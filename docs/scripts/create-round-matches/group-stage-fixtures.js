@@ -4,6 +4,7 @@ import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { auth } from '../config/firebase-config.js';
 
 export async function generateFixtures(groups) {
+    const stage = 'Group Stage';
     const fixturesContainer = document.getElementById('fixtures-container');
     fixturesContainer.innerHTML = ''; // Clear any existing fixtures
 
@@ -133,7 +134,7 @@ export async function generateFixtures(groups) {
                                         submitButton.disabled = true;
 
                                         // Submit the scores to the database
-                                        handleGroupStageScoreSubmission(event);
+                                        handleGroupStageScoreSubmission(event, stage);
                                     }
                                 });
                             }

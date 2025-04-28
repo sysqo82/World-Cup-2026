@@ -1,6 +1,7 @@
 import { db } from '../config/firebase-config.js';
+import { sendMatchEmails } from '../utils/email-notifications.js';
 
-export async function handleGroupStageScoreSubmission(event) {
+export async function handleGroupStageScoreSubmission(event, stage) {
     const button = event.target;
     const groupId = button.dataset.group;
     const teamLeftId = button.dataset.teamLeft;
@@ -27,6 +28,7 @@ export async function handleGroupStageScoreSubmission(event) {
         const groupDoc = await db.collection('groups').doc(groupId).get();
         const groupData = groupDoc.data();
         const existingMatch = groupData.matchdays?.[matchday]?.[`${teamLeftId}_${teamRightId}`];
+        const groupName = groupData['name'];
 
         const updates = {
             [`matchdays.${matchday}.${teamLeftId}_${teamRightId}`]: { leftScore, rightScore }
@@ -38,12 +40,35 @@ export async function handleGroupStageScoreSubmission(event) {
         }
 
         if (leftScore > rightScore) {
+            const winner = groupData.teams[teamLeftId]['name'];
+            const loser = groupData.teams[teamRightId]['name'];
+            const winnersScore = leftScore;
+            const losersScore = rightScore;
+
+            await sendMatchEmails(winner, loser, groupName, stage, winnersScore, losersScore);
             updates[`teams.${teamLeftId}.W`] = firebase.firestore.FieldValue.increment(1);
             updates[`teams.${teamRightId}.L`] = firebase.firestore.FieldValue.increment(1);
         } else if (leftScore < rightScore) {
+            const winner = groupData.teams[teamRightId]['name'];
+            const loser = groupData.teams[teamLeftId]['name'];
+            
+            const winnersScore = rightScore;
+            const losersScore = leftScore;
+
+            await sendMatchEmails(winner, loser, groupName, stage, winnersScore, losersScore);
             updates[`teams.${teamRightId}.W`] = firebase.firestore.FieldValue.increment(1);
             updates[`teams.${teamLeftId}.L`] = firebase.firestore.FieldValue.increment(1);
         } else {
+            console.log('else');
+            
+            const winner = groupData.teams[teamRightId]['name'];
+            const loser = groupData.teams[teamLeftId]['name'];
+            
+            const winnersScore = rightScore;
+            const losersScore = leftScore;
+
+            await sendMatchEmails(winner, loser, groupName, stage, winnersScore, losersScore);
+
             updates[`teams.${teamLeftId}.D`] = firebase.firestore.FieldValue.increment(1);
             updates[`teams.${teamRightId}.D`] = firebase.firestore.FieldValue.increment(1);
         }

@@ -1,7 +1,7 @@
 import { saveMatchResult } from '../utils/match-utils.js';
 import { sendMatchEmails } from '../utils/email-notifications.js';
 
-export async function handlePenaltyShootoutsSubmission(dataBase, event, table) {
+export async function handlePenaltyShootoutsSubmission(dataBase, event, table, round) {
     const button = event.target;
     const match = button.dataset.match;
     const team1 = button.dataset.team1;
@@ -37,9 +37,17 @@ export async function handlePenaltyShootoutsSubmission(dataBase, event, table) {
 
     try {
         // Update Firestore with the penalty shootout scores
-        await saveMatchResult(dataBase, match, team1Score, team2Score, winner, loser, 'penalty');
+        await saveMatchResult(
+            dataBase,
+            match,
+            team1Score,
+            team2Score,
+            winner,
+            loser,
+            'penalty'
+        );
 
-        await sendMatchEmails(winner, loser, match);
+        await sendMatchEmails(winner, loser, match, round);
 
         // Highlight the winner
         const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);

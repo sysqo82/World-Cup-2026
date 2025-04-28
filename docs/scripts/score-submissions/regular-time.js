@@ -1,7 +1,7 @@
 import { saveMatchResult } from '../utils/match-utils.js';
 import { sendMatchEmails } from '../utils/email-notifications.js';
 
-export async function handleRegularTimeSubmission(dataBase, event, table) {
+export async function handleRegularTimeSubmission(dataBase, event, table, round) {
     const button = event.target;
     const match = button.dataset.match;
     const team1 = button.dataset.team1;
@@ -46,7 +46,7 @@ export async function handleRegularTimeSubmission(dataBase, event, table) {
 
         // Highlight the winner if it exists
         if (winner) {
-            await sendMatchEmails(winner, loser, match);
+            await sendMatchEmails(winner, loser, match, round);
 
             const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
             teamCells.forEach(cell => {
