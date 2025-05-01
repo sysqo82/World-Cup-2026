@@ -3,6 +3,10 @@ import { db } from '../config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { generateFixtures } from '../create-round-matches/group-stage-fixtures.js';
 import { getAssignedTeam } from '../utils/user-utils.js';
+import { isLoggedIn } from "../navigation/navigation.js";
+
+// Check if the user is logged in
+await isLoggedIn();
 
 db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({

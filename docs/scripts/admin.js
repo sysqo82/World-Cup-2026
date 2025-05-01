@@ -1,6 +1,6 @@
 // Import Firebase configuration and services
 import { db, auth } from '../scripts/config/firebase-config.js';
-import { genereateRoundOf16Matches } from './create-round-matches/admin-helper/generate-round-of-16.js';
+import { generateRoundOf16Matches } from './create-round-matches/admin-helper/generate-round-of-16.js';
 import { generateQuarterFinalsMatches } from './create-round-matches/admin-helper/generate-quarter-finals.js';
 import { generateSemiFinalsMatches } from './create-round-matches/admin-helper/generate-semi-finals.js';
 import { generateFinalMatch } from './create-round-matches/admin-helper/generate-final.js';
@@ -57,7 +57,7 @@ document.getElementById('logout-button').addEventListener('click', () => {
 });
 
 document.getElementById('generate-round-of-16').addEventListener('click', async () => {
-    genereateRoundOf16Matches();
+    generateRoundOf16Matches();
 });
 document.getElementById('generate-quarter-finals').addEventListener('click', async () => {
     generateQuarterFinalsMatches();
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('users').get()
             .then(snapshot => {
                 registeredUsersTableBody.innerHTML = ''; // Clear existing rows
-    
+
                 if (snapshot.empty) {
                     const row = registeredUsersTableBody.insertRow();
                     const cell = row.insertCell(0);
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const users = snapshot.docs
                         .map(doc => doc.data())
                         .sort((a, b) => a.index - b.index); // Sort by index in ascending order
-    
+
                     let rowNumber = 1; // Initialize row counter
                     users.forEach(user => {
                         const row = registeredUsersTableBody.insertRow();
@@ -270,17 +270,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error(`No user found with email ${email}.`);
                     return;
                 }
-    
+
                 // Delete the user and update the team's assigned flag
                 snapshot.forEach(doc => {
                     const user = doc.data();
                     const userId = doc.id;
-    
+
                     // Delete the user document
                     db.collection('users').doc(userId).delete()
                         .then(() => {
                             console.log(`User with email ${email} deleted successfully.`);
-    
+
                             // Update the team's assigned flag to false
                             if (user.team) {
                                 db.collection('teams')
@@ -340,10 +340,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.error(`No user found with email ${email}.`);
                         return;
                     }
-        
+
                     snapshot.forEach(doc => {
                         const userId = doc.id;
-        
+
                         // Update the hasPaid flag in the database
                         db.collection('users').doc(userId).update({ hasPaid: hasPaid === true })
                             .then(() => {
@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Failed to update payment status. Please try again.');
                 });
         };
-    
+
     // Initial load
     loadRegisteredUsers();
 });

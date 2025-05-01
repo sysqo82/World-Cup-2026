@@ -1,7 +1,7 @@
 import { db } from "../../config/firebase-config.js";
 import { getTeamByRank } from "../../admin.js";
 
-export async function genereateRoundOf16Matches() {
+export async function generateRoundOf16Matches() {
         try {
             // Fetch the current state of the groups
             const groupsSnapshot = await db.collection('groups').get();

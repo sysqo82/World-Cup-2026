@@ -1,4 +1,0 @@
-node_modules/
-# Ignore exported files and sensitive data
-/*.json
-/*.js

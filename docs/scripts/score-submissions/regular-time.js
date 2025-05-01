@@ -1,6 +1,8 @@
 import { saveMatchResult } from '../utils/match-utils.js';
+import { sendMatchEmails } from '../utils/email-notifications.js';
+import { db } from '../config/firebase-config.js';
 
-export async function handleRegularTimeSubmission(dataBase, event, table) {
+export async function handleRegularTimeSubmission(dataBase, event, table, round) {
     const button = event.target;
     const match = button.dataset.match;
     const team1 = button.dataset.team1;
@@ -20,22 +22,55 @@ export async function handleRegularTimeSubmission(dataBase, event, table) {
     // Determine the winner and loser
     let winner = null;
     let loser = null;
+    let winnerScore = null;
+    let loserScore = null;
     if (team1Score > team2Score) {
         winner = team1;
         loser = team2;
+        winnerScore = team1Score;
+        loserScore = team2Score;
     } else if (team2Score > team1Score) {
         winner = team2;
         loser = team1;
+        winnerScore = team2Score;
+        loserScore = team1Score;
     }
 
     try {
         // Update Firestore with the regular time scores and displayExtraTime flag
         const displayExtraTime = team1Score === team2Score;
 
-        await saveMatchResult(dataBase, match, team1Score, team2Score, winner, loser, 'regular', displayExtraTime);
+        await saveMatchResult(
+            dataBase,
+            match, 
+            team1Score, 
+            team2Score, 
+            winner, 
+            loser, 
+            'regular', 
+            displayExtraTime
+        );
 
         // Highlight the winner if it exists
         if (winner) {
+            // Extract the regular time scores from the match data
+            const matchData = await db.collection(`${dataBase}`).doc(match).get();
+            const matchScores = matchData.data();
+            const regularTimeTeam1Score = matchScores ? matchScores.regularTimeScores.team1 : null;
+            const regularTimeTeam2Score = matchScores ? matchScores.regularTimeScores.team2 : null;
+            await sendMatchEmails(
+                winner,
+                loser,
+                match, 
+                round, 
+                winnerScore, 
+                loserScore, 
+                regularTimeTeam1Score, 
+                regularTimeTeam2Score,
+                null,
+                null
+            );
+
             const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);
             teamCells.forEach(cell => {
                 if (cell.textContent.trim() === winner) {

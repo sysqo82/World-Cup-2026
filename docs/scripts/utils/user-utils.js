@@ -41,20 +41,6 @@ export function initializeHomepage() {
 
     // Hide the navigation dropdown initially
     navigationDropdown.classList.add("hidden");
-
-    // Delete the user's cookie if the user is not found in the database
-    window.addEventListener('DOMContentLoaded', async () => {
-        const userEmail = getCookie("userDetails") ? JSON.parse(getCookie("userDetails")).email : null;
-        if (userEmail) {
-            const snapshot = await db.collection("users").where("email", "==", userEmail).get();
-            if (snapshot.empty) {
-                alert("Your user was not found in the database. Please register again.");
-                deleteCookie("userDetails");
-                window.location.reload();
-            }
-        }
-    });
-
     // Check for existing cookie on page load
     const userDetailsCookie = getCookie("userDetails");
     if (userDetailsCookie) {
@@ -113,7 +99,7 @@ export function initializeHomepage() {
         } catch (error) {
             console.error("Error checking email:", error);
         }
-        
+
         if (!firstName || !lastName || !email) {
             alert("Please fill out all fields.");
             registerSubmitButton.disabled = false;
@@ -141,12 +127,12 @@ export function initializeHomepage() {
             // Set cookie with user details
             setCookie(
                 "userDetails",
-                JSON.stringify({ 
+                JSON.stringify({
                     firstName,
                     lastName,
-                    email, 
+                    email,
                     hasPaid: "Pending",
-                    assignedTeam: "Pending" 
+                    assignedTeam: "Pending"
                 }),
                 7
             );
@@ -197,12 +183,12 @@ export function initializeHomepage() {
                 // Set the cookie with user details from the database
                 setCookie(
                     "userDetails",
-                    JSON.stringify({ 
+                    JSON.stringify({
                         firstName: userDetails.firstName,
-                        lastName: userDetails.lastName, 
-                        email: userDetails.email, 
-                        hasPaid: userDetails.hasPaid, 
-                        assignedTeam: userDetails.team 
+                        lastName: userDetails.lastName,
+                        email: userDetails.email,
+                        hasPaid: userDetails.hasPaid,
+                        assignedTeam: userDetails.team
                     }),
                     30
                 );
@@ -212,10 +198,10 @@ export function initializeHomepage() {
                 loginForm.innerHTML = '<p class="text-danger">Registration is complete, waiting for payment confirmation.</p>';
                 setCookie(
                     "userDetails",
-                    JSON.stringify({ 
-                        firstName: userDetails.firstName, 
-                        lastName: userDetails.lastName, 
-                        email: userDetails.email, 
+                    JSON.stringify({
+                        firstName: userDetails.firstName,
+                        lastName: userDetails.lastName,
+                        email: userDetails.email,
                         hasPaid: userDetails.hasPaid,
                         assignedTeam: "Pending"
                     }),
@@ -238,24 +224,24 @@ export function initializeHomepage() {
 
 // Display the winning team on every page
 export function getAssignedTeam() {
-    const userDetails = getCookie('userDetails');
-    if (!userDetails) {
-        console.error('No user details found in cookies.');
-        return;
-    }
-
+  const userDetails = getCookie('userDetails');
+  if (userDetails) {
     try {
-        const userDetailsObj = JSON.parse(userDetails);
-        const assignedTeam = userDetailsObj.assignedTeam || null;
+      const userDetailsObj = JSON.parse(userDetails);
+      const assignedTeam = userDetailsObj.assignedTeam || null;
 
-        const winningTeam = document.getElementById('winning-team');
-        if (winningTeam) {
-            winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
-        }
+      const winningTeam = document.getElementById('winning-team');
+      if (winningTeam) {
+        winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
+      }
 
-        return assignedTeam;
+      return assignedTeam;
     } catch (error) {
-        console.error('Error parsing user details:', error);
-        return null;
+      console.error('Error parsing user details:', error);
+      return null;
     }
+  } else {
+    console.warn('User details cookie not found.');
+    return null;
+  }
 }

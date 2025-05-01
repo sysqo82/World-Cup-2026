@@ -127,7 +127,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 const regularTimeButton = table.querySelector('.submit-button[data-type="regular"]');
                 if (regularTimeButton) {
                     regularTimeButton.addEventListener('click', async (event) => {
-                        await handleRegularTimeSubmission(dataBase, event, table);
+                        await handleRegularTimeSubmission(dataBase, event, table, round);
                         renderMatches(); // Re-render matches after submission
                     });
                 }
@@ -135,7 +135,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 const extraTimeButton = table.querySelector('.submit-button[data-type="extra"]');
                 if (extraTimeButton) {
                     extraTimeButton.addEventListener('click', async (event) => {
-                        await handleExtraTimeSubmission(dataBase, event, table);
+                        await handleExtraTimeSubmission(dataBase, event, table, round);
                         renderMatches(); // Re-render matches after submission
                     });
                 }
@@ -143,7 +143,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 const penaltyButton = table.querySelector('.submit-button[data-type="penalty"]');
                 if (penaltyButton) {
                     penaltyButton.addEventListener('click', async (event) => {
-                        await handlePenaltyShootoutsSubmission(dataBase, event, table);
+                        await handlePenaltyShootoutsSubmission(dataBase, event, table, round);
                         renderMatches(); // Re-render matches after submission
                     });
                 }

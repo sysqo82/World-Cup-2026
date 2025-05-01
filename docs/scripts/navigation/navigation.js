@@ -1,3 +1,6 @@
+import { getCookie, deleteCookie } from "../utils/user-utils.js";
+import { db } from "../config/firebase-config.js"
+
 const pageMap = {
     '': 'index.html',
     'home': 'index.html',
@@ -50,3 +53,24 @@ function setSelectedPage() {
 window.navigateToPage = navigateToPage;
 
 document.addEventListener('DOMContentLoaded', setSelectedPage);
+
+export async function isLoggedIn() {
+    const userEmail = getCookie("userDetails") ? JSON.parse(getCookie("userDetails")).email : null;
+    if (!userEmail) {
+        const snapshot = await db.collection("users").where("email", "==", userEmail).get();
+        if (snapshot.empty) {
+            alert("Your user was not found in the database. Please register again.");
+            deleteCookie("userDetails");
+            const currentPage = window.location.pathname.replace(/\\/g, '/').replace(basePath, '').replace(/^\/+/, '');
+
+            if (currentPage !== 'index.html') {
+                window.location.href = `${basePath}index.html`;
+                alert('You are not logged in. Please log in to access this page.');
+            }
+            return false;
+        } else {
+            return true; // User is logged in
+        }
+    }
+    return false; // No user email found
+}
