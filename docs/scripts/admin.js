@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('users').get()
             .then(snapshot => {
                 registeredUsersTableBody.innerHTML = ''; // Clear existing rows
-    
+
                 if (snapshot.empty) {
                     const row = registeredUsersTableBody.insertRow();
                     const cell = row.insertCell(0);
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const users = snapshot.docs
                         .map(doc => doc.data())
                         .sort((a, b) => a.index - b.index); // Sort by index in ascending order
-    
+
                     let rowNumber = 1; // Initialize row counter
                     users.forEach(user => {
                         const row = registeredUsersTableBody.insertRow();
@@ -270,17 +270,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error(`No user found with email ${email}.`);
                     return;
                 }
-    
+
                 // Delete the user and update the team's assigned flag
                 snapshot.forEach(doc => {
                     const user = doc.data();
                     const userId = doc.id;
-    
+
                     // Delete the user document
                     db.collection('users').doc(userId).delete()
                         .then(() => {
                             console.log(`User with email ${email} deleted successfully.`);
-    
+
                             // Update the team's assigned flag to false
                             if (user.team) {
                                 db.collection('teams')
@@ -340,10 +340,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.error(`No user found with email ${email}.`);
                         return;
                     }
-        
+
                     snapshot.forEach(doc => {
                         const userId = doc.id;
-        
+
                         // Update the hasPaid flag in the database
                         db.collection('users').doc(userId).update({ hasPaid: hasPaid === true })
                             .then(() => {
@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Failed to update payment status. Please try again.');
                 });
         };
-    
+
     // Initial load
     loadRegisteredUsers();
 });

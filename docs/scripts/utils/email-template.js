@@ -64,13 +64,13 @@ constructor(winner, loser, matchId, stage) {
     console.warn(`No email found for the losing team: ${losingCountryFullName}`);
   }
 
-  return { 
+  return {
     winnerEmail,
-    loserEmail, 
-    winningCountryFullName, 
-    losingCountryFullName, 
-    winnerOwnersName, 
-    loserOwnersName 
+    loserEmail,
+    winningCountryFullName,
+    losingCountryFullName,
+    winnerOwnersName,
+    loserOwnersName
   };
 }
 
@@ -78,10 +78,10 @@ constructor(winner, loser, matchId, stage) {
 matchResult;
 buildEmailTemplate(
     winnerEmail,
-    loserEmail, 
-    winningCountryFullName, 
-    losingCountryFullName, 
-    winnerOwnersName, 
+    loserEmail,
+    winningCountryFullName,
+    losingCountryFullName,
+    winnerOwnersName,
     loserOwnersName,
     stage,
     winnersScore,
@@ -139,6 +139,7 @@ buildEmailTemplate(
   if ((losersScore < winnersScore) && loserEmail) {
     let loserMessage;
     const loserSubject = `${stage}: Better Luck Next Time, ${loserOwnersName}, your team ${losingCountryFullName} lost!`;
+<<<<<<< HEAD
     switch (this.matchResult) {
       case 'regularTimeWasTied':
         loserMessage =
@@ -158,6 +159,11 @@ buildEmailTemplate(
           `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} with a score of ${winnersScore}-${losersScore}.
           Keep your spirits high!`;
     }
+=======
+    const loserMessage =
+    `Your team ${losingCountryFullName} fought hard but lost ${losersScore}-${winnersScore} to ${winningCountryFullName}.
+    Keep your spirits high!`;
+>>>>>>> 10f381510d00e6e555506a90442b37e2ad93a68b
 
     emailTemplates.loser = {
       email: loserEmail,
@@ -169,10 +175,8 @@ buildEmailTemplate(
   // Handle the case of a draw
   if (winnersScore === losersScore) {
     if (winnerEmail) {
-      console.log('sending email to the winner');
-      
       const drawSubjectWinner = `${this.stage}: It's a Draw! ${winningCountryFullName} vs ${losingCountryFullName}`;
-      const drawMessageWinner = 
+      const drawMessageWinner =
       `Your team ${winningCountryFullName} drew against ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
       Keep up the great effort!`;
 
@@ -184,9 +188,8 @@ buildEmailTemplate(
     }
 
     if (loserEmail) {
-      console.log('sending email to the loser');
       const drawSubjectLoser = `${this.stage}: It's a Draw! ${losingCountryFullName} vs ${winningCountryFullName}`;
-      const drawMessageLoser = 
+      const drawMessageLoser =
       `Your team ${losingCountryFullName} drew against ${winningCountryFullName} with a score of ${winnersScore}-${losersScore}.
       Keep up the great effort!`;
 

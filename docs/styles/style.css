@@ -182,7 +182,7 @@ button#logout-button:hover {
         padding: 20px;
         justify-content: center; /* Center the columns horizontally */
     }
-    
+
     /* Fixtures container layout */
     #fixtures-container {
         grid-column: 2 / span 4; /* Fixtures take up columns 2-5 */
@@ -284,8 +284,7 @@ button#logout-button:hover {
 @media (min-width: 768px) and (max-width: 1520px) {
     #tables-container,
     .main-container {
-        grid-column: 1 / span 5; /* Full width for medium screens */
-        grid-template-columns: repeat(3, 1fr); /* 3 columns for groups */
+        grid-column: 1 / span 6; /* Full width for medium screens */
     }
 
     #fixtures-container {
