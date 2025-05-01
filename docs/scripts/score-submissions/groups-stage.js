@@ -59,8 +59,6 @@ export async function handleGroupStageScoreSubmission(event, stage) {
             updates[`teams.${teamRightId}.W`] = firebase.firestore.FieldValue.increment(1);
             updates[`teams.${teamLeftId}.L`] = firebase.firestore.FieldValue.increment(1);
         } else {
-            console.log('else');
-            
             const winner = groupData.teams[teamRightId]['name'];
             const loser = groupData.teams[teamLeftId]['name'];
             
