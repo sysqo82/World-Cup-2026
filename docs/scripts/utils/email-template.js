@@ -155,7 +155,7 @@ buildEmailTemplate(
         break;
       default:
         loserMessage =
-          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} with a score of ${winnersScore}-${losersScore}.
+          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} with a score of ${losersScore}-${winnersScore}.
           Keep your spirits high!`;
     }
 
