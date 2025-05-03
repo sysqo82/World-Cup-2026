@@ -1,4 +1,5 @@
 import { db, functionsURL } from "../config/firebase-config.js";
+import { updatePrizePotCounter } from "./prize-pot-counter.js";
 
 // Utility function to set a cookie
 export function setCookie(name, value, days) {
@@ -22,8 +23,21 @@ export function deleteCookie(name) {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 }
 
-export function openEncryptedURL() {
-    const encodedURL = 'aHR0cHM6Ly9tb256by5tZS9hc3NhZml0emlrc29uLzUuMDA/ZD1Xb3JsZCUyMEN1cCUyMDIwMjYmaD1UREp4ZTg=';
+export function openEncryptedURL(location) {
+    let encodedURL = null;
+    const paymentLocation = 'aHR0cHM6Ly9tb256by5tZS9hc3NhZml0emlrc29uLzUuMDA/ZD1Xb3JsZCUyMEN1cCUyMDIwMjYmaD1UREp4ZTg=';
+    const contactLocation = 'aHR0cHM6Ly9hcHAuc2xhY2suY29tL2NsaWVudC9UMDM5M0cwNUcvRDM1OUJESDlC';
+    switch (location) {
+        case 'paymentLocation':
+            encodedURL = paymentLocation;
+            break;
+        case 'contactLocation':
+            encodedURL = contactLocation;
+            break;
+        default:
+            // No default action needed
+            return;
+    }
     const decodedURL = atob(encodedURL);
     window.open(decodedURL, '_blank');
 }
@@ -32,7 +46,10 @@ export function openEncryptedURL() {
 export function initializeHomepage() {
     const registrationForm = document.getElementById("registration-form");
     const loginForm = document.getElementById("login-form");
+    const loginFormContainer = document.getElementById("login-form-container");
     const navigationDropdown = document.getElementById("navigation-dropdown");
+    const prizePotContainer = document.getElementById("prize-pot-container");
+    const prizePotCounter = document.getElementById("prize-pot-amount");
     const registerSubmitButton = document.getElementById("register-button");
     const loginSubmitButton = document.getElementById("login-button");
     const contentPlaceholder = document.getElementById("content-placeholder");
@@ -55,9 +72,13 @@ export function initializeHomepage() {
 
             // Add event listener for the payment button
             const paymentButton = document.getElementById("payment");
-            paymentButton.addEventListener("click", openEncryptedURL);
+            if (paymentButton) {
+              paymentButton.addEventListener("click", () => {
+                openEncryptedURL("paymentLocation");
+              });
+            }
         } else if (userDetails.hasPaid === true) {
-            // User has paid, show navigation dropdown and hide registration payment and login forms
+            // User has paid, show navigation dropdown and hide registration, payment and login forms
             navigationDropdown.classList.remove("hidden");
             paymentContainer.classList.add("hidden");
             registrationFormContainer.classList.add("hidden");
@@ -65,6 +86,10 @@ export function initializeHomepage() {
 
             // Show user details in the content placeholder
             contentPlaceholder.innerHTML = `
+            <div id="prize-pot-container">
+                <h3>The prize pot stands on:</h3>
+                <div id="prize-pot-amount">${updatePrizePotCounter()}</div>
+            </div>
             <p>Welcome, ${userDetails.firstName} ${userDetails.lastName}!</p>
             <p>You've drawn <strong>${userDetails.assignedTeam}</strong> as your winning team</p>
             <p>Please use the navigation menu to access different sections of the site.</p>
@@ -179,7 +204,8 @@ export function initializeHomepage() {
             const userDetails = snapshot.docs[0].data();
 
             if (userDetails.hasPaid === true) {
-                alert("Welcome back! You have access to the site.");
+                // prizePotContainer.classList.remove("hidden");
+                alert(`Welcome back ${userDetails.firstName}! Your payment has been approved, you can now access the site.`);
                 // Set the cookie with user details from the database
                 setCookie(
                     "userDetails",
@@ -195,7 +221,21 @@ export function initializeHomepage() {
                 loginForm.reset();
                 window.location.reload();
             } else if (userDetails.hasPaid === "Pending" || userDetails.hasPaid === false) {
-                loginForm.innerHTML = '<p class="text-danger">Registration is complete, waiting for payment confirmation.</p>';
+                alert(`Welcome back ${userDetails.firstName}! If you haven't paid yet, please do, otherwise, your payment is still pending.`);
+                registrationFormContainer.classList.add("hidden");
+                paymentContainer.classList.remove("hidden");
+                loginFormContainer.innerHTML = 
+                  '<p>Payment approval is still in progress, please try again later.</p>' +
+                  `<p>Please contact <a href="#" id="contact-link">Assaf</a> for any issues.</p>`;
+                
+                // Attach the click event listener to the link after rendering the HTML
+                const contactLink = document.getElementById("contact-link");
+                if (contactLink) {
+                  contactLink.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    openEncryptedURL("contactLocation");
+                  });
+                }
                 setCookie(
                     "userDetails",
                     JSON.stringify({

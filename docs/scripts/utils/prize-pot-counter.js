@@ -5,8 +5,11 @@ export function updatePrizePotCounter() {
     db.collection('users').get().then((snapshot) => {
         let prizePot = 0;
         snapshot.forEach((doc) => {
-            prizePot += 5;
+            if (doc.data().hasPaid === true) {
+                prizePot += 5;
+            }
         });
+        const prizePotCounter = document.getElementById('prize-pot-amount');
         prizePotCounter.innerHTML = `£${prizePot}`;
     }).catch((error) => {
         console.error('Error getting users:', error);
