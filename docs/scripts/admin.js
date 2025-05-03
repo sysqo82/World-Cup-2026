@@ -1,5 +1,6 @@
 // Import Firebase configuration and services
 import { db, auth } from '../scripts/config/firebase-config.js';
+import { clearDB } from './create-round-matches/admin-helper/clear-db.js';
 import { generateRoundOf16Matches } from './create-round-matches/admin-helper/generate-round-of-16.js';
 import { generateQuarterFinalsMatches } from './create-round-matches/admin-helper/generate-quarter-finals.js';
 import { generateSemiFinalsMatches } from './create-round-matches/admin-helper/generate-semi-finals.js';
@@ -56,6 +57,9 @@ document.getElementById('logout-button').addEventListener('click', () => {
         });
 });
 
+document.getElementById('clear-db').addEventListener('click', async () => {
+    clearDB();
+});
 document.getElementById('generate-round-of-16').addEventListener('click', async () => {
     generateRoundOf16Matches();
 });

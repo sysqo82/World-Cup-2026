@@ -39,6 +39,14 @@ h1 {
     padding: 5px;
 }
 
+#navigation-select {
+    height: 30px;
+    display: inline-block;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
 /* Align dropdown and button horizontally */
 .dropdown-container {
     display: flex;
