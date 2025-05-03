@@ -6,7 +6,7 @@
     <title>Admin Page - World Cup 2026</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="../styles/style.css">
+    <link href="../styles/style.css" rel="stylesheet">
 </head>
 <body class="bg-light">
     <div class="container text-center mt-5">
@@ -33,8 +33,8 @@
         <div id="admin-content" class="mt-5">
             <!-- Dropdown for groups and Generate button -->
             <div class="mb-4 text-center">
-                <label for="navigation-select" class="form-label me-2" style="padding-top: 10px;">Select Group:</label>
-                <select id="navigation-select" class="form-select d-inline-block" style="width: auto;">
+                <label for="navigation-select">Group admin:</label>
+                <select id="navigation-select">
                     <option value="">-- Select a Group --</option>
                 </select>
             </div>
@@ -42,8 +42,8 @@
             <div id="teams-container" class="mt-4">
                 <!-- Teams will be dynamically displayed here -->
             </div>
-            <!-- Buttons arranged in a single column -->
             <div class="d-flex flex-column align-items-center">
+                <button id="clear-db" class="submit-button mb-2">Clear Group Stage</button>
                 <button id="generate-round-of-16" class="submit-button mb-2">Generate Round of 16</button>
                 <button id="generate-quarter-finals" class="submit-button mb-2">Generate Quarter Finals</button>
                 <button id="generate-semi-finals" class="submit-button mb-2">Generate Semi Finals</button>
