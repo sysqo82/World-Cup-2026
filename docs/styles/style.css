@@ -172,6 +172,28 @@ button#logout-button:hover {
     height: 40px;
 }
 
+@media (min-width: 769px) and (max-width: 1170px) {
+    #tables-container,
+    #groups-container {
+        grid-column: 2 / span 4; /* Groups take up columns 2-5 */
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 columns for groups */
+        gap: 20px;
+        padding: 20px;
+        justify-content: center; /* Center the columns horizontally */
+    }
+
+    /* Fixtures container layout */
+    #fixtures-container {
+        grid-column: 2 / span 4; /* Fixtures take up columns 2-5 */
+        margin-top: 20px;
+        padding: 20px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+}
+
 @media (min-width: 1521px) {
     #tables-container,
     #groups-container {

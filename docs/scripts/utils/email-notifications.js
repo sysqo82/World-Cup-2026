@@ -11,7 +11,8 @@ export async function sendMatchEmails(
   regularTimeTeam1Score, 
   regularTimeTeam2Score,
   extraTimeTeam1Score,
-  extraTimeTeam2Score
+  extraTimeTeam2Score,
+  prizePotSum
 ) {
   try {
     const emailTemplate = new EmailTemplate(winner, loser, match, stage);
@@ -40,7 +41,8 @@ export async function sendMatchEmails(
       regularTimeTeam1Score,
       regularTimeTeam2Score,
       extraTimeTeam1Score,
-      extraTimeTeam2Score
+      extraTimeTeam2Score,
+      prizePotSum
     );
 
     // Send emails only if they exist

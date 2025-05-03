@@ -16,3 +16,20 @@ export function updatePrizePotCounter() {
         prizePotCounter.innerHTML = 'Error loading prize pot';
     });
 }
+
+export async function getPrizePot() {
+    return new Promise((resolve, reject) => {
+        db.collection('users').get().then((snapshot) => {
+            let prizePot = 0;
+            snapshot.forEach((doc) => {
+                if (doc.data().hasPaid === true) {
+                    prizePot += 5;
+                }
+            });
+            resolve(prizePot);
+        }).catch((error) => {
+            console.error('Error getting users:', error);
+            reject(error);
+        });
+    });
+}

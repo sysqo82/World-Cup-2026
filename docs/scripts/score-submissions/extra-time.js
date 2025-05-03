@@ -1,12 +1,14 @@
 import { saveMatchResult } from '../utils/match-utils.js';
 import { sendMatchEmails } from '../utils/email-notifications.js';
 import { db } from '../config/firebase-config.js';
+import { getPrizePot } from '../utils/prize-pot-counter.js';
 
 export async function handleExtraTimeSubmission(dataBase, event, table, round) {
     const button = event.target;
     const match = button.dataset.match;
     const team1 = button.dataset.team1;
     const team2 = button.dataset.team2;
+    const prizePotSum = await getPrizePot();
 
     // Get the input fields for the extra time match
     const scoreInputs = table.querySelectorAll(`input[data-match="${match}"][data-type="extra"]`);
@@ -70,7 +72,8 @@ export async function handleExtraTimeSubmission(dataBase, event, table, round) {
                 regularTimeTeam1Score,
                 regularTimeTeam2Score,
                 null,
-                null
+                null,
+                prizePotSum
             );
 
             const teamCells = table.querySelectorAll(`td[data-match="${match}"]`);

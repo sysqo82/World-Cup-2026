@@ -89,7 +89,8 @@ buildEmailTemplate(
     regularTimeTeam1Score,
     regularTimeTeam2Score,
     extraTimeTeam1Score,
-    extraTimeTeam2Score
+    extraTimeTeam2Score,
+    prizePotSum
 ) {
   const emailTemplates = {};
 
@@ -106,26 +107,35 @@ buildEmailTemplate(
 
   // Build the winner's email template if the winner's email exists
   if ((winnersScore > losersScore) && winnerEmail) {
+    let isFinal = stage === 'Final';
+    let winnerSubject;
     let winnerMessage;
-    const winnerSubject = `${stage}: Congratulations ${winnerOwnersName}, your team ${winningCountryFullName} won!`;
+    if (stage === 'Final') {
+      winnerSubject = `${stage}: Congratulations ${winnerOwnersName}, your team ${winningCountryFullName} are the World Cup Champions!`;
+    } else {
+      winnerSubject = `${stage}: Congratulations ${winnerOwnersName}, your team ${winningCountryFullName} won!`;
+    }
     switch (this.matchResult) {
       case 'regularTimeWasTied':
         winnerMessage =
-          `Your team ${winningCountryFullName} beat ${losingCountryFullName} after extra time was added with a score of ${winnersScore}-${losersScore}.
-          Celebrate the victory!
-          The match ended after 90 minutes in a tie with the score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.`;
+          `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
+Your team ${winningCountryFullName} beat ${losingCountryFullName} after extra time was added with a score of ${winnersScore}-${losersScore}.
+Celebrate the victory!
+The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.`;
         break;
       case 'extraTimeWasTied':
         winnerMessage =
-          `Your team ${winningCountryFullName} beat ${losingCountryFullName} after an intense penalty shootouts with the score of ${winnersScore}-${losersScore}.
-          Celebrate the victory!
-          The match ended after 90 minutes in a tie with the score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
-          After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.`;
+          `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
+Your team ${winningCountryFullName} beat ${losingCountryFullName} after an intense penalty shootouts with a score of ${winnersScore}-${losersScore}.
+Celebrate the victory!
+The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
+After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.`;
         break;
       default:
         winnerMessage =
-          `Your team ${winningCountryFullName} beat ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
-          Celebrate the victory!`;
+          `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
+Your team ${winningCountryFullName} beat ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
+Celebrate the victory!`;
     }
 
     emailTemplates.winner = {
@@ -137,26 +147,31 @@ buildEmailTemplate(
 
   // Build the loser's email template if the loser's email exists
   if ((losersScore < winnersScore) && loserEmail) {
+    let loserSubject
     let loserMessage;
-    const loserSubject = `${stage}: Better Luck Next Time, ${loserOwnersName}, your team ${losingCountryFullName} lost!`;
+    if (stage === 'Final') {
+      loserSubject = `${stage}: Commiserations ${loserOwnersName}, your team ${losingCountryFullName} lost the World Cup Final!`;
+    } else {
+      loserSubject = `${stage}: Better Luck Next Time, ${loserOwnersName}, your team ${losingCountryFullName} lost!`;
+    }
     switch (this.matchResult) {
       case 'regularTimeWasTied':
         loserMessage =
           `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after extra time with a score of ${losersScore}-${winnersScore}.
-          Keep your spirits high!
-          The match ended after 90 minutes in a tie with the score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.`;
+Keep your spirits high!
+The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.`;
         break;
       case 'extraTimeWasTied':
         loserMessage =
           `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after an intense penalty shootout with the score of ${losersScore}-${winnersScore}.
-          Keep your spirits high!
-          The match ended after 90 minutes in a tie with the score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
-          After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.`;
+Keep your spirits high!
+The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
+After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.`;
         break;
       default:
         loserMessage =
           `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} with a score of ${losersScore}-${winnersScore}.
-          Keep your spirits high!`;
+Keep your spirits high!`;
     }
 
     emailTemplates.loser = {
@@ -169,10 +184,10 @@ buildEmailTemplate(
   // Handle the case of a draw
   if (winnersScore === losersScore) {
     if (winnerEmail) {
-      const drawSubjectWinner = `${this.stage}: It's a Draw! ${winningCountryFullName} vs ${losingCountryFullName}`;
+      const drawSubjectWinner = `${stage}: It's a Draw! ${winningCountryFullName} vs ${losingCountryFullName}`;
       const drawMessageWinner =
       `Your team ${winningCountryFullName} drew against ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
-      Keep up the great effort!`;
+Keep up the great effort!`;
 
       emailTemplates.winner = {
         email: winnerEmail,
@@ -182,10 +197,10 @@ buildEmailTemplate(
     }
 
     if (loserEmail) {
-      const drawSubjectLoser = `${this.stage}: It's a Draw! ${losingCountryFullName} vs ${winningCountryFullName}`;
+      const drawSubjectLoser = `${stage}: It's a Draw! ${losingCountryFullName} vs ${winningCountryFullName}`;
       const drawMessageLoser =
       `Your team ${losingCountryFullName} drew against ${winningCountryFullName} with a score of ${winnersScore}-${losersScore}.
-      Keep up the great effort!`;
+Keep up the great effort!`;
 
       emailTemplates.loser = {
         email: loserEmail,

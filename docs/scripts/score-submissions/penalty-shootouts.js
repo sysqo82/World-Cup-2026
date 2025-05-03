@@ -1,12 +1,14 @@
 import { saveMatchResult } from '../utils/match-utils.js';
 import { sendMatchEmails } from '../utils/email-notifications.js';
 import { db } from '../config/firebase-config.js';
+import { getPrizePot } from '../utils/prize-pot-counter.js';
 
 export async function handlePenaltyShootoutsSubmission(dataBase, event, table, round) {
     const button = event.target;
     const match = button.dataset.match;
     const team1 = button.dataset.team1;
     const team2 = button.dataset.team2;
+    const prizePotSum = await getPrizePot();
 
     // Get the input fields for the penalty shootout match
     const scoreInputs = table.querySelectorAll(`input[data-match="${match}"][data-type="penalty"]`);
@@ -71,7 +73,8 @@ export async function handlePenaltyShootoutsSubmission(dataBase, event, table, r
           regularTimeTeam1Score,
           regularTimeTeam2Score,
           extraTimeTeam1Score,
-          extraTimeTeam2Score
+          extraTimeTeam2Score,
+          prizePotSum
         );
 
         // Highlight the winner

@@ -262,26 +262,43 @@ export function initializeHomepage() {
     });
 }
 
-// Display the winning team on every page
-export function getAssignedTeam() {
-  const userDetails = getCookie('userDetails');
-  if (userDetails) {
-    try {
-      const userDetailsObj = JSON.parse(userDetails);
-      const assignedTeam = userDetailsObj.assignedTeam || null;
-
-      const winningTeam = document.getElementById('winning-team');
-      if (winningTeam) {
-        winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
-      }
-
-      return assignedTeam;
-    } catch (error) {
-      console.error('Error parsing user details:', error);
-      return null;
+// Search the DB for the assigned team according to the user email found in the cookie
+export async function getAssignedTeam() {
+    const userDetails = getCookie('userDetails');
+    if (userDetails) {
+        try {
+            const userDetailsObj = JSON.parse(userDetails);
+            const email = userDetailsObj.email.toLowerCase().trim();
+            const snapshot = await db.collection('users').where('email', '==', email).get();
+            if (!snapshot.empty) {
+                let assignedTeam = null;
+                snapshot.forEach(doc => {
+                    assignedTeam = doc.data().team || null;
+                });
+                const winningTeam = document.getElementById('winning-team');
+                winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
+                const currentAssignedTeam = userDetailsObj.assignedTeam;
+                if (currentAssignedTeam !== assignedTeam) {
+                    setCookie(
+                        "userDetails",
+                        JSON.stringify({
+                            ...userDetailsObj,
+                            assignedTeam: assignedTeam || "No team assigned yet"
+                        }),
+                        30
+                    );
+                }
+                return assignedTeam;
+            } else {
+                console.warn('No user found with this email.');
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching assigned team:', error);
+            return null;
+        }
+    } else {
+        console.warn('User details cookie not found.');
+        return null;
     }
-  } else {
-    console.warn('User details cookie not found.');
-    return null;
-  }
 }
