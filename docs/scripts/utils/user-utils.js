@@ -197,6 +197,9 @@ export function initializeHomepage() {
                 alert("No user found with this email. Please register first.");
                 loginSubmitButton.disabled = false;
                 loginSubmitButton.innerHTML = 'Login';
+                if (getCookie("userDetails")) {
+                    deleteCookie("userDetails");
+                }
                 loginForm.reset();
                 return;
             }
@@ -204,7 +207,6 @@ export function initializeHomepage() {
             const userDetails = snapshot.docs[0].data();
 
             if (userDetails.hasPaid === true) {
-                // prizePotContainer.classList.remove("hidden");
                 alert(`Welcome back ${userDetails.firstName}! Your payment has been approved, you can now access the site.`);
                 // Set the cookie with user details from the database
                 setCookie(
