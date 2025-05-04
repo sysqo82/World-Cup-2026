@@ -11,20 +11,20 @@ import { generateThirdPlacePlayoffMatch } from './create-round-matches/admin-hel
 auth.onAuthStateChanged(user => {
     const logoutButton = document.getElementById('logout-button');
     const authContainer = document.getElementById('auth-container');
-    const adminContent = document.getElementById('admin-content');
+    const adminContentPlaceholder = document.getElementById('admin-content-placeholder');
 
     if (user) {
         // User is logged in
         authContainer.style.display = 'none';
-        adminContent.style.display = 'block';
         logoutButton.style.display = 'block';
-
-        // Fetch groups
+    
+        renderAdminContent(adminContentPlaceholder);
+    
         fetchGroups();
     } else {
         // User is not logged in
+        adminContentPlaceholder.innerHTML = '';
         authContainer.style.display = 'block';
-        adminContent.style.display = 'none';
         logoutButton.style.display = 'none';
     }
 });
@@ -37,7 +37,6 @@ document.getElementById('login-button').addEventListener('click', () => {
     auth.signInWithEmailAndPassword(email, password)
         .then(userCredential => {
             console.log(`Logged in as: ${userCredential.user.email}`);
-            window.location.href = './admin.html';
         })
         .catch(error => {
             console.error('Error during login:', error);
@@ -57,55 +56,72 @@ document.getElementById('logout-button').addEventListener('click', () => {
         });
 });
 
-document.getElementById('clear-db').addEventListener('click', async () => {
-    clearDB();
-});
-document.getElementById('generate-round-of-16').addEventListener('click', async () => {
-    generateRoundOf16Matches();
-});
-document.getElementById('generate-quarter-finals').addEventListener('click', async () => {
-    generateQuarterFinalsMatches();
-});
-document.getElementById('generate-semi-finals').addEventListener('click', async () => {
-    generateSemiFinalsMatches();
-});
-document.getElementById('generate-final').addEventListener('click', async () => {
-    generateFinalMatch();
-});
-document.getElementById('generate-third-place-playoff').addEventListener('click', async () => {
-    generateThirdPlacePlayoffMatch();
-});
+// Render admin content dynamically
+function renderAdminContent(container) {
+    container.innerHTML = `
+        <div id="admin-content" class="mt-5">
+            <!-- Dropdown for groups and Generate button -->
+            <div class="mb-4 text-center">
+                <label for="navigation-select">Group admin:</label>
+                <select id="navigation-select">
+                    <option value="">-- Select a Group --</option>
+                </select>
+            </div>
+            <!-- Teams list -->
+            <div id="teams-container" class="mt-4">
+                <!-- Teams will be dynamically displayed here -->
+            </div>
+            <div class="d-flex flex-column align-items-center">
+                <button id="clear-db" class="submit-button mb-2">Clear Group Stage</button>
+                <button id="generate-round-of-16" class="submit-button mb-2">Generate Round of 16</button>
+                <button id="generate-quarter-finals" class="submit-button mb-2">Generate Quarter Finals</button>
+                <button id="generate-semi-finals" class="submit-button mb-2">Generate Semi Finals</button>
+                <button id="generate-final" class="submit-button mb-2">Generate Final</button>
+                <button id="generate-third-place-playoff" class="submit-button">Generate Third Place Playoff</button>
+            </div>
 
-// Helper function to get a team by rank
-export function getTeamByRank(group, rank) {
-    const teams = Object.entries(group.teams || {});
+            <!-- Registered Users -->
+            <div id="registered-users-container" class="mt-5">
+                <h2>Registered Users</h2>
+                <table id="registered-users-table" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Assigned Team</th>
+                            <th></th>
+                            <th>Paid</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Registered users will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
 
-    // Check if no matches have been played (P = 0 for all teams)
-    const noMatchesPlayed = teams.every(([, team]) => team.P === 0);
-
-    if (noMatchesPlayed) {
-        // Sort by initial rank (mapped to #)
-        const sortedByInitialRank = teams.sort(([, a], [, b]) => (a['#'] || 0) - (b['#'] || 0));
-        return sortedByInitialRank[rank - 1]?.[1] || {}; // Return the team at the given rank
-    } else {
-        // Sort by current ranking (points, goal difference, goals scored)
-        const sortedByCurrentRank = teams
-            .map(([id, team]) => ({
-                id,
-                ...team,
-                goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
-            }))
-            .sort((a, b) => {
-                return (
-                    b.points - a.points || // Sort by points
-                    b.goalDifference - a.goalDifference || // Then by goal difference
-                    b.goalsScored - a.goalsScored // Then by goals scored
-                );
-            });
-
-        return sortedByCurrentRank[rank - 1] || {}; // Return the team at the given rank
-    }
-}
+    // Attach event listeners for admin buttons
+    document.getElementById('clear-db').addEventListener('click', async () => {
+        clearDB();
+    });
+    document.getElementById('generate-round-of-16').addEventListener('click', async () => {
+        generateRoundOf16Matches();
+    });
+    document.getElementById('generate-quarter-finals').addEventListener('click', async () => {
+        generateQuarterFinalsMatches();
+    });
+    document.getElementById('generate-semi-finals').addEventListener('click', async () => {
+        generateSemiFinalsMatches();
+    });
+    document.getElementById('generate-final').addEventListener('click', async () => {
+        generateFinalMatch();
+    });
+    document.getElementById('generate-third-place-playoff').addEventListener('click', async () => {
+        generateThirdPlacePlayoffMatch();
+    });
 
 // Fetch all groups and populate the dropdown
 function fetchGroups() {
@@ -192,6 +208,10 @@ function displayTeams(group) {
 
 // Attach updateTeam to the global window object
 window.updateTeam = updateTeam;
+window.fetchGroups = fetchGroups;
+window.populateGroupDropdown = populateGroupDropdown;
+window.displayTeams = displayTeams;
+window.getTeamByRank = getTeamByRank;
 
 // Function to update the team data in Firestore
 function updateTeam(groupId, teamId) {
@@ -218,7 +238,7 @@ function updateTeam(groupId, teamId) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+
     const registeredUsersTableBody = document.querySelector('#registered-users-table tbody');
 
     // Fetch registered users from Firestore and populate the "Registered Users" table
@@ -368,4 +388,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     loadRegisteredUsers();
-});
+
+}
+
+    // Helper function to get a team by rank
+export function getTeamByRank(group, rank) {
+    const teams = Object.entries(group.teams || {});
+
+    // Check if no matches have been played (P = 0 for all teams)
+    const noMatchesPlayed = teams.every(([, team]) => team.P === 0);
+
+    if (noMatchesPlayed) {
+        // Sort by initial rank (mapped to #)
+        const sortedByInitialRank = teams.sort(([, a], [, b]) => (a['#'] || 0) - (b['#'] || 0));
+        return sortedByInitialRank[rank - 1]?.[1] || {}; // Return the team at the given rank
+    } else {
+        // Sort by current ranking (points, goal difference, goals scored)
+        const sortedByCurrentRank = teams
+            .map(([id, team]) => ({
+                id,
+                ...team,
+                goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
+            }))
+            .sort((a, b) => {
+                return (
+                    b.points - a.points || // Sort by points
+                    b.goalDifference - a.goalDifference || // Then by goal difference
+                    b.goalsScored - a.goalsScored // Then by goals scored
+                );
+            });
+
+        return sortedByCurrentRank[rank - 1] || {}; // Return the team at the given rank
+    }
+}

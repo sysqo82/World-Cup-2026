@@ -1,4 +1,4 @@
-import { getCookie, deleteCookie } from "../utils/user-utils.js";
+import { getCookie, deleteCookie, setCookie } from "../utils/user-utils.js";
 import { db } from "../config/firebase-config.js"
 
 const pageMap = {
@@ -54,23 +54,56 @@ window.navigateToPage = navigateToPage;
 
 document.addEventListener('DOMContentLoaded', setSelectedPage);
 
-export async function isLoggedIn() {
+const userDetailsObj = JSON.parse(getCookie("userDetails"));
+
+// checks if there is an email in the cookie, if there is, checks if the user is registered in the database
+export async function isRegistered() {
     const userEmail = getCookie("userDetails") ? JSON.parse(getCookie("userDetails")).email : null;
     if (!userEmail) {
-        const snapshot = await db.collection("users").where("email", "==", userEmail).get();
-        if (snapshot.empty) {
-            alert("Your user was not found in the database. Please register again.");
-            deleteCookie("userDetails");
-            const currentPage = window.location.pathname.replace(/\\/g, '/').replace(basePath, '').replace(/^\/+/, '');
-
-            if (currentPage !== 'index.html') {
-                window.location.href = `${basePath}index.html`;
-                alert('You are not logged in. Please log in to access this page.');
-            }
-            return false;
-        } else {
-            return true; // User is logged in
-        }
+        alert ("You are not registered. Please register to access this site.");
+        window.location.href = `${basePath}index.html`;
+        return false;
     }
-    return false; // No user email found
+    
+    const snapshot = await db.collection("users").where("email", "==", userEmail).get();
+    
+    if (snapshot.empty) {
+        alert ("You are not registered. Please register to access this site.");
+        deleteCookie("userDetails");
+        window.location.href = `${basePath}index.html`;
+        return false;
+    }
+    
+    return true;
+}
+
+
+export async function isAllowed() {
+    const userEmail = getCookie("userDetails") ? JSON.parse(getCookie("userDetails")).email : null;
+    const snapshot = await db.collection("users").where("email", "==", userEmail).get();
+    
+    const userHasPaid = snapshot.docs.some(doc => {
+        const data = doc.data();
+        return data.email === userEmail && data.hasPaid === true;
+    });
+    
+    if (!userHasPaid) {
+        alert ("Your payment is still pending. Please check your payment status.");
+        const currentPage = window.location.pathname.replace(/\\/g, '/').replace(basePath, '').replace(/^\/+/, '');
+        if (currentPage !== 'index.html') {
+            window.location.href = `${basePath}index.html`;
+            alert('You are not allowed on this page. Please complete your payment process.');
+            setCookie(
+                "userDetails",
+                JSON.stringify({
+                    ...userDetailsObj,
+                    assignedTeam: "Pending",
+                    hasPaid: "Pending",
+                }),
+                7,
+            );
+        }
+        return false;
+    }
+    return true;
 }
