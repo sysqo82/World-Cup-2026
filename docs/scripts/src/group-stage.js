@@ -2,12 +2,14 @@
 import { db } from '../config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { generateFixtures } from '../create-round-matches/group-stage-fixtures.js';
-import { getAssignedTeam } from '../utils/user-utils.js';
+import { getAssignedTeam, logoutUser } from '../utils/user-utils.js';
 import { isAllowed, isRegistered } from "../navigation/navigation.js";
 
 // Check if the user is allowed in the site
 await isRegistered();
 await isAllowed();
+
+document.getElementById('logout').addEventListener('click', logoutUser);
 
 db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({

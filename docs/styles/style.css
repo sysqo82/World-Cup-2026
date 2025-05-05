@@ -159,6 +159,21 @@ button#logout-button:hover {
     background-color: #e60000;
 }
 
+.logout-button {
+    margin-left: 10px;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #ff4d4d;
+    color: white;
+}
+
+.logout-button:hover {
+    background-color: #e60000;
+}
+
 .large-flag {
     font-size: 13rem; /* Adjust size as needed */
 }

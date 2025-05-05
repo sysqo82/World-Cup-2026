@@ -304,3 +304,9 @@ export async function getAssignedTeam() {
         return null;
     }
 }
+
+export async function logoutUser() {
+    const basePath = window.location.origin + '/World-Cup-2026/docs/';
+    deleteCookie("userDetails");
+    window.location.href = `${basePath}index.html`;
+}
