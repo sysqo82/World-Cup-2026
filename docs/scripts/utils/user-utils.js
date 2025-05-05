@@ -1,5 +1,6 @@
 import { db, functionsURL } from "../config/firebase-config.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
+import { basePath } from "../navigation/navigation.js";
 
 // Utility function to set a cookie
 export function setCookie(name, value, days) {
@@ -306,7 +307,6 @@ export async function getAssignedTeam() {
 }
 
 export async function logoutUser() {
-    const basePath = window.location.origin + '/World-Cup-2026/docs/';
     deleteCookie("userDetails");
     window.location.href = `${basePath}index.html`;
 }
