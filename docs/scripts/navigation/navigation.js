@@ -25,7 +25,7 @@ const LOCAL_HOSTNAMES = [
   ];
 
 const isLocal = LOCAL_HOSTNAMES.includes(window.location.hostname);
-const basePath = isLocal ? '/World-Cup-2026/docs/' : '/World-Cup-2026/';
+export const basePath = isLocal ? '/World-Cup-2026/docs/' : '/World-Cup-2026/';
 
 function navigateToPage() {
     const selectedPage = document.getElementById('navigation-select').value;

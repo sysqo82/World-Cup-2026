@@ -1,5 +1,6 @@
 import { db, functionsURL } from "../config/firebase-config.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
+import { basePath } from "../navigation/navigation.js";
 
 // Utility function to set a cookie
 export function setCookie(name, value, days) {
@@ -303,4 +304,9 @@ export async function getAssignedTeam() {
         console.warn('User details cookie not found.');
         return null;
     }
+}
+
+export async function logoutUser() {
+    deleteCookie("userDetails");
+    window.location.href = `${basePath}index.html`;
 }
