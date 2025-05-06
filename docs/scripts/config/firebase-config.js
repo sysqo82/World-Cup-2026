@@ -9,6 +9,7 @@ const firebaseConfig = {
     measurementId: "G-6QWWJLC2LM",
     functionsURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/registerUser",
     sendEmailURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/sendEmail",
+    setAdminRoleURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/setAdminRole",
 };
 
 // Initialize Firebase
@@ -20,3 +21,4 @@ const auth = firebase.auth();
 export { app, db, auth };
 export const functionsURL = firebaseConfig.functionsURL;
 export const sendEmailURL = firebaseConfig.sendEmailURL;
+export const setAdminRoleURL = firebaseConfig.setAdminRoleURL;
