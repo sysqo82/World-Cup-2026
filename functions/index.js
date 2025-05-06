@@ -107,3 +107,45 @@ exports.sendEmail = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+// Cloud Function to set admin role
+exports.setAdminRole = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    // Check if the request is authenticated
+    if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) {
+      return res.status(403).send("Unauthorized");
+    }
+
+    const idToken = req.headers.authorization.split("Bearer ")[1];
+
+    try {
+      // Verify the ID token
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+      // Check if the user has the admin claim
+      if (!decodedToken.admin) {
+        return res.status(403).send("Permission denied: Only admins can assign admin roles.");
+      }
+
+      const { uid } = req.body;
+
+      if (!uid) {
+        return res.status(400).send("Missing required field: uid");
+      }
+
+      // Set the admin custom claim
+      await admin.auth().setCustomUserClaims(uid, { admin: true });
+
+      res.status(200).json({
+        message: `Admin role assigned to user with UID: ${uid}`,
+      });
+    } catch (error) {
+      console.error("Error assigning admin role:", error);
+      res.status(500).send("Failed to assign admin role: " + error.message);
+    }
+  });
+});

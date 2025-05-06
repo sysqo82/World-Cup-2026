@@ -1,5 +1,5 @@
 // Import Firebase configuration and services
-import { db, auth } from '../scripts/config/firebase-config.js';
+import { db, auth, setAdminRoleURL } from '../scripts/config/firebase-config.js';
 import { clearDB } from './create-round-matches/admin-helper/clear-db.js';
 import { generateRoundOf16Matches } from './create-round-matches/admin-helper/generate-round-of-16.js';
 import { generateQuarterFinalsMatches } from './create-round-matches/admin-helper/generate-quarter-finals.js';
@@ -37,6 +37,7 @@ document.getElementById('login-button').addEventListener('click', () => {
     auth.signInWithEmailAndPassword(email, password)
         .then(userCredential => {
             console.log(`Logged in as: ${userCredential.user.email}`);
+            assignAdminRole(userCredential.user.uid);
         })
         .catch(error => {
             console.error('Error during login:', error);
@@ -55,6 +56,29 @@ document.getElementById('logout-button').addEventListener('click', () => {
             alert('Failed to log out. Please try again.');
         });
 });
+
+// Function to assign admin role
+export async function assignAdminRole(uid) {
+    try {
+      const idToken = await auth.currentUser.getIdToken(); // Get the ID token of the current user  
+      const response = await fetch(setAdminRoleURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`, // Include the user's ID token
+        },
+        body: JSON.stringify({ uid }),
+      });
+  
+      if (response.ok) {
+        console.log('Admin role assigned successfully!');
+      } else {
+        console.error('Failed to assign admin role.');
+      }
+    } catch (error) {
+      console.error('Error assigning admin role:', error);
+    }
+  }
 
 // Render admin content dynamically
 function renderAdminContent(container) {
