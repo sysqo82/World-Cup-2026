@@ -9,9 +9,9 @@ document.getElementById('navigation-select').addEventListener('change', navigate
 document.addEventListener('DOMContentLoaded', async () => {
     await isRegistered();
     await isAllowed();
-    
+
     document.getElementById('logout').addEventListener('click', logoutUser);
 
-    generateRoundMatches('.final-container', 'finalTeams', 'Final');
-    getAssignedTeam();
+    await generateRoundMatches('.final-container', 'finalTeams', 'Final');
+    await getAssignedTeam();
 });

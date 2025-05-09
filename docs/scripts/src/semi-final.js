@@ -12,6 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('logout').addEventListener('click', logoutUser);
 
-    generateRoundMatches('.semi-finals-container', 'semiFinalsTeams', 'Semi Finals');
-    getAssignedTeam();
+    await generateRoundMatches('.semi-finals-container', 'semiFinalsTeams', 'Semi Finals');
+    await getAssignedTeam();
 });

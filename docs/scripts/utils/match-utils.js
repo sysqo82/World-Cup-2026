@@ -1,6 +1,16 @@
 import { db } from '../config/firebase-config.js';
 
-export async function saveMatchResult(dataBase, match, team1Score, team2Score, winner, loser, type, displayExtraTime = false, displayPenaltyShootouts = false) {
+export async function saveMatchResult(
+  dataBase,
+  match,
+  team1Score,
+  team2Score,
+  winner,
+  loser,
+  type,
+  displayExtraTime = false,
+  displayPenaltyShootouts = false
+) {
     try {
         const docRef = db.collection(`${dataBase}`).doc('matches');
         const doc = await docRef.get();

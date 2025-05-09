@@ -12,6 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('logout').addEventListener('click', logoutUser);
 
-    generateRoundMatches('.third-place-playoff-container', 'thirdPlacePlayoffTeams', 'Third Place Playoff');
-    getAssignedTeam();
+    await generateRoundMatches('.third-place-playoff-container', 'thirdPlacePlayoffTeams', 'Third Place Playoff');
+    await getAssignedTeam();
 });

@@ -12,6 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('logout').addEventListener('click', logoutUser);
 
-    generateRoundMatches('.round-of-16-container', 'roundOf16Teams', 'Round of 16');
-    getAssignedTeam();
+    await generateRoundMatches('.round-of-16-container', 'roundOf16Teams', 'Round of 16');
+    await getAssignedTeam();
 });

@@ -27,7 +27,7 @@ export function deleteCookie(name) {
 export function openEncryptedURL(location) {
     let encodedURL = null;
     const paymentLocation = 'aHR0cHM6Ly9tb256by5tZS9hc3NhZml0emlrc29uLzUuMDA/ZD1Xb3JsZCUyMEN1cCUyMDIwMjYmaD1UREp4ZTg=';
-    const contactLocation = 'aHR0cHM6Ly9hcHAuc2xhY2suY29tL2NsaWVudC9UMDM5M0cwNUcvRDM1OUJESDlC';
+    const contactLocation = 'aHR0cHM6Ly9pbW1lZGlhdGUuc2xhY2suY29tL2FyY2hpdmVzL0MwOFJEMDgyVk5Z';
     switch (location) {
         case 'paymentLocation':
             encodedURL = paymentLocation;
@@ -49,8 +49,6 @@ export function initializeHomepage() {
     const loginForm = document.getElementById("login-form");
     const loginFormContainer = document.getElementById("login-form-container");
     const navigationDropdown = document.getElementById("navigation-dropdown");
-    const prizePotContainer = document.getElementById("prize-pot-container");
-    const prizePotCounter = document.getElementById("prize-pot-amount");
     const registerSubmitButton = document.getElementById("register-button");
     const loginSubmitButton = document.getElementById("login-button");
     const contentPlaceholder = document.getElementById("content-placeholder");
@@ -227,10 +225,10 @@ export function initializeHomepage() {
                 alert(`Welcome back ${userDetails.firstName}! If you haven't paid yet, please do, otherwise, your payment is still pending.`);
                 registrationFormContainer.classList.add("hidden");
                 paymentContainer.classList.remove("hidden");
-                loginFormContainer.innerHTML = 
+                loginFormContainer.innerHTML =
                   '<p>Payment approval is still in progress, please try again later.</p>' +
                   `<p>Please contact <a href="#" id="contact-link">Assaf</a> for any issues.</p>`;
-                
+
                 // Attach the click event listener to the link after rendering the HTML
                 const contactLink = document.getElementById("contact-link");
                 if (contactLink) {
