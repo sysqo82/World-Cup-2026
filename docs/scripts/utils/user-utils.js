@@ -194,6 +194,7 @@ export function initializeHomepage() {
 
             if (snapshot.empty) {
                 alert("No user found with this email. Please register first.");
+                window.location.reload();
                 loginSubmitButton.disabled = false;
                 loginSubmitButton.innerHTML = 'Login';
                 if (getCookie("userDetails")) {

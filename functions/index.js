@@ -1,13 +1,15 @@
-const { google } = require("googleapis");
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-const cors = require("cors");
-const fs = require("fs");
+import { google } from "googleapis";
+import { https, config } from "firebase-functions";
+import pkg from "firebase-admin";
+import cors from "cors";
+import { readFileSync } from "fs";
 
-admin.initializeApp();
+const { firestore, auth: _auth } = pkg;
+
+pkg.initializeApp();
 const corsHandler = cors({ origin: true });
 
-exports.registerUser = functions.https.onRequest((req, res) => {
+export const registerUser = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
@@ -20,7 +22,7 @@ exports.registerUser = functions.https.onRequest((req, res) => {
     }
 
     try {
-      const teamsRef = admin.firestore().collection("teams");
+      const teamsRef = firestore().collection("teams");
       const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
 
       if (availableTeamsSnapshot.empty) {
@@ -36,12 +38,12 @@ exports.registerUser = functions.https.onRequest((req, res) => {
       const selectedTeam = availableTeams[randomIndex];
       const normalizedEmail = email.toLowerCase().trim();
 
-      await admin.firestore().collection("users").add({
+      await firestore().collection("users").add({
         firstName,
         lastName,
         email: normalizedEmail,
         team: selectedTeam.fullName,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
         hasPaid: 'Pending',
       });
 
@@ -57,7 +59,7 @@ exports.registerUser = functions.https.onRequest((req, res) => {
 });
 
 // Load OAuth2 credentials
-const credentials = JSON.parse(fs.readFileSync("./credentials.json"));
+const credentials = JSON.parse(readFileSync("./credentials.json"));
 const { client_id, client_secret, redirect_uris, refresh_token } = credentials.web;
 
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
@@ -67,8 +69,7 @@ oAuth2Client.setCredentials({
   refresh_token: refresh_token,
 });
 
-// Cloud Function to send email notifications
-exports.sendEmail = functions.https.onRequest((req, res) => {
+export const sendEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
@@ -84,7 +85,7 @@ exports.sendEmail = functions.https.onRequest((req, res) => {
       const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
       const email = [
-        `From: "Immediate World Cup 2026 Updates" <${functions.config().email.user}>`, // Use display name and email
+        `From: "Immediate World Cup 2026 Updates" <${config().email.user}>`, // Use display name and email
         `To: ${recipient}`,
         `Subject: ${subject}`,
         "",
@@ -108,8 +109,7 @@ exports.sendEmail = functions.https.onRequest((req, res) => {
   });
 });
 
-// Cloud Function to set admin role
-exports.setAdminRole = functions.https.onRequest((req, res) => {
+export const setAdminRole = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
@@ -124,7 +124,7 @@ exports.setAdminRole = functions.https.onRequest((req, res) => {
 
     try {
       // Verify the ID token
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const decodedToken = await _auth().verifyIdToken(idToken);
 
       // Check if the user has the admin claim
       if (!decodedToken.admin) {
@@ -138,7 +138,7 @@ exports.setAdminRole = functions.https.onRequest((req, res) => {
       }
 
       // Set the admin custom claim
-      await admin.auth().setCustomUserClaims(uid, { admin: true });
+      await _auth().setCustomUserClaims(uid, { admin: true });
 
       res.status(200).json({
         message: `Admin role assigned to user with UID: ${uid}`,
