@@ -597,3 +597,28 @@ img {
 .loser .country-container {
     text-decoration: line-through;
 }
+
+.email-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between the input and button */
+    justify-content: center; /* Center the content horizontally */
+    margin-top: 10px; /* Add some spacing above */
+}
+
+.email-input-container input[type="email"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.email-input-container button {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+}
+
+.email-input-container button:hover {
+    background-color: #0056b3;
+}
