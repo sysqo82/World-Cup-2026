@@ -8,6 +8,16 @@ const { firestore, auth: _auth } = pkg;
 
 pkg.initializeApp();
 const corsHandler = cors({ origin: true });
+const credentials = JSON.parse(readFileSync("./credentials.json"));
+
+const serviceApp = pkg.initializeApp(
+  {
+    credential: pkg.credential.cert(credentials.serviceAccount),
+    databaseURL: `https://${credentials.project_id}.firebaseio.com`
+  },
+  "serviceApp" // Name for the secondary app
+);
+const serviceFirestore = serviceApp.firestore();
 
 export const registerUser = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
@@ -22,7 +32,7 @@ export const registerUser = https.onRequest((req, res) => {
     }
 
     try {
-      const teamsRef = firestore().collection("teams");
+      const teamsRef = serviceFirestore.collection("teams");
       const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
 
       if (availableTeamsSnapshot.empty) {
@@ -38,12 +48,12 @@ export const registerUser = https.onRequest((req, res) => {
       const selectedTeam = availableTeams[randomIndex];
       const normalizedEmail = email.toLowerCase().trim();
 
-      await firestore().collection("users").add({
+      await serviceFirestore.collection("users").add({
         firstName,
         lastName,
         email: normalizedEmail,
         team: selectedTeam.fullName,
-        createdAt: firestore.FieldValue.serverTimestamp(),
+        createdAt: pkg.firestore.FieldValue.serverTimestamp(),
         hasPaid: 'Pending',
       });
 
@@ -109,7 +119,6 @@ export const changeEmail = https.onRequest((req, res) => {
 });
 
 // Load OAuth2 credentials
-const credentials = JSON.parse(readFileSync("./credentials.json"));
 const { client_id, client_secret, redirect_uris, refresh_token } = credentials.web;
 
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
