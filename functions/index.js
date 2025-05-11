@@ -6,11 +6,39 @@ import { readFileSync } from "fs";
 
 const { firestore, auth: _auth } = pkg;
 
+const credentials = JSON.parse(readFileSync("./credentials.json"));
+const allowedOrigins = credentials.allowedOrigins.origin;
+
 pkg.initializeApp();
-const corsHandler = cors({ origin: true });
+const corsHandler = cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(new Error('Not allowed by CORS'));
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  }
+});
+
+const serviceApp = pkg.initializeApp(
+  {
+    credential: pkg.credential.cert(credentials.serviceAccount),
+    databaseURL: `https://${credentials.project_id}.firebaseio.com`
+  },
+  "serviceApp" // Name for the secondary app
+);
+const serviceFirestore = serviceApp.firestore();
 
 export const registerUser = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid request');
+    }
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
@@ -22,7 +50,7 @@ export const registerUser = https.onRequest((req, res) => {
     }
 
     try {
-      const teamsRef = firestore().collection("teams");
+      const teamsRef = serviceFirestore.collection("teams");
       const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
 
       if (availableTeamsSnapshot.empty) {
@@ -38,12 +66,12 @@ export const registerUser = https.onRequest((req, res) => {
       const selectedTeam = availableTeams[randomIndex];
       const normalizedEmail = email.toLowerCase().trim();
 
-      await firestore().collection("users").add({
+      await serviceFirestore.collection("users").add({
         firstName,
         lastName,
         email: normalizedEmail,
         team: selectedTeam.fullName,
-        createdAt: firestore.FieldValue.serverTimestamp(),
+        createdAt: pkg.firestore.FieldValue.serverTimestamp(),
         hasPaid: 'Pending',
       });
 
@@ -60,6 +88,13 @@ export const registerUser = https.onRequest((req, res) => {
 
 export const changeEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid_scope');
+    }
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
@@ -81,7 +116,7 @@ export const changeEmail = https.onRequest((req, res) => {
         .get();
 
       if (!newEmailSnapshot.empty) {
-        return res.status(409).send("The new email address is already in use");
+        return res.status(409).send("Forbidden: Invalid_scope");
       }
 
       // Find the user with the current email
@@ -109,7 +144,6 @@ export const changeEmail = https.onRequest((req, res) => {
 });
 
 // Load OAuth2 credentials
-const credentials = JSON.parse(readFileSync("./credentials.json"));
 const { client_id, client_secret, redirect_uris, refresh_token } = credentials.web;
 
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
@@ -121,6 +155,13 @@ oAuth2Client.setCredentials({
 
 export const sendEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid request');
+    }
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
@@ -165,6 +206,13 @@ export const sendEmail = https.onRequest((req, res) => {
 
 export const setAdminRole = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid request');
+    }
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
