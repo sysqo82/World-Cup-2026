@@ -7,7 +7,7 @@ const firebaseConfig = {
     messagingSenderId: "355932893733",
     appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
     measurementId: "G-6QWWJLC2LM",
-    registerUser: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/registerUser",
+    registerUser: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/registerUser",
     sendEmailURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/sendEmail",
     setAdminRoleURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/setAdminRole",
     changeEmailURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/changeEmail",
