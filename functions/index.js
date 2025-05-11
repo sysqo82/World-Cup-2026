@@ -58,6 +58,56 @@ export const registerUser = https.onRequest((req, res) => {
   });
 });
 
+export const changeEmail = https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    const { email, newEmail } = req.body;
+
+    if (!email || !newEmail) {
+      return res.status(400).send("Missing required fields");
+    }
+
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedNewEmail = newEmail.toLowerCase().trim();
+
+      // Check if the new email already exists in the database
+      const newEmailSnapshot = await firestore()
+        .collection("users")
+        .where("email", "==", normalizedNewEmail)
+        .get();
+
+      if (!newEmailSnapshot.empty) {
+        return res.status(409).send("The new email address is already in use");
+      }
+
+      // Find the user with the current email
+      const snapshot = await firestore()
+        .collection("users")
+        .where("email", "==", normalizedEmail)
+        .get();
+
+      if (snapshot.empty) {
+        return res.status(404).send("User not found");
+      }
+
+      // Update the user's email
+      const userDoc = snapshot.docs[0];
+      await firestore()
+        .collection("users")
+        .doc(userDoc.id)
+        .update({ email: normalizedNewEmail });
+
+      res.status(200).send("Email updated successfully!");
+    } catch (error) {
+      res.status(500).send("Error changing email: " + error.message);
+    }
+  });
+});
+
 // Load OAuth2 credentials
 const credentials = JSON.parse(readFileSync("./credentials.json"));
 const { client_id, client_secret, redirect_uris, refresh_token } = credentials.web;
@@ -85,14 +135,18 @@ export const sendEmail = https.onRequest((req, res) => {
       const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
       const email = [
-        `From: "Immediate World Cup 2026 Updates" <${config().email.user}>`, // Use display name and email
+        `From: "Immediate World Cup 2026 Updates" <${config().email.user}>`,
         `To: ${recipient}`,
         `Subject: ${subject}`,
         "",
         `${message}`,
       ].join("\n");
 
-      const encodedEmail = Buffer.from(email).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      const encodedEmail = Buffer.from(email)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
       
       await gmail.users.messages.send({
         userId: "me",

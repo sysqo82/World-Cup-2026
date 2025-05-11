@@ -1,4 +1,4 @@
-import { db, functionsURL } from "../config/firebase-config.js";
+import { db, registerUser } from "../config/firebase-config.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
 import { basePath } from "../navigation/navigation.js";
 
@@ -135,7 +135,7 @@ export function initializeHomepage() {
             registerSubmitButton.disabled = true;
             registerSubmitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
 
-            const response = await fetch(functionsURL, {
+            const response = await fetch(registerUser, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ firstName, lastName, email }),
