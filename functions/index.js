@@ -27,6 +27,9 @@ const serviceFirestore = serviceApp.firestore();
 
 export const registerUser = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
@@ -76,6 +79,9 @@ export const registerUser = https.onRequest((req, res) => {
 
 export const changeEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
@@ -136,6 +142,9 @@ oAuth2Client.setCredentials({
 
 export const sendEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
@@ -180,6 +189,9 @@ export const sendEmail = https.onRequest((req, res) => {
 
 export const setAdminRole = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
