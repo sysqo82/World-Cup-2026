@@ -32,6 +32,10 @@ const serviceFirestore = serviceApp.firestore();
 
 export const registerUser = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid origin');
+    }
     if (req.method === "OPTIONS") {
       return res.status(204).send('');
     }
@@ -84,6 +88,10 @@ export const registerUser = https.onRequest((req, res) => {
 
 export const changeEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid origin');
+    }
     if (req.method === "OPTIONS") {
       return res.status(204).send('');
     }
@@ -147,6 +155,10 @@ oAuth2Client.setCredentials({
 
 export const sendEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid origin');
+    }
     if (req.method === "OPTIONS") {
       return res.status(204).send('');
     }
@@ -194,6 +206,10 @@ export const sendEmail = https.onRequest((req, res) => {
 
 export const setAdminRole = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid origin');
+    }
     if (req.method === "OPTIONS") {
       return res.status(204).send('');
     }
