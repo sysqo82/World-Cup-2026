@@ -116,7 +116,7 @@ export const changeEmail = https.onRequest((req, res) => {
         .get();
 
       if (!newEmailSnapshot.empty) {
-        return res.status(409).send("The new email address is already in use");
+        return res.status(409).send("Forbidden: invalid request");
       }
 
       // Find the user with the current email
