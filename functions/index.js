@@ -7,7 +7,13 @@ import { readFileSync } from "fs";
 const { firestore, auth: _auth } = pkg;
 
 pkg.initializeApp();
-const corsHandler = cors({ origin: true });
+const corsHandler = cors({
+  origin: [
+    'https://sysqo82.github.io',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+  ]
+});
 const credentials = JSON.parse(readFileSync("./credentials.json"));
 
 const serviceApp = pkg.initializeApp(
