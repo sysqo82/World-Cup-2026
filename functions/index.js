@@ -90,7 +90,7 @@ export const changeEmail = https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
     if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
+      return res.status(403).send('Forbidden: Invalid_scope');
     }
     if (req.method === "OPTIONS") {
       return res.status(204).send('');
@@ -116,7 +116,7 @@ export const changeEmail = https.onRequest((req, res) => {
         .get();
 
       if (!newEmailSnapshot.empty) {
-        return res.status(409).send("Forbidden: invalid request");
+        return res.status(409).send("Forbidden: Invalid_scope");
       }
 
       // Find the user with the current email
