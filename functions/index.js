@@ -6,15 +6,20 @@ import { readFileSync } from "fs";
 
 const { firestore, auth: _auth } = pkg;
 
+const credentials = JSON.parse(readFileSync("./credentials.json"));
+const allowedOrigins = credentials.allowedOrigins.origin;
+
 pkg.initializeApp();
 const corsHandler = cors({
-  origin: [
-    'https://sysqo82.github.io',
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-  ]
+  origin: function(origin, callback) {
+    if (!origin) return callback(new Error('Not allowed by CORS'));
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  }
 });
-const credentials = JSON.parse(readFileSync("./credentials.json"));
 
 const serviceApp = pkg.initializeApp(
   {
