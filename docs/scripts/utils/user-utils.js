@@ -1,6 +1,6 @@
 import { db, registerUser } from "../config/firebase-config.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
-import { basePath } from "../navigation/navigation.js";
+import { basePath } from "../config/path-config.js";
 
 // Utility function to set a cookie
 export function setCookie(name, value, days) {

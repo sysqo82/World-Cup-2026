@@ -1,5 +1,6 @@
 import { getAssignedTeam, logoutUser, getCookie, setCookie } from '../utils/user-utils.js';
-import { isAllowed, isRegistered, basePath } from "../navigation/navigation.js";
+import { isAllowed, isRegistered } from "../navigation/navigation.js";
+import { basePath } from "../config/path-config.js";
 import { changeEmailURL } from '../config/firebase-config.js';
 
 // Add event listener for navigation dropdown
