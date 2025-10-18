@@ -432,11 +432,12 @@ export function getTeamByRank(group, rank) {
             .map(([id, team]) => ({
                 id,
                 ...team,
+                calculatedPoints: (team.W || 0) * 3 + (team.D || 0),
                 goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
             }))
             .sort((a, b) => {
                 return (
-                    b.points - a.points || // Sort by points
+                    b.calculatedPoints - a.calculatedPoints || // Sort by calculated points
                     b.goalDifference - a.goalDifference || // Then by goal difference
                     b.goalsScored - a.goalsScored // Then by goals scored
                 );

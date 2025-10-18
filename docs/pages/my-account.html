@@ -12,9 +12,6 @@
         <!-- Header -->
         <div class="header-container">
             <h1>World Cup 2026 - My Account</h1>
-            <div class="winning-team-display">
-                <h2>My winning team is: <span id="winning-team"></span></h2>
-            </div>
         </div>
 
         <!-- Navigation Dropdown -->
@@ -36,12 +33,115 @@
         <div class="main-container">
             <img src="../images/logo.png" alt="World Cup 2026 Logo">
             <div id="content-placeholder" class="content-placeholder">
-                <div id="new-email-container" class="new-email-container">
-                    <h3>Change Email</h3>
-                    <p>Enter your new email address below:</p>
-                    <div class="email-input-container">
-                        <input type="email" id="new-email" placeholder="New Email Address">
-                        <button id="change-email" class="submit-button">Change Email</button>
+                <div class="winning-team-display">
+                    <h2>My winning team is: <span id="winning-team"></span></h2>
+                </div>
+                
+                <!-- Team Fixtures Section -->
+                <div id="team-fixtures-container" class="team-fixtures-container">
+                    <h3>My Team's Fixtures</h3>
+                    <div id="fixtures-loading" class="loading-message">Loading fixtures...</div>
+                    
+                    <!-- Group Stage -->
+                    <div id="group-stage-section" class="fixture-stage-section hidden">
+                        <h4>Group Stage</h4>
+                        <table id="group-stage-table" class="fixtures-table">
+                            <thead>
+                                <tr>
+                                    <th>Matchday</th>
+                                    <th>Team 1</th>
+                                    <th>Result</th>
+                                    <th>Team 2</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Round of 16 -->
+                    <div id="round-of-16-section" class="fixture-stage-section hidden">
+                        <h4>Round of 16</h4>
+                        <table id="round-of-16-table" class="fixtures-table">
+                            <thead>
+                                <tr>
+                                    <th>Match</th>
+                                    <th>Team 1</th>
+                                    <th>Result</th>
+                                    <th>Team 2</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Quarter Finals -->
+                    <div id="quarter-finals-section" class="fixture-stage-section hidden">
+                        <h4>Quarter Finals</h4>
+                        <table id="quarter-finals-table" class="fixtures-table">
+                            <thead>
+                                <tr>
+                                    <th>Match</th>
+                                    <th>Team 1</th>
+                                    <th>Result</th>
+                                    <th>Team 2</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Semi Finals -->
+                    <div id="semi-finals-section" class="fixture-stage-section hidden">
+                        <h4>Semi Finals</h4>
+                        <table id="semi-finals-table" class="fixtures-table">
+                            <thead>
+                                <tr>
+                                    <th>Match</th>
+                                    <th>Team 1</th>
+                                    <th>Result</th>
+                                    <th>Team 2</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Third Place Playoff -->
+                    <div id="third-place-section" class="fixture-stage-section hidden">
+                        <h4>Third Place Playoff</h4>
+                        <table id="third-place-table" class="fixtures-table">
+                            <thead>
+                                <tr>
+                                    <th>Match</th>
+                                    <th>Team 1</th>
+                                    <th>Result</th>
+                                    <th>Team 2</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Final -->
+                    <div id="final-section" class="fixture-stage-section hidden">
+                        <h4>Final</h4>
+                        <table id="final-table" class="fixtures-table">
+                            <thead>
+                                <tr>
+                                    <th>Match</th>
+                                    <th>Team 1</th>
+                                    <th>Result</th>
+                                    <th>Team 2</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
