@@ -37,6 +37,8 @@ export async function generateRoundOf16Matches() {
                 const team1 = getTeamByRank(group1, 1); // Winner of group1
                 const team2 = getTeamByRank(group2, 2); // Runner-up of group2
 
+
+
                 return {
                     match: rule.match,
                     team1: team1.name || 'Unknown',
