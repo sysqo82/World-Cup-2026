@@ -323,6 +323,27 @@ button#logout-button:hover {
     .large-flag {
         font-size: 3rem; /* Adjust size as needed */
     }
+
+    /* Mobile form styling - stack labels above inputs */
+    #registration-form div,
+    #login-form div {
+        display: block;
+        margin-bottom: 15px;
+    }
+
+    #registration-form label,
+    #login-form label {
+        text-align: left;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    #registration-form input,
+    #login-form input {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
 }
 
 /* Adjust layout for screens between 768px and 1520px */
@@ -502,18 +523,22 @@ img {
 #registration-form div,
 #login-form div {
     margin-bottom: 15px;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 10px;
+    align-items: center;
 }
 
 #registration-form label,
 #login-form label {
-    width: 100%;
     font-weight: bold;
-    margin-bottom: 5px;
+    text-align: right;
+    margin-bottom: 0;
 }
 
 #registration-form input,
 #login-form input {
-    max-width: 400px;
+    max-width: 250px;
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
