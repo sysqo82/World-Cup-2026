@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await getAssignedTeam();
     await loadTeamFixtures();
+    await loadEmailPreferences();
+    
+    // Set up email preferences toggle
+    document.getElementById('email-notifications-toggle').addEventListener('change', handleEmailPreferencesChange);
 });
 
 async function loadTeamFixtures() {
@@ -769,4 +773,92 @@ function getTeamShortName(fullTeamName, countryMap) {
     
     // If not found, return the original name
     return fullTeamName;
+}
+
+// Email Preferences Functions
+async function loadEmailPreferences() {
+    const userDetails = getCookie('userDetails');
+    if (!userDetails) return;
+
+    try {
+        const userDetailsObj = JSON.parse(userDetails);
+        const userEmail = userDetailsObj.email;
+        
+        if (!userEmail) return;
+
+        // Query the users collection to get current email preferences
+        const usersSnapshot = await db.collection('users').where('email', '==', userEmail).get();
+        
+        if (!usersSnapshot.empty) {
+            const userData = usersSnapshot.docs[0].data();
+            const allowUpdates = userData.allowUpdates !== false; // Default to true if not set
+            
+            // Update the checkbox state
+            document.getElementById('email-notifications-toggle').checked = allowUpdates;
+        }
+    } catch (error) {
+        console.error('Error loading email preferences:', error);
+        showStatusMessage('Failed to load email preferences', 'error');
+    }
+}
+
+async function handleEmailPreferencesChange(event) {
+    const userDetails = getCookie('userDetails');
+    if (!userDetails) return;
+
+    const isChecked = event.target.checked;
+    
+    try {
+        showStatusMessage('Updating preferences...', 'loading');
+        
+        const userDetailsObj = JSON.parse(userDetails);
+        const userEmail = userDetailsObj.email;
+        
+        if (!userEmail) {
+            throw new Error('User email not found');
+        }
+
+        // Find the user document
+        const usersSnapshot = await db.collection('users').where('email', '==', userEmail).get();
+        
+        if (usersSnapshot.empty) {
+            throw new Error('User not found in database');
+        }
+
+        // Update the allowUpdates field
+        const userDoc = usersSnapshot.docs[0];
+        await userDoc.ref.update({
+            allowUpdates: isChecked
+        });
+
+        // Show success message
+        const message = isChecked 
+            ? 'Email notifications enabled successfully' 
+            : 'Email notifications disabled successfully';
+        showStatusMessage(message, 'success');
+        
+        // Hide the message after 5 seconds
+        setTimeout(() => {
+            hideStatusMessage();
+        }, 5000);
+
+    } catch (error) {
+        console.error('Error updating email preferences:', error);
+        showStatusMessage('Failed to update preferences. Please try again.', 'error');
+        
+        // Revert the checkbox state
+        event.target.checked = !isChecked;
+    }
+}
+
+function showStatusMessage(message, type) {
+    const statusElement = document.getElementById('notification-status');
+    statusElement.textContent = message;
+    statusElement.className = `status-message ${type}`;
+}
+
+function hideStatusMessage() {
+    const statusElement = document.getElementById('notification-status');
+    statusElement.style.display = 'none';
+    statusElement.className = 'status-message';
 }

@@ -47,13 +47,21 @@ export async function sendMatchEmails(
 
     // Send emails only if they exist
     if (emails.winner) {
-      await sendEmailNotification(emails.winner.email, emails.winner.subject, emails.winner.message);
-      console.log(`Email sent to winner: ${emails.winner.email}`);
+      const winnerResult = await sendEmailNotification(emails.winner.email, emails.winner.subject, emails.winner.message);
+      if (winnerResult.sent) {
+        console.log(`Email sent to winner: ${emails.winner.email}`);
+      } else {
+        console.log(`Email not sent to winner (${emails.winner.email}): ${winnerResult.message}`);
+      }
     }
 
     if (emails.loser) {
-      await sendEmailNotification(emails.loser.email, emails.loser.subject, emails.loser.message);
-      console.log(`Email sent to loser: ${emails.loser.email}`);
+      const loserResult = await sendEmailNotification(emails.loser.email, emails.loser.subject, emails.loser.message);
+      if (loserResult.sent) {
+        console.log(`Email sent to loser: ${emails.loser.email}`);
+      } else {
+        console.log(`Email not sent to loser (${emails.loser.email}): ${loserResult.message}`);
+      }
     }
   } catch (error) {
     console.error('Error sending match emails:', error);
