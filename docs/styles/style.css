@@ -536,7 +536,7 @@ img {
 #registration-form label,
 #login-form label {
     font-weight: bold;
-    text-align: right;
+    text-align: left;
     margin-bottom: 0;
 }
 
