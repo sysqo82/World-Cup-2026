@@ -327,22 +327,26 @@ button#logout-button:hover {
     /* Mobile form styling - stack labels above inputs */
     #registration-form div,
     #login-form div {
-        display: block;
+        display: block !important;
+        grid-template-columns: none !important;
+        gap: 0 !important;
         margin-bottom: 15px;
     }
 
     #registration-form label,
     #login-form label {
-        text-align: left;
-        display: block;
+        text-align: left !important;
+        display: block !important;
         margin-bottom: 5px;
+        width: 100% !important;
     }
 
     #registration-form input,
     #login-form input {
-        width: 100%;
-        max-width: 100%;
+        width: 100% !important;
+        max-width: 100% !important;
         box-sizing: border-box;
+        display: block !important;
     }
 }
 
