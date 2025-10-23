@@ -73,6 +73,7 @@ export const registerUser = https.onRequest((req, res) => {
         team: selectedTeam.fullName,
         createdAt: pkg.firestore.FieldValue.serverTimestamp(),
         hasPaid: 'Pending',
+        allowUpdates: true,
       });
 
       await teamsRef.doc(selectedTeam.id).update({ assigned: true });
@@ -173,6 +174,24 @@ export const sendEmail = https.onRequest((req, res) => {
     }
 
     try {
+      // Check if the user has allowUpdates set to true
+      const normalizedRecipient = recipient.toLowerCase().trim();
+      const userSnapshot = await serviceFirestore
+        .collection("users")
+        .where("email", "==", normalizedRecipient)
+        .get();
+
+      if (userSnapshot.empty) {
+        return res.status(404).send("User not found in database");
+      }
+
+      const userData = userSnapshot.docs[0].data();
+      
+      // Check if allowUpdates is explicitly set to true
+      if (userData.allowUpdates !== true) {
+        return res.status(200).send("User has opted out of email updates");
+      }
+
       const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
       const email = [
