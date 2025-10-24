@@ -11,6 +11,8 @@ const firebaseConfig = {
     sendEmailURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/sendEmail",
     setAdminRoleURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/setAdminRole",
     changeEmailURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/changeEmail",
+    requestLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/requestLoginCode",
+    verifyLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/verifyLoginCode",
 };
 
 // Initialize Firebase
@@ -24,3 +26,5 @@ export const registerUser = firebaseConfig.registerUser;
 export const sendEmailURL = firebaseConfig.sendEmailURL;
 export const setAdminRoleURL = firebaseConfig.setAdminRoleURL;
 export const changeEmailURL = firebaseConfig.changeEmailURL;
+export const requestLoginCodeURL = firebaseConfig.requestLoginCodeURL;
+export const verifyLoginCodeURL = firebaseConfig.verifyLoginCodeURL;
