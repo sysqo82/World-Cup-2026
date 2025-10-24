@@ -1,4 +1,4 @@
-import { db, registerUser } from "../config/firebase-config.js";
+import { db, registerUser, requestLoginCodeURL, verifyLoginCodeURL } from "../config/firebase-config.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
 import { basePath } from "../config/path-config.js";
 
@@ -172,13 +172,13 @@ export function initializeHomepage() {
         }
     });
 
-    // Handle login form submission (updated to use db.collection)
+    // Handle login form submission (with email verification)
     loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
         const email = document.getElementById("email-login").value.trim();
         loginSubmitButton.disabled = true;
-        loginSubmitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...';
+        loginSubmitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Login';
 
         if (!email) {
             alert("Please enter your email.");
@@ -188,13 +188,11 @@ export function initializeHomepage() {
         }
 
         try {
-            // Query the database for the user's details
             const normalizedEmail = email.toLowerCase().trim();
             const snapshot = await db.collection("users").where("email", "==", normalizedEmail).get();
 
             if (snapshot.empty) {
                 alert("No user found with this email. Please register first.");
-                window.location.reload();
                 loginSubmitButton.disabled = false;
                 loginSubmitButton.innerHTML = 'Login';
                 if (getCookie("userDetails")) {
@@ -204,64 +202,190 @@ export function initializeHomepage() {
                 return;
             }
 
-            const userDetails = snapshot.docs[0].data();
+            // Request verification code
+            const response = await fetch(requestLoginCodeURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: normalizedEmail }),
+            });
 
-            if (userDetails.hasPaid === true) {
-                alert(`Welcome back ${userDetails.firstName}! Your payment has been approved, you can now access the site.`);
-                // Set the cookie with user details from the database
-                setCookie(
-                    "userDetails",
-                    JSON.stringify({
-                        firstName: userDetails.firstName,
-                        lastName: userDetails.lastName,
-                        email: userDetails.email,
-                        hasPaid: userDetails.hasPaid,
-                        assignedTeam: userDetails.team
-                    }),
-                    30
-                );
-                loginForm.reset();
-                window.location.reload();
-            } else if (userDetails.hasPaid === "Pending" || userDetails.hasPaid === false) {
-                alert(`Welcome back ${userDetails.firstName}! If you haven't paid yet, please do, otherwise, your payment is still pending.`);
-                registrationFormContainer.classList.add("hidden");
-                paymentContainer.classList.remove("hidden");
-                loginFormContainer.innerHTML =
-                  '<p>Payment approval is still in progress, please try again later.</p>' +
-                  `<p>Please contact <a href="#" id="contact-link">Assaf</a> for any issues.</p>`;
-
-                // Attach the click event listener to the link after rendering the HTML
-                const contactLink = document.getElementById("contact-link");
-                if (contactLink) {
-                  contactLink.addEventListener("click", (event) => {
-                    event.preventDefault();
-                    openEncryptedURL("contactLocation");
-                  });
-                }
-                setCookie(
-                    "userDetails",
-                    JSON.stringify({
-                        firstName: userDetails.firstName,
-                        lastName: userDetails.lastName,
-                        email: userDetails.email,
-                        hasPaid: userDetails.hasPaid,
-                        assignedTeam: "Pending"
-                    }),
-                    30
-                );
-            } else {
-                alert("Payment not completed. Please complete your payment.");
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                throw new Error(errorMessage);
             }
+
+            // Show verification form
+            showVerificationForm(normalizedEmail);
 
             loginSubmitButton.disabled = false;
             loginSubmitButton.innerHTML = 'Login';
         } catch (error) {
-            console.error("Error logging in:", error);
-            alert("Failed to log in. Please try again.");
+            console.error("Error requesting verification code:", error);
+            alert("Failed to send verification code. Please try again.");
             loginSubmitButton.disabled = false;
             loginSubmitButton.innerHTML = 'Login';
         }
     });
+}
+
+// Show verification code form
+function showVerificationForm(email) {
+    const loginFormContainer = document.getElementById("login-form-container");
+    
+    loginFormContainer.innerHTML = `
+        <h2>Email Verification</h2>
+        <p>A 6-digit verification code has been sent to:</p>
+        <p><strong>${email}</strong></p>
+        <p>Please enter the code below (expires in 10 minutes):</p>
+        <form id="verification-form">
+            <div>
+                <label for="verification-code">Verification Code:</label>
+                <input type="text" id="verification-code" name="verification-code" maxlength="6" pattern="[0-9]{6}" required>
+            </div>
+            <button type="submit" class="submit-button" id="verify-button">Verify Code</button>
+            <button type="button" class="submit-button" id="resend-code-button" style="margin-left: 10px;">Resend Code</button>
+            <button type="button" class="submit-button" id="back-to-login-button" style="margin-left: 10px;">Back to Login</button>
+        </form>
+    `;
+
+    // Handle verification form submission
+    const verificationForm = document.getElementById("verification-form");
+    const verifyButton = document.getElementById("verify-button");
+    const resendCodeButton = document.getElementById("resend-code-button");
+    const backToLoginButton = document.getElementById("back-to-login-button");
+
+    verificationForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        await handleVerificationSubmission(email, verifyButton);
+    });
+
+    resendCodeButton.addEventListener("click", async () => {
+        await resendVerificationCode(email, resendCodeButton);
+    });
+
+    backToLoginButton.addEventListener("click", () => {
+        window.location.reload();
+    });
+
+    // Auto-focus on verification code input
+    document.getElementById("verification-code").focus();
+}
+
+// Handle verification code submission
+async function handleVerificationSubmission(email, verifyButton) {
+    const verificationCode = document.getElementById("verification-code").value.trim();
+    
+    if (!verificationCode || verificationCode.length !== 6) {
+        alert("Please enter a valid 6-digit verification code.");
+        return;
+    }
+
+    verifyButton.disabled = true;
+    verifyButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+
+    try {
+        const response = await fetch(verifyLoginCodeURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                email: email, 
+                verificationCode: verificationCode 
+            }),
+        });
+
+        if (!response.ok) {
+            const errorMessage = await response.text();
+            throw new Error(errorMessage);
+        }
+
+        const { userData } = await response.json();
+
+        // Handle successful verification based on payment status
+        if (userData.hasPaid === true) {
+            alert(`Welcome back ${userData.firstName}! Your payment has been approved, you can now access the site.`);
+            // Set the cookie with user details from the database
+            setCookie(
+                "userDetails",
+                JSON.stringify({
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    email: userData.email,
+                    hasPaid: userData.hasPaid,
+                    assignedTeam: userData.team
+                }),
+                30
+            );
+            window.location.reload();
+        } else if (userData.hasPaid === "Pending" || userData.hasPaid === false) {
+            alert(`Welcome back ${userData.firstName}! If you haven't paid yet, please do, otherwise, your payment is still pending.`);
+            
+            const registrationFormContainer = document.getElementById("registration-form-container");
+            const paymentContainer = document.getElementById("payment-container");
+            const loginFormContainer = document.getElementById("login-form-container");
+            
+            registrationFormContainer.classList.add("hidden");
+            paymentContainer.classList.remove("hidden");
+            loginFormContainer.innerHTML =
+              '<p>Payment approval is still in progress, please try again later.</p>' +
+              `<p>Please contact <a href="#" id="contact-link">Assaf</a> for any issues.</p>`;
+
+            // Attach the click event listener to the link after rendering the HTML
+            const contactLink = document.getElementById("contact-link");
+            if (contactLink) {
+              contactLink.addEventListener("click", (event) => {
+                event.preventDefault();
+                openEncryptedURL("contactLocation");
+              });
+            }
+            setCookie(
+                "userDetails",
+                JSON.stringify({
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    email: userData.email,
+                    hasPaid: userData.hasPaid,
+                    assignedTeam: "Pending"
+                }),
+                30
+            );
+        } else {
+            alert("Payment not completed. Please complete your payment.");
+        }
+
+    } catch (error) {
+        console.error("Error verifying code:", error);
+        alert(error.message || "Invalid verification code. Please try again.");
+        verifyButton.disabled = false;
+        verifyButton.innerHTML = 'Verify Code';
+    }
+}
+
+// Resend verification code
+async function resendVerificationCode(email, resendButton) {
+    resendButton.disabled = true;
+    resendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+
+    try {
+        const response = await fetch(requestLoginCodeURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email }),
+        });
+
+        if (!response.ok) {
+            const errorMessage = await response.text();
+            throw new Error(errorMessage);
+        }
+
+        alert("New verification code sent to your email.");
+        resendButton.disabled = false;
+        resendButton.innerHTML = 'Resend Code';
+    } catch (error) {
+        console.error("Error resending verification code:", error);
+        alert("Failed to resend verification code. Please try again.");
+        resendButton.disabled = false;
+        resendButton.innerHTML = 'Resend Code';
+    }
 }
 
 // Search the DB for the assigned team according to the user email found in the cookie
