@@ -3,7 +3,6 @@ import { https, config } from "firebase-functions";
 import pkg from "firebase-admin";
 import cors from "cors";
 import { readFileSync } from "fs";
-import { generateVerificationCodeEmail } from "./email-templates.js";
 
 const { firestore, auth: _auth } = pkg;
 
@@ -170,136 +169,98 @@ export const sendEmail = https.onRequest((req, res) => {
       return res.status(405).send("Method Not Allowed");
     }
 
-    const { recipient, subject, message } = req.body;
-
-    if (!recipient || !subject || !message) {
-      return res.status(400).send("Missing required fields");
-    }
+    const { type, recipient, subject, message, email } = req.body;
 
     try {
-      // Check if the user has allowUpdates set to true
-      const normalizedRecipient = recipient.toLowerCase().trim();
-      const userSnapshot = await serviceFirestore
-        .collection("users")
-        .where("email", "==", normalizedRecipient)
-        .get();
-
-      if (userSnapshot.empty) {
-        return res.status(404).send("User not found in database");
+      if (type === "verification") {
+        // Verification code email flow
+        if (!email) {
+          return res.status(400).send("Missing required field: email");
+        }
+        const normalizedEmail = email.toLowerCase().trim();
+        // Check if user exists
+        const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
+        if (!userDoc.exists) {
+          return res.status(404).send("User not found");
+        }
+        // Generate a 6-digit verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        // Set expiry time to 10 minutes from now
+        const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
+        // Update user document with verification code and expiry
+        await serviceFirestore.collection("users").doc(normalizedEmail).update({
+          verificationCode: verificationCode,
+          verificationCodeExpiry: pkg.firestore.Timestamp.fromDate(expiryTime),
+        });
+        // Generate email content for verification code
+        const verificationSubject = 'Your World Cup 2026 Login Verification Code';
+        const verificationMessage = `Your verification code for logging in to the World Cup 2026 app is: ${verificationCode}\n\nThis code will expire in 10 minutes. If you did not request this code, please ignore this email.`;
+        
+        const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+        const rawEmail = [
+          `From: "Immediate World Cup 2026 Verification" <slowest.captain@gmail.com>`,
+          `To: ${normalizedEmail}`,
+          `Subject: ${verificationSubject}`,
+          "",
+          `${verificationMessage}`,
+        ].join("\n");
+        const encodedEmail = Buffer.from(rawEmail)
+          .toString("base64")
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+        await gmail.users.messages.send({
+          userId: "me",
+          requestBody: {
+            raw: encodedEmail,
+          },
+        });
+        return res.status(200).json({
+          message: "Verification code sent successfully",
+        });
+      } else {
+        // Default: match result or other email
+        if (!recipient || !subject || !message) {
+          return res.status(400).send("Missing required fields");
+        }
+        // Check if the user has allowUpdates set to true
+        const normalizedRecipient = recipient.toLowerCase().trim();
+        const userSnapshot = await serviceFirestore
+          .collection("users")
+          .where("email", "==", normalizedRecipient)
+          .get();
+        if (userSnapshot.empty) {
+          return res.status(404).send("User not found in database");
+        }
+        const userData = userSnapshot.docs[0].data();
+        // Check if allowUpdates is explicitly set to true
+        if (userData.allowUpdates !== true) {
+          return res.status(200).send("User has opted out of email updates");
+        }
+        const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+        const emailContent = [
+          `From: "Immediate World Cup 2026 Updates" <slowest.captain@gmail.com>`,
+          `To: ${recipient}`,
+          `Subject: ${subject}`,
+          "",
+          `${message}`,
+        ].join("\n");
+        const encodedEmail = Buffer.from(emailContent)
+          .toString("base64")
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+        await gmail.users.messages.send({
+          userId: "me",
+          requestBody: {
+            raw: encodedEmail,
+          },
+        });
+        return res.status(200).send("Email sent successfully!");
       }
-
-      const userData = userSnapshot.docs[0].data();
-      
-      // Check if allowUpdates is explicitly set to true
-      if (userData.allowUpdates !== true) {
-        return res.status(200).send("User has opted out of email updates");
-      }
-
-      const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-
-      const email = [
-        `From: "Immediate World Cup 2026 Updates" <assaf.itzikson@immediate.co.uk>`,
-        `To: ${recipient}`,
-        `Subject: ${subject}`,
-        "",
-        `${message}`,
-      ].join("\n");
-
-      const encodedEmail = Buffer.from(email)
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-      
-      await gmail.users.messages.send({
-        userId: "me",
-        requestBody: {
-          raw: encodedEmail,
-        },
-      });
-
-      res.status(200).send("Email sent successfully!");
     } catch (error) {
       console.error("Error sending email:", error);
       res.status(500).send("Failed to send email: " + error.message);
-    }
-  });
-});
-
-export const requestLoginCode = https.onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
-
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).send("Missing required field: email");
-    }
-
-    try {
-      const normalizedEmail = email.toLowerCase().trim();
-      
-      // Check if user exists
-      const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
-      
-      if (!userDoc.exists) {
-        return res.status(404).send("User not found");
-      }
-
-      // Generate a 6-digit verification code
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Set expiry time to 10 minutes from now
-      const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
-
-      // Update user document with verification code and expiry
-      await serviceFirestore.collection("users").doc(normalizedEmail).update({
-        verificationCode: verificationCode,
-        verificationCodeExpiry: pkg.firestore.Timestamp.fromDate(expiryTime),
-      });
-
-      // Generate email template for verification code
-      const emailTemplate = generateVerificationCodeEmail(email, verificationCode);
-      
-      // Send verification code via email
-      const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-
-      const emailContent = [
-        `From: "World Cup 2026 Verification" <assaf.itzikson@immediate.co.uk>`,
-        `To: ${emailTemplate.email}`,
-        `Subject: ${emailTemplate.subject}`,
-        "",
-        emailTemplate.message,
-      ].join("\n");
-
-      const encodedEmail = Buffer.from(emailContent)
-        .toString("base64")
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-      
-      await gmail.users.messages.send({
-        userId: "me",
-        requestBody: {
-          raw: encodedEmail,
-        },
-      });
-
-      res.status(200).json({
-        message: "Verification code sent successfully",
-      });
-    } catch (error) {
-      console.error("Error sending verification code:", error);
-      res.status(500).send("Error sending verification code: " + error.message);
     }
   });
 });
@@ -325,16 +286,16 @@ export const verifyLoginCode = https.onRequest((req, res) => {
 
     try {
       const normalizedEmail = email.toLowerCase().trim();
-      
+
       // Get user document
       const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
-      
+
       if (!userDoc.exists) {
         return res.status(404).send("User not found");
       }
 
       const userData = userDoc.data();
-      
+
       // Check if verification code exists
       if (!userData.verificationCode) {
         return res.status(400).send("No verification code found. Please request a new one.");
