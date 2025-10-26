@@ -1,4 +1,5 @@
-import { db, registerUser, requestLoginCodeURL, verifyLoginCodeURL } from "../config/firebase-config.js";
+import { db, registerUser, verifyLoginCodeURL } from "../config/firebase-config.js";
+import { sendVerificationEmail } from "./email-service.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
 import { basePath } from "../config/path-config.js";
 
@@ -203,15 +204,10 @@ export function initializeHomepage() {
             }
 
             // Request verification code
-            const response = await fetch(requestLoginCodeURL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: normalizedEmail }),
-            });
+            const result = await sendVerificationEmail(normalizedEmail);
 
-            if (!response.ok) {
-                const errorMessage = await response.text();
-                throw new Error(errorMessage);
+            if (!result.sent) {
+                throw new Error(result.message || "Failed to send verification code");
             }
 
             // Show verification form
@@ -366,15 +362,10 @@ async function resendVerificationCode(email, resendButton) {
     resendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
 
     try {
-        const response = await fetch(requestLoginCodeURL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: email }),
-        });
+        const result = await sendVerificationEmail(email);
 
-        if (!response.ok) {
-            const errorMessage = await response.text();
-            throw new Error(errorMessage);
+        if (!result.sent) {
+            throw new Error(result.message || "Failed to send verification code");
         }
 
         alert("New verification code sent to your email.");

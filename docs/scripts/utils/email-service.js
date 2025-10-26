@@ -1,6 +1,6 @@
 import { sendEmailURL } from '../config/firebase-config.js';
 
-// Function to send email notifications
+// Function to send email notifications (match results)
 export async function sendEmailNotification(recipient, subject, message) {
   try {
     const response = await fetch(sendEmailURL, {
@@ -29,5 +29,31 @@ export async function sendEmailNotification(recipient, subject, message) {
   } catch (error) {
     console.error('Error sending email:', error);
     return { sent: false, message: 'Error sending email' };
+  }
+}
+
+// Function to send verification code email
+export async function sendVerificationEmail(email) {
+  try {
+    const response = await fetch(sendEmailURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type: 'verification', email }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Verification email sent successfully!');
+      return { sent: true, message: result.message || 'Verification code sent successfully' };
+    } else {
+      const errorText = await response.text();
+      console.error('Failed to send verification email:', errorText);
+      return { sent: false, message: errorText || 'Failed to send verification email' };
+    }
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    return { sent: false, message: 'Error sending verification email' };
   }
 }
