@@ -221,4 +221,24 @@ static generateVerificationCodeEmail(email, code) {
     message: `Your verification code for logging in to the World Cup 2026 app is: ${code}\n\nThis code will expire in 10 minutes. If you did not request this code, please ignore this email.`
   };
 }
+
+// Static method for generating email change verification form HTML
+static generateEmailVerificationForm(currentEmail, newEmail) {
+  return `
+    <h4>Verify New Email Address</h4>
+    <p>A 6-digit verification code has been sent to:</p>
+    <p><strong>${newEmail}</strong></p>
+    <p>Please enter the code below (expires in 10 minutes):</p>
+    <form id="email-verification-form">
+        <div>
+            <label for="email-verification-code">Verification Code:</label>
+            <input type="text" id="email-verification-code" name="email-verification-code" maxlength="6" pattern="[0-9]{6}" required>
+        </div>
+        <button type="submit" class="submit-button" id="verify-email-button">Verify & Change Email</button>
+        <button type="button" class="submit-button" id="resend-email-code-button" style="margin-left: 10px;">Resend Code</button>
+        <button type="button" class="submit-button" id="cancel-email-change-button" style="margin-left: 10px;">Cancel</button>
+    </form>
+    <div id="email-verification-status" class="status-message"></div>
+  `;
+}
 }
