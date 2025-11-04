@@ -1,9 +1,10 @@
-import { getAssignedTeam, logoutUser, getCookie, setCookie } from '../utils/user-utils.js';
+import { getAssignedTeam, logoutUser, getCookie, setCookie, deleteCookie } from '../utils/user-utils.js';
 import { isAllowed, isRegistered } from "../navigation/navigation.js";
 import { basePath } from "../config/path-config.js";
-import { db } from '../config/firebase-config.js';
+import { db, sendEmailURL } from '../config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { getMatchdayMatches } from '../utils/match-scheduling.js';
+import { EmailTemplate } from '../utils/email-templates.js';
 
 // Add event listener for navigation dropdown
 document.getElementById('navigation-select').addEventListener('change', navigateToPage);
@@ -17,9 +18,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await getAssignedTeam();
     await loadTeamFixtures();
     await loadEmailPreferences();
+    await loadCurrentEmail();
     
     // Set up email preferences toggle
     document.getElementById('email-notifications-toggle').addEventListener('change', handleEmailPreferencesChange);
+    
+    // Set up change email form
+    document.getElementById('change-email-form').addEventListener('submit', handleChangeEmailSubmit);
 });
 
 async function loadTeamFixtures() {
@@ -242,17 +247,6 @@ function addKnockoutProgressionStatus(stageSection, matchData, teamShortName, te
     
     if (teamWon) {
         progressionDiv.classList.add('qualified');
-        progressionDiv.style.cssText = `
-            padding: 15px;
-            margin-top: 10px;
-            background-color: #d4edda;
-            color: #155724;
-            border: 2px solid #28a745;
-            border-radius: 10px;
-            font-weight: bold;
-            text-align: center;
-            font-size: 16px;
-        `;
         
         if (stageName === 'Final') {
             progressionDiv.textContent = `🏆 ${teamFullName} are the World Cup Champions! 🏆`;
@@ -263,17 +257,6 @@ function addKnockoutProgressionStatus(stageSection, matchData, teamShortName, te
         }
     } else {
         progressionDiv.classList.add('eliminated');
-        progressionDiv.style.cssText = `
-            padding: 15px;
-            margin-top: 10px;
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 2px solid #dc3545;
-            border-radius: 10px;
-            font-weight: bold;
-            text-align: center;
-            font-size: 16px;
-        `;
         
         if (stageName === 'Final') {
             progressionDiv.textContent = `${teamFullName} finished as runners-up in the World Cup`;
@@ -328,16 +311,13 @@ function addQualificationStatus(groupStageSection, teamGroup, teamShortName, tea
     // Create the qualification status element
     const qualificationDiv = document.createElement('div');
     qualificationDiv.className = 'qualification-status';
-    qualificationDiv.style.cssText = `
-        padding: 15px;
-        margin-top: 10px;
-        background-color: ${qualified ? '#d4edda' : '#f8d7da'};
-        color: ${qualified ? '#155724' : '#721c24'};
-        border: 1px solid ${qualified ? '#c3e6cb' : '#f5c6cb'};
-        border-radius: 5px;
-        font-weight: bold;
-        text-align: center;
-    `;
+    
+    // Add qualified or eliminated class
+    if (qualified) {
+        qualificationDiv.classList.add('qualified');
+    } else {
+        qualificationDiv.classList.add('eliminated');
+    }
     
     qualificationDiv.textContent = `${teamFullName} finished ${getRankOrdinal(teamRank)} and ${qualificationText} to the Round of 16`;
     
@@ -861,4 +841,224 @@ function hideStatusMessage() {
     const statusElement = document.getElementById('notification-status');
     statusElement.style.display = 'none';
     statusElement.className = 'status-message';
+}
+
+// Change Email Functions
+async function loadCurrentEmail() {
+    const userDetails = getCookie('userDetails');
+    if (!userDetails) return;
+
+    try {
+        const userDetailsObj = JSON.parse(userDetails);
+        const currentEmailInput = document.getElementById('current-email');
+        if (currentEmailInput) {
+            currentEmailInput.value = userDetailsObj.email || '';
+        }
+    } catch (error) {
+        console.error('Error loading current email:', error);
+    }
+}
+
+async function handleChangeEmailSubmit(event) {
+    event.preventDefault();
+    
+    const userDetails = getCookie('userDetails');
+    if (!userDetails) return;
+
+    const newEmail = document.getElementById('new-email').value.trim().toLowerCase();
+    const changeEmailButton = document.getElementById('change-email-button');
+    
+    if (!newEmail) {
+        showChangeEmailStatus('Please enter a new email address', 'error');
+        return;
+    }
+
+    try {
+        const userDetailsObj = JSON.parse(userDetails);
+        const currentEmail = userDetailsObj.email;
+
+        if (newEmail === currentEmail) {
+            showChangeEmailStatus('New email must be different from current email', 'error');
+            return;
+        }
+
+        // Check if new email already exists
+        const existingUserSnapshot = await db.collection('users').where('email', '==', newEmail).get();
+        if (!existingUserSnapshot.empty) {
+            showChangeEmailStatus('This email is already registered', 'error');
+            return;
+        }
+
+        changeEmailButton.disabled = true;
+        changeEmailButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending verification...';
+        
+        // Request verification code via sendEmail endpoint with type "emailChange"
+        const response = await fetch(sendEmailURL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'emailChange',
+                email: currentEmail,
+                newEmail: newEmail,
+                requestCode: true
+            }),
+        });
+
+        if (!response.ok) {
+            const errorMessage = await response.text();
+            throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+
+        // Show verification form
+        showEmailVerificationForm(currentEmail, newEmail);
+
+        changeEmailButton.disabled = false;
+        changeEmailButton.innerHTML = 'Change Email';
+
+    } catch (error) {
+        console.error('Error initiating email change:', error);
+        showChangeEmailStatus('Failed to send verification email. Please try again.', 'error');
+        changeEmailButton.disabled = false;
+        changeEmailButton.innerHTML = 'Change Email';
+    }
+}
+
+function showEmailVerificationForm(currentEmail, newEmail) {
+    const formContainer = document.getElementById('change-email-form-container');
+    
+    // Use the template from EmailTemplate class
+    formContainer.innerHTML = EmailTemplate.generateEmailVerificationForm(currentEmail, newEmail);
+
+    // Handle verification form submission
+    const verificationForm = document.getElementById('email-verification-form');
+    const verifyButton = document.getElementById('verify-email-button');
+    const resendButton = document.getElementById('resend-email-code-button');
+    const cancelButton = document.getElementById('cancel-email-change-button');
+
+    verificationForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await handleEmailVerificationSubmit(currentEmail, newEmail, verifyButton);
+    });
+
+    resendButton.addEventListener('click', async () => {
+        await resendEmailVerificationCode(newEmail, resendButton);
+    });
+
+    cancelButton.addEventListener('click', () => {
+        window.location.reload();
+    });
+
+    // Auto-focus on verification code input
+    document.getElementById('email-verification-code').focus();
+}
+
+async function handleEmailVerificationSubmit(currentEmail, newEmail, verifyButton) {
+    const verificationCode = document.getElementById('email-verification-code').value.trim();
+    const statusElement = document.getElementById('email-verification-status');
+    
+    if (!verificationCode || verificationCode.length !== 6) {
+        statusElement.textContent = 'Please enter a valid 6-digit verification code.';
+        statusElement.className = 'status-message error';
+        return;
+    }
+
+    verifyButton.disabled = true;
+    verifyButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+
+    try {
+        // Verify code and change email via sendEmail endpoint with type "emailChange"
+        const response = await fetch(sendEmailURL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'emailChange',
+                email: currentEmail,
+                newEmail: newEmail,
+                verificationCode: verificationCode
+            }),
+        });
+
+        if (!response.ok) {
+            const errorMessage = await response.text();
+            throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+
+        // Success - log the user out
+        statusElement.textContent = 'Email changed successfully! Logging out...';
+        statusElement.className = 'status-message success';
+
+        // Delete the cookie and redirect after 2 seconds
+        setTimeout(() => {
+            deleteCookie('userDetails');
+            window.location.href = `${basePath}index.html`;
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error verifying email change:', error);
+        statusElement.textContent = error.message || 'Invalid verification code. Please try again.';
+        statusElement.className = 'status-message error';
+        verifyButton.disabled = false;
+        verifyButton.innerHTML = 'Verify & Change Email';
+    }
+}
+
+async function resendEmailVerificationCode(email, resendButton) {
+    const userDetails = getCookie('userDetails');
+    if (!userDetails) return;
+
+    resendButton.disabled = true;
+    resendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+
+    try {
+        const userDetailsObj = JSON.parse(userDetails);
+        const currentEmail = userDetailsObj.email;
+
+        // Request new verification code via sendEmail endpoint with type "emailChange"
+        const response = await fetch(sendEmailURL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'emailChange',
+                email: currentEmail,
+                newEmail: email,
+                requestCode: true
+            }),
+        });
+
+        if (!response.ok) {
+            const errorMessage = await response.text();
+            throw new Error(errorMessage);
+        }
+
+        const statusElement = document.getElementById('email-verification-status');
+        statusElement.textContent = 'New verification code sent to your new email address.';
+        statusElement.className = 'status-message success';
+
+        resendButton.disabled = false;
+        resendButton.innerHTML = 'Resend Code';
+    } catch (error) {
+        console.error('Error resending verification code:', error);
+        const statusElement = document.getElementById('email-verification-status');
+        statusElement.textContent = 'Failed to resend verification code. Please try again.';
+        statusElement.className = 'status-message error';
+        resendButton.disabled = false;
+        resendButton.innerHTML = 'Resend Code';
+    }
+}
+
+function showChangeEmailStatus(message, type) {
+    const statusElement = document.getElementById('change-email-status');
+    statusElement.textContent = message;
+    statusElement.className = `status-message ${type}`;
+    statusElement.style.display = 'block';
 }

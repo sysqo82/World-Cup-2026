@@ -89,63 +89,6 @@ export const registerUser = https.onRequest((req, res) => {
   });
 });
 
-export const changeEmail = https.onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid_scope');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
-
-    const { email, newEmail } = req.body;
-
-    if (!email || !newEmail) {
-      return res.status(400).send("Missing required fields");
-    }
-
-    try {
-      const normalizedEmail = email.toLowerCase().trim();
-      const normalizedNewEmail = newEmail.toLowerCase().trim();
-
-      // Check if the new email already exists in the database
-      const newEmailSnapshot = await firestore()
-        .collection("users")
-        .where("email", "==", normalizedNewEmail)
-        .get();
-
-      if (!newEmailSnapshot.empty) {
-        return res.status(409).send("Forbidden: Invalid_scope");
-      }
-
-      // Find the user with the current email
-      const snapshot = await firestore()
-        .collection("users")
-        .where("email", "==", normalizedEmail)
-        .get();
-
-      if (snapshot.empty) {
-        return res.status(404).send("User not found");
-      }
-
-      // Update the user's email
-      const userDoc = snapshot.docs[0];
-      await firestore()
-        .collection("users")
-        .doc(userDoc.id)
-        .update({ email: normalizedNewEmail });
-
-      res.status(200).send("Email updated successfully!");
-    } catch (error) {
-      res.status(500).send("Error changing email: " + error.message);
-    }
-  });
-});
-
 // Load OAuth2 credentials
 const { client_id, client_secret, redirect_uris, refresh_token } = credentials.web;
 
@@ -169,7 +112,7 @@ export const sendEmail = https.onRequest((req, res) => {
       return res.status(405).send("Method Not Allowed");
     }
 
-    const { type, recipient, subject, message, email } = req.body;
+    const { type, recipient, subject, message, email, newEmail, verificationCode, requestCode } = req.body;
 
     try {
       if (type === "verification") {
@@ -218,6 +161,130 @@ export const sendEmail = https.onRequest((req, res) => {
         return res.status(200).json({
           message: "Verification code sent successfully",
         });
+      } else if (type === "emailChange") {
+        // Email change flow
+        if (!email || !newEmail) {
+          return res.status(400).send("Missing required fields");
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedNewEmail = newEmail.toLowerCase().trim();
+
+        // Check if the new email already exists in the database
+        const newEmailSnapshot = await serviceFirestore
+          .collection("users")
+          .where("email", "==", normalizedNewEmail)
+          .get();
+
+        if (!newEmailSnapshot.empty) {
+          return res.status(409).send("Email already registered");
+        }
+
+        // Find the user with the current email
+        const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
+
+        if (!userDoc.exists) {
+          return res.status(404).send("User not found");
+        }
+
+        // If requestCode is true, generate and send verification code
+        if (requestCode === true) {
+          // Generate a 6-digit verification code
+          const emailChangeCode = Math.floor(100000 + Math.random() * 900000).toString();
+          
+          // Set expiry time to 10 minutes from now
+          const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
+
+          // Store verification code and new email in current user's document
+          await serviceFirestore.collection("users").doc(normalizedEmail).update({
+            emailChangeVerificationCode: emailChangeCode,
+            emailChangeVerificationExpiry: pkg.firestore.Timestamp.fromDate(expiryTime),
+            pendingNewEmail: normalizedNewEmail,
+          });
+
+          // Send verification email to NEW email address
+          const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+          const verificationSubject = 'Your World Cup 2026 Email Change Verification Code';
+          const verificationMessage = `Your verification code for changing your email address is: ${emailChangeCode}\n\nThis code will expire in 10 minutes. If you did not request this change, please ignore this email.`;
+          
+          const rawEmail = [
+            `From: "Immediate World Cup 2026 Updates" <slowest.captain@gmail.com>`,
+            `To: ${normalizedNewEmail}`,
+            `Subject: ${verificationSubject}`,
+            "",
+            `${verificationMessage}`,
+          ].join("\n");
+          
+          const encodedEmail = Buffer.from(rawEmail)
+            .toString("base64")
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "");
+          
+          await gmail.users.messages.send({
+            userId: "me",
+            requestBody: {
+              raw: encodedEmail,
+            },
+          });
+
+          return res.status(200).json({
+            message: "Verification code sent successfully",
+          });
+        }
+
+        // If verificationCode is provided, verify and change email
+        if (verificationCode) {
+          const userData = userDoc.data();
+
+          // Check if verification code exists
+          if (!userData.emailChangeVerificationCode) {
+            return res.status(400).send("No verification code found. Please request a new one.");
+          }
+
+          // Check if verification code has expired
+          const now = new Date();
+          if (userData.emailChangeVerificationExpiry && userData.emailChangeVerificationExpiry.toDate() < now) {
+            // Clear expired code
+            await serviceFirestore.collection("users").doc(normalizedEmail).update({
+              emailChangeVerificationCode: null,
+              emailChangeVerificationExpiry: null,
+              pendingNewEmail: null,
+            });
+            return res.status(400).send("Verification code has expired. Please request a new one.");
+          }
+
+          // Check if verification code matches
+          if (userData.emailChangeVerificationCode !== verificationCode.trim()) {
+            return res.status(400).send("Invalid verification code.");
+          }
+
+          // Check if pending new email matches
+          if (userData.pendingNewEmail !== normalizedNewEmail) {
+            return res.status(400).send("New email does not match the pending change request.");
+          }
+
+          // Get all user data
+          const userDataToTransfer = {
+            ...userData,
+            email: normalizedNewEmail,
+            emailChangeVerificationCode: null,
+            emailChangeVerificationExpiry: null,
+            pendingNewEmail: null,
+          };
+
+          // Create new document with new email as ID
+          await serviceFirestore.collection("users").doc(normalizedNewEmail).set(userDataToTransfer);
+
+          // Delete old document
+          await serviceFirestore.collection("users").doc(normalizedEmail).delete();
+
+          return res.status(200).json({
+            message: "Email updated successfully",
+          });
+        }
+
+        return res.status(400).send("Invalid request: missing requestCode or verificationCode");
       } else {
         // Default: match result or other email
         if (!recipient || !subject || !message) {
