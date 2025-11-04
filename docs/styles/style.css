@@ -66,6 +66,25 @@ h1 {
     width: 100%;
 }
 
+/* Admin team edit row */
+.team-edit-row {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.team-edit-row label {
+    min-width: 80px;
+}
+
+.team-edit-row .team-name-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
 /* Main container layout */
 .main-container {
     display: grid;
@@ -145,6 +164,27 @@ button.submit-button {
 
 button.submit-button:hover {
     background-color: #357ae8;
+}
+
+/* Button group for forms with multiple buttons */
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.button-group button {
+    flex: 0 1 auto;
+}
+
+/* Secondary button styling */
+button.submit-button.secondary {
+    background-color: #6c757d;
+}
+
+button.submit-button.secondary:hover {
+    background-color: #5a6268;
 }
 
 button#logout-button {

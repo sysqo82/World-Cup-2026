@@ -238,9 +238,11 @@ function showVerificationForm(email) {
                 <label for="verification-code">Verification Code:</label>
                 <input type="text" id="verification-code" name="verification-code" maxlength="6" pattern="[0-9]{6}" required>
             </div>
-            <button type="submit" class="submit-button" id="verify-button">Verify Code</button>
-            <button type="button" class="submit-button" id="resend-code-button" style="margin-left: 10px;">Resend Code</button>
-            <button type="button" class="submit-button" id="back-to-login-button" style="margin-left: 10px;">Back to Login</button>
+            <div class="button-group">
+                <button type="submit" class="submit-button" id="verify-button">Verify Code</button>
+                <button type="button" class="submit-button secondary" id="resend-code-button">Resend Code</button>
+                <button type="button" class="submit-button secondary" id="back-to-login-button">Back to Login</button>
+            </div>
         </form>
     `;
 

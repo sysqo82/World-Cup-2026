@@ -234,9 +234,11 @@ static generateEmailVerificationForm(currentEmail, newEmail) {
             <label for="email-verification-code">Verification Code:</label>
             <input type="text" id="email-verification-code" name="email-verification-code" maxlength="6" pattern="[0-9]{6}" required>
         </div>
-        <button type="submit" class="submit-button" id="verify-email-button">Verify & Change Email</button>
-        <button type="button" class="submit-button" id="resend-email-code-button" style="margin-left: 10px;">Resend Code</button>
-        <button type="button" class="submit-button" id="cancel-email-change-button" style="margin-left: 10px;">Cancel</button>
+        <div class="button-group">
+            <button type="submit" class="submit-button" id="verify-email-button">Verify & Change Email</button>
+            <button type="button" class="submit-button secondary" id="resend-email-code-button">Resend Code</button>
+            <button type="button" class="submit-button secondary" id="cancel-email-change-button">Cancel</button>
+        </div>
     </form>
     <div id="email-verification-status" class="status-message"></div>
   `;

@@ -214,11 +214,11 @@ function displayTeams(group) {
 
         sortedTeams.forEach(([teamId, team], index) => {
             const teamDiv = document.createElement('div');
-            teamDiv.style.marginBottom = '20px';
+            teamDiv.className = 'team-edit-row';
 
             teamDiv.innerHTML = `
                 <label>Rank ${index + 1}:</label>
-                <input type="text" id="name-${teamId}" value="${team.name || 'Unknown'}" style="margin-right: 10px;">
+                <input type="text" id="name-${teamId}" class="team-name-input" value="${team.name || 'Unknown'}">
                 <button class="submit-button" onclick="updateTeam('${group.id}', '${teamId}')">Update</button>
             `;
 
