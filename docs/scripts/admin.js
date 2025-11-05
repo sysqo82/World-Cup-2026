@@ -114,7 +114,6 @@ function renderAdminContent(container) {
                             <th>First Name</th>
                             <th>Last Name</th>
                             <th>Email</th>
-                            <th>Assigned Team</th>
                             <th></th>
                             <th>Paid</th>
                         </tr>
@@ -290,11 +289,10 @@ function updateTeam(groupId, teamId) {
                         row.insertCell(1).textContent = user.firstName;
                         row.insertCell(2).textContent = user.lastName;
                         row.insertCell(3).textContent = user.email;
-                        row.insertCell(4).textContent = user.team || 'N/A'; // Display team or 'N/A' if not available
-                        row.insertCell(5).innerHTML = `
+                        row.insertCell(4).innerHTML = `
                             <button class="submit-button" onclick="deleteUser('${user.email}')">Delete</button>
                         `;
-                        row.insertCell(6).innerHTML = `
+                        row.insertCell(5).innerHTML = `
                             <input type="checkbox" class="form-check-input" id="user-${user.email}" 
                                 ${user.hasPaid === true ? 'checked' : ''} 
                                 onchange="updateHasPaid('${user.email}', this.checked)">
@@ -341,8 +339,7 @@ function updateTeam(groupId, teamId) {
                                                     assigned: false
                                                 })
                                                 .then(() => {
-                                                    console.log(`Team ${user.team}'s assigned flag set to false.`);
-                                                    alert(`User with email ${email} deleted successfully, and team ${user.team} is now unassigned.`);
+                                                    alert(`User with email ${email} deleted successfully.`);
                                                     loadRegisteredUsers(); // Refresh the "Registered Users" table
                                                 })
                                                 .catch(err => {
@@ -352,7 +349,7 @@ function updateTeam(groupId, teamId) {
                                             });
                                         } else {
                                             console.warn(`No team found with name ${user.team}.`);
-                                            alert(`User deleted, but no team assignment was found for ${user.team}.`);
+                                            alert(`User with email ${email} deleted successfully.`);
                                             loadRegisteredUsers(); // Refresh the "Registered Users" table
                                         }
                                     })
