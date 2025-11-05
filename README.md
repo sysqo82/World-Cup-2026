@@ -1,6 +1,6 @@
-# World Cup 2026 Prediction Game
+# World Cup 2026 Team Tracker
 
-A web-based prediction game for the FIFA World Cup 2026. Track your assigned team's progress through group stages and knockout rounds, with real-time match updates and email notifications.
+A web-based platform to follow your assigned team's progress throughout the FIFA World Cup 2026. Track match results, standings, and receive email notifications for your team's games.
 
 **Live Site:** https://sysqo82.github.io/World-Cup-2026/
 
