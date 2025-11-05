@@ -1,4 +1,4 @@
-import { EmailTemplate } from './email-template.js';
+import { EmailTemplate } from './email-templates.js';
 import { sendEmailNotification } from './email-service.js';
 
 export async function sendMatchEmails(
