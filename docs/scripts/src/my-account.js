@@ -1,4 +1,4 @@
-import { getAssignedTeam, logoutUser, getCookie, setCookie, deleteCookie } from '../utils/user-utils.js';
+import { getAssignedTeam, logoutUser, getCookie, deleteCookie } from '../utils/user-utils.js';
 import { isAllowed, isRegistered } from "../navigation/navigation.js";
 import { basePath } from "../config/path-config.js";
 import { db, sendEmailURL } from '../config/firebase-config.js';
@@ -931,7 +931,7 @@ function showEmailVerificationForm(currentEmail, newEmail) {
     const formContainer = document.getElementById('change-email-form-container');
     
     // Use the template from EmailTemplate class
-    formContainer.innerHTML = EmailTemplate.generateEmailVerificationForm(currentEmail, newEmail);
+    formContainer.innerHTML = EmailTemplate.generateEmailVerificationForm(newEmail);
 
     // Handle verification form submission
     const verificationForm = document.getElementById('email-verification-form');

@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { https, config } from "firebase-functions";
+import { https } from "firebase-functions";
 import pkg from "firebase-admin";
 import cors from "cors";
 import { readFileSync } from "fs";
@@ -66,12 +66,24 @@ export const registerUser = https.onRequest((req, res) => {
       const selectedTeam = availableTeams[randomIndex];
       const normalizedEmail = email.toLowerCase().trim();
 
+      // Get the current highest index number
+      const usersSnapshot = await serviceFirestore.collection("users")
+        .orderBy("index", "desc")
+        .limit(1)
+        .get();
+      
+      let nextIndex = 1; // Default to 1 if no users exist
+      if (!usersSnapshot.empty) {
+        const highestUser = usersSnapshot.docs[0].data();
+        nextIndex = (highestUser.index || 0) + 1;
+      }
+
       await serviceFirestore.collection("users").doc(normalizedEmail).set({
         firstName,
         lastName,
         email: normalizedEmail,
         team: selectedTeam.fullName,
-        createdAt: pkg.firestore.FieldValue.serverTimestamp(),
+        index: nextIndex,
         hasPaid: 'Pending',
         allowUpdates: true,
         verificationCode: null,
@@ -137,7 +149,7 @@ export const sendEmail = https.onRequest((req, res) => {
         });
         // Generate email content for verification code
         const verificationSubject = 'Your World Cup 2026 Login Verification Code';
-        const verificationMessage = `Your verification code for logging in to the World Cup 2026 app is: ${verificationCode}\n\nThis code will expire in 10 minutes. If you did not request this code, please ignore this email.`;
+        const verificationMessage = `Your verification code for logging in to the World Cup 2026 website is: ${verificationCode}\n\nThis code will expire in 10 minutes. If you did not request this code, please ignore this email.`;
         
         const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
         const rawEmail = [

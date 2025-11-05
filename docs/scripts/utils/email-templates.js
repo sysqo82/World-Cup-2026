@@ -213,17 +213,8 @@ Keep up the great effort!`;
   return emailTemplates;
 }
 
-// Static method for generating a verification code email template
-static generateVerificationCodeEmail(email, code) {
-  return {
-    email: email,
-    subject: 'Your World Cup 2026 Login Verification Code',
-    message: `Your verification code for logging in to the World Cup 2026 app is: ${code}\n\nThis code will expire in 10 minutes. If you did not request this code, please ignore this email.`
-  };
-}
-
 // Static method for generating email change verification form HTML
-static generateEmailVerificationForm(currentEmail, newEmail) {
+static generateEmailVerificationForm(newEmail) {
   return `
     <h4>Verify New Email Address</h4>
     <p>A 6-digit verification code has been sent to:</p>

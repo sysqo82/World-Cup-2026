@@ -280,12 +280,11 @@ function updateTeam(groupId, teamId) {
                     // Fetch and sort users by their index field
                     const users = snapshot.docs
                         .map(doc => doc.data())
-                        .sort((a, b) => a.index - b.index); // Sort by index in ascending order
+                        .sort((a, b) => (a.index || 0) - (b.index || 0)); // Sort by index in ascending order
 
-                    let rowNumber = 1; // Initialize row counter
                     users.forEach(user => {
                         const row = registeredUsersTableBody.insertRow();
-                        row.insertCell(0).textContent = rowNumber++;
+                        row.insertCell(0).textContent = user.index || 'N/A'; // Show actual index
                         row.insertCell(1).textContent = user.firstName;
                         row.insertCell(2).textContent = user.lastName;
                         row.insertCell(3).textContent = user.email;
@@ -321,11 +320,32 @@ function updateTeam(groupId, teamId) {
                 snapshot.forEach(doc => {
                     const user = doc.data();
                     const userId = doc.id;
+                    const deletedUserIndex = user.index || 0;
 
                     // Delete the user document
                     db.collection('users').doc(userId).delete()
                         .then(() => {
                             console.log(`User with email ${email} deleted successfully.`);
+
+                            // Update indices of all users with higher index numbers
+                            db.collection('users')
+                                .where('index', '>', deletedUserIndex)
+                                .get()
+                                .then(usersSnapshot => {
+                                    const batch = db.batch();
+                                    usersSnapshot.forEach(userDoc => {
+                                        const userRef = db.collection('users').doc(userDoc.id);
+                                        const currentIndex = userDoc.data().index || 0;
+                                        batch.update(userRef, { index: currentIndex - 1 });
+                                    });
+                                    return batch.commit();
+                                })
+                                .then(() => {
+                                    console.log('User indices updated successfully.');
+                                })
+                                .catch(err => {
+                                    console.error('Error updating user indices:', err);
+                                });
 
                             // Update the team's assigned flag to false
                             if (user.team) {
