@@ -12,6 +12,15 @@ const firebaseConfig = {
     setAdminRoleURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/setAdminRole",
     requestLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/requestLoginCode",
     verifyLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/verifyLoginCode",
+
+    // Local development URLs
+    /*
+    registerUser: "http://localhost:5001/world-cup-2026-b1fda/us-central1/registerUser",
+    sendEmailURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/sendEmail",
+    setAdminRoleURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/setAdminRole",
+    requestLoginCodeURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/requestLoginCode",
+    verifyLoginCodeURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/verifyLoginCode",
+    */
 };
 
 // Initialize Firebase
