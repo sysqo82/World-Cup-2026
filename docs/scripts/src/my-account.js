@@ -421,6 +421,83 @@ function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey
     return row;
 }
 
+// Helper function to check if all 3 group stage matches have been played
+async function hasCompletedAllGroupStageMatches(teamName, countryMap) {
+    try {
+        const teamShortName = getTeamShortName(teamName, countryMap);
+        
+        // Find which group the team is in
+        const groupsSnapshot = await db.collection('groups').get();
+        let teamGroup = null;
+        
+        groupsSnapshot.forEach(doc => {
+            const groupData = doc.data();
+            if (groupData.teams) {
+                Object.values(groupData.teams).forEach(team => {
+                    const teamNameVariant = team.name || team.Name;
+                    if (teamNameVariant === teamShortName) {
+                        teamGroup = { id: doc.id, ...groupData };
+                    }
+                });
+            }
+        });
+
+        if (!teamGroup) {
+            return false;
+        }
+
+        // Get all group teams
+        const groupTeams = Object.entries(teamGroup.teams).map(([id, team]) => ({
+            id,
+            name: team.name || team.Name || 'Unknown',
+            initialRank: parseInt(id.replace('team', ''), 10) || 0
+        })).sort((a, b) => a.initialRank - b.initialRank);
+
+        const myTeamData = groupTeams.find(team => team.name === teamShortName);
+        if (!myTeamData) {
+            return false;
+        }
+
+        let completedMatches = 0;
+        const matchdays = ['matchday1', 'matchday2', 'matchday3'];
+        
+        // Check each matchday
+        for (const matchday of matchdays) {
+            const matchdayFixtures = getMatchdayMatches(matchday, groupTeams);
+            
+            // Find our team's match in this matchday
+            const ourFixture = matchdayFixtures.find(fixture => 
+                fixture.team1.name === teamShortName || fixture.team2.name === teamShortName
+            );
+            
+            if (ourFixture && teamGroup.matchdays && teamGroup.matchdays[matchday]) {
+                const matches = teamGroup.matchdays[matchday];
+                
+                // Check if this match has been played (has scores)
+                const matchFound = Object.entries(matches).some(([key, data]) => {
+                    const [leftTeamId, rightTeamId] = key.split('_');
+                    if ((leftTeamId === ourFixture.team1.id && rightTeamId === ourFixture.team2.id) ||
+                        (leftTeamId === ourFixture.team2.id && rightTeamId === ourFixture.team1.id)) {
+                        // Match is complete if it has scores
+                        return data && (data.team1Score !== undefined || data.team2Score !== undefined);
+                    }
+                    return false;
+                });
+                
+                if (matchFound) {
+                    completedMatches++;
+                }
+            }
+        }
+        
+        // Return true only if all 3 matches have been played
+        return completedMatches === 3;
+    } catch (error) {
+        console.error('Error checking group stage completion:', error);
+        return false;
+    }
+}
+
 async function loadKnockoutFixtures(teamName, countryMap) {
     const stages = [
         { collection: 'roundOf16Teams', sectionId: 'round-of-16-section', tableId: 'round-of-16-table', stageName: 'Round of 16', docId: 'matches' },
@@ -431,9 +508,17 @@ async function loadKnockoutFixtures(teamName, countryMap) {
     ];
 
     const teamShortName = getTeamShortName(teamName, countryMap);
+    
+    // Check if all group stage matches have been completed
+    const groupStageComplete = await hasCompletedAllGroupStageMatches(teamName, countryMap);
 
     for (const stage of stages) {
         try {
+            // Skip Round of 16 if not all group stage matches have been played
+            if (stage.stageName === 'Round of 16' && !groupStageComplete) {
+                continue;
+            }
+            
             // Get the matches document for this stage
             const docRef = await db.collection(stage.collection).doc(stage.docId).get();
             const section = document.getElementById(stage.sectionId);
