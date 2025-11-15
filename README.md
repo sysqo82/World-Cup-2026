@@ -12,11 +12,11 @@ The website will also provide details on the different matches in the different 
 
 You do that by navigating to https://sysqo82.github.io/World-Cup-2026/ and using the form to register.
 
-![Homepage - Logged Out](docs/images/homepage-logged%20out.png)
+<img src="docs/images/homepage-logged%20out.png" alt="Homepage - Logged Out">
 
 Once registered you'll need to pay the fee by clicking on the "make a payment" button where you'll be redirected to the Monzo website for payment.
 
-![Homepage - Registered](docs/images/homepage-registered.png)
+<img src="docs/images/homepage-registered.png" alt="Homepage - Registered">
 
 Only after Assaf verified you paid, you'll be given permission to login.
 
@@ -26,19 +26,19 @@ Only after Assaf verified you paid, you'll be given permission to login.
 
 To login, you'll need to enter your registered email address in the login form. A verification email will be sent with a code (which expires after 10 minutes) to the registered email inbox with a 6 digit code. You'll need to enter it into the form and only then you will be able to login (once logged in, you won't need to login again on that browser, unless you clear your cookies).
 
-![Login - Email Verification](docs/images/login-email%20verification.png)
+<img src="docs/images/login-email%20verification.png" alt="Login - Email Verification">
 
 Example of the email you'll get:
 
-![Login Code](docs/images/login-code.png)
+<img src="docs/images/login-code.png" alt="Login Code">
 
 Once the code is verified, you'll see what country you've been drawn (it's fully randomised and even I don't know what country you're given) and the amount in the prize pot.
 
-![Homepage - Paid](docs/images/homepage-paid.png)
+<img src="docs/images/homepage-paid.png" alt="Homepage - Paid">
 
 After that you can use the navigation menu to navigate between the different pages on the website.
 
-![Navigation Menu](docs/images/nav%20menu.png)
+<img src="docs/images/nav%20menu.png" alt="Navigation Menu">
 
 ---
 
@@ -52,13 +52,13 @@ In my account you can do various things:
 2. Change your registered email (this will not change your drawn team)
 3. View matches just about your team
 
-![My Account](docs/images/my-account.png)
+<img src="docs/images/my-account.png" alt="My Account">
 
 In my account you could also see if your drawn team has made it into the next stage or not, and how they did.
 
-![My Account - Win](docs/images/my-account-win.png)
+<img src="docs/images/my-account-win.png" alt="My Account - Win">
 
-![My Account - Lose](docs/images/my-account-lose.png)
+<img src="docs/images/my-account-lose.png" alt="My Account - Lose">
 
 ---
 
@@ -66,21 +66,21 @@ In my account you could also see if your drawn team has made it into the next st
 
 In the group stage screen you can view the tables and all of the teams in the tournament plus all of the matches that they'll have with the dates of the match.
 
-![Group Stage](docs/images/group-stage.png)
+<img src="docs/images/group-stage.png" alt="Group Stage">
 
 The tables are ordered according to the FIFA ranking when they drew it. The ranking afterwards will be determined by the result of the matches they played, and the points are calculated according to the FIFA regulations (if 2 teams have the same points, their ranking in the group will be determined by goal aggregate).
 
-![Group Stage Table](docs/images/group-stage-table.png)
+<img src="docs/images/group-stage-table.png" alt="Group Stage Table">
 
 If you hover over the official FIFA 3 letter name code, you can see the name of the country.
 
-![Group Stage Table - Country Name](docs/images/group-stage-table-country-name.png)
+<img src="docs/images/group-stage-table-country-name.png" alt="Group Stage Table - Country Name">
 
 On the matchday section, you can see the whole group stage matches and the dates. You could also see what team won, lost and had a draw.
 
-![Matchdays - Win/Lose](docs/images/matchdays-win-lose.png)
+<img src="docs/images/matchdays-win-lose.png" alt="Matchdays - Win/Lose">
 
-![Matchdays - Win/Draw](docs/images/matchdays-win-draw.png)
+<img src="docs/images/matchdays-win-draw.png" alt="Matchdays - Win/Draw">
 
 ---
 
@@ -90,11 +90,11 @@ On the matchday section, you can see the whole group stage matches and the dates
 
 If you're lucky and your drawn team has made it into the next stage, you can continue following the tournament here.
 
-![Round of 16](docs/images/round-of-16.png)
+<img src="docs/images/round-of-16.png" alt="Round of 16">
 
 In this stage, there can only be a winning team or a losing team and matches can drag into extra time or even penalty shootout to determine the winner and loser.
 
-![Round of 16 Matches](docs/images/round-of-16-matches.png)
+<img src="docs/images/round-of-16-matches.png" alt="Round of 16 Matches">
 
 ---
 
@@ -106,17 +106,17 @@ For example:
 
 If your team won, lost or the match ended up in the draw in the group stage you'll get these kind of emails:
 
-![Email - Win](docs/images/email-win.png)
+<img src="docs/images/email-win.png" alt="Email - Win">
 
-![Email - Lose](docs/images/email-lose.png)
+<img src="docs/images/email-lose.png" alt="Email - Lose">
 
-![Email - Draw](docs/images/email-draw.png)
+<img src="docs/images/email-draw.png" alt="Email - Draw">
 
 Email for the next stages will also include the next stage that your team made it to (if they won):
 
-![Email - Extra Time](docs/images/email-extra-time.png)
+<img src="docs/images/email-extra-time.png" alt="Email - Extra Time">
 
-![Email - Penalties](docs/images/email-penalties.png)
+<img src="docs/images/email-penalties.png" alt="Email - Penalties">
 
 ---
 
@@ -124,4 +124,4 @@ Email for the next stages will also include the next stage that your team made i
 
 There is also an admin page where the admins of the site can manage the teams in the tournament and the registered users. Admins can approve users after payment and remove them from the tournament.
 
-![Admin Users](docs/images/admin-users.png)
+<img src="docs/images/admin-users.png" alt="Admin Users">
