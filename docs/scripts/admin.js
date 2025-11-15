@@ -6,9 +6,13 @@ import { generateQuarterFinalsMatches } from './create-round-matches/admin-helpe
 import { generateSemiFinalsMatches } from './create-round-matches/admin-helper/generate-semi-finals.js';
 import { generateFinalMatch } from './create-round-matches/admin-helper/generate-final.js';
 import { generateThirdPlacePlayoffMatch } from './create-round-matches/admin-helper/generate-third-forth-playoff.js';
+import { fetchCountryMap } from './utils/country-utils.js';
+
+// Store country map globally for easy access
+let countryMap = {};
 
 // Check authentication state on page load
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
     const logoutButton = document.getElementById('logout-button');
     const authContainer = document.getElementById('auth-container');
     const adminContentPlaceholder = document.getElementById('admin-content-placeholder');
@@ -17,6 +21,13 @@ auth.onAuthStateChanged(user => {
         // User is logged in
         authContainer.style.display = 'none';
         logoutButton.style.display = 'block';
+    
+        // Load country map for country code conversion
+        try {
+            countryMap = await fetchCountryMap();
+        } catch (error) {
+            console.error('Error loading country map:', error);
+        }
     
         renderAdminContent(adminContentPlaceholder);
     
@@ -247,18 +258,103 @@ function updateTeam(groupId, teamId) {
         return;
     }
 
+    let countryInput = nameInput.value.trim();
+    
+    // Convert input to 3-letter code
+    let countryCode = convertToCountryCode(countryInput);
+    
+    if (!countryCode) {
+        alert(`Invalid country: "${countryInput}". Please enter a valid 3-letter code or country name.`);
+        return;
+    }
+
     const updatedData = {
-        name: nameInput.value
+        name: countryCode
     };
 
     // Use Firestore's update method to update only the specified fields
     db.collection('groups').doc(groupId).update({
         [`teams.${teamId}.name`]: updatedData.name
     })
+    .then(() => {
+        // Update the input field to show the standardized 3-letter code
+        nameInput.value = countryCode;
+        console.log(`Team ${teamId} updated to ${countryCode}`);
+    })
     .catch(err => {
         console.error('Error updating team:', err);
         alert('Failed to update team. Please try again.');
     });
+}
+
+/**
+ * Convert country input (3-letter code or full name) to 3-letter code
+ * @param {string} input - Country code or full name (case-insensitive)
+ * @returns {string|null} - 3-letter country code or null if not found
+ */
+function convertToCountryCode(input) {
+    if (!input) return null;
+    
+    const upperInput = input.toUpperCase();
+    const lowerInput = input.toLowerCase().trim();
+    
+    // Check if input is already a 3-letter code (case-insensitive)
+    if (countryMap[upperInput]) {
+        return upperInput;
+    }
+    
+    // Check if input matches a full country name (exact match, case-insensitive)
+    const exactMatch = Object.entries(countryMap).find(
+        ([, details]) => details.fullName.toLowerCase() === lowerInput
+    );
+    
+    if (exactMatch) {
+        return exactMatch[0]; // Return the 3-letter code
+    }
+    
+    // Fuzzy search: normalize strings for comparison
+    const normalizeString = (str) => {
+        return str.toLowerCase()
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .replace(/[^\w\s]/g, '') // Remove punctuation
+            .trim();
+    };
+    
+    const normalizedInput = normalizeString(lowerInput);
+    
+    // Try fuzzy matching
+    const fuzzyMatch = Object.entries(countryMap).find(([, details]) => {
+        const normalizedCountry = normalizeString(details.fullName);
+        
+        // Check if the input contains significant parts of the country name
+        if (normalizedCountry.includes(normalizedInput) || normalizedInput.includes(normalizedCountry)) {
+            return true;
+        }
+        
+        // Split into words and check for significant overlap
+        const inputWords = normalizedInput.split(' ').filter(w => w.length > 2);
+        const countryWords = normalizedCountry.split(' ').filter(w => w.length > 2);
+        
+        // If most of the significant words match, consider it a match
+        if (inputWords.length > 0 && countryWords.length > 0) {
+            const matchingWords = inputWords.filter(iw => 
+                countryWords.some(cw => cw.includes(iw) || iw.includes(cw))
+            );
+            
+            // Require at least 70% of input words to match
+            if (matchingWords.length >= Math.ceil(inputWords.length * 0.7)) {
+                return true;
+            }
+        }
+        
+        return false;
+    });
+    
+    if (fuzzyMatch) {
+        return fuzzyMatch[0]; // Return the 3-letter code
+    }
+    
+    return null; // Not found
 }
 
 
