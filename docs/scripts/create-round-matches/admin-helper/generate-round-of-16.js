@@ -1,48 +1,42 @@
 import { db } from "../../config/firebase-config.js";
-import { getTeamByRank } from "../../admin.js";
 
 export async function generateRoundOf16Matches() {
         try {
-            // Fetch the current state of the groups
-            const groupsSnapshot = await db.collection('groups').get();
-            const groups = groupsSnapshot.docs.reduce((acc, doc) => {
-                acc[doc.id] = doc.data();
-                return acc;
-            }, {});
+            // Fetch the Round of 32 matches
+            const roundOf32Snapshot = await db.collection('roundOf32Teams').doc('matches').get();
+            
+            if (!roundOf32Snapshot.exists) {
+                alert('Round of 32 has not been generated yet. Please generate Round of 32 first.');
+                return;
+            }
 
-            // Define the match rules for the Round of 16
-            const matchRules = [
-                { match: '1A vs. 2B', group1: 'group1', group2: 'group2' },
-                { match: '1C vs. 2D', group1: 'group3', group2: 'group4' },
-                { match: '1E vs. 2F', group1: 'group5', group2: 'group6' },
-                { match: '1G vs. 2H', group1: 'group7', group2: 'group8' },
-                { match: '1B vs. 2A', group1: 'group2', group2: 'group1' },
-                { match: '1D vs. 2C', group1: 'group4', group2: 'group3' },
-                { match: '1F vs. 2E', group1: 'group6', group2: 'group5' },
-                { match: '1H vs. 2G', group1: 'group8', group2: 'group7' }
-            ];
+            const roundOf32Data = roundOf32Snapshot.data();
+            const roundOf32Matches = roundOf32Data.matches || [];
 
-            // Prepare the Round of 16 structure
-            const roundOf16Teams = matchRules.map(rule => {
-                const group1 = groups[rule.group1];
-                const group2 = groups[rule.group2];
+            // Check if all Round of 32 matches have winners
+            const allMatchesCompleted = roundOf32Matches.every(match => match.winner);
+            
+            if (!allMatchesCompleted) {
+                alert('Not all Round of 32 matches have been completed. Please complete all matches before generating Round of 16.');
+                return;
+            }
 
-                // Ensure both groups exist
-                if (!group1 || !group2) {
-                    console.warn(`Missing data for groups: ${rule.group1} or ${rule.group2}`);
-                    return null; // Skip this match if data is missing
-                }
+            // Extract winners from Round of 32 (should be 16 teams)
+            const winners = roundOf32Matches.map(match => match.winner);
 
-                // Get the winner and runner-up from each group
-                const team1 = getTeamByRank(group1, 1); // Winner of group1
-                const team2 = getTeamByRank(group2, 2); // Runner-up of group2
+            if (winners.length !== 32) {
+                alert(`Expected 32 winners from Round of 32, but found ${winners.length}. Please check the Round of 32 matches.`);
+                return;
+            }
 
-
-
-                return {
-                    match: rule.match,
-                    team1: team1.name || 'Unknown',
-                    team2: team2.name || 'Unknown',
+            // Define the match pairings for Round of 16
+            // Pairing winners in sequence: 1st winner vs 2nd winner, 3rd vs 4th, etc.
+            const roundOf16Matches = [];
+            for (let i = 0; i < winners.length; i += 2) {
+                roundOf16Matches.push({
+                    match: `Match ${(i / 2) + 1}`,
+                    team1: winners[i] || 'Unknown',
+                    team2: winners[i + 1] || 'Unknown',
                     type: 'regular',
                     regularTimeTeam1Score: null,
                     regularTimeTeam2Score: null,
@@ -54,12 +48,12 @@ export async function generateRoundOf16Matches() {
                     loser: null,
                     displayExtraTime: false,
                     displayPenaltyShootouts: false,
-                };
-            }).filter(match => match !== null); // Remove any null matches
+                });
+            }
 
             // Save the Round of 16 structure to Firestore
-            await db.collection('roundOf16Teams').doc('matches').set({ matches: roundOf16Teams });
-            alert('Round of 16 structure generated successfully!');
+            await db.collection('roundOf16Teams').doc('matches').set({ matches: roundOf16Matches });
+            alert('Round of 16 structure generated successfully from Round of 32 winners!');
         } catch (error) {
             console.error('Error generating Round of 16 structure:', error);
             alert('Failed to generate Round of 16 structure. Please try again.');

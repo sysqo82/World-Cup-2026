@@ -500,6 +500,7 @@ async function hasCompletedAllGroupStageMatches(teamName, countryMap) {
 
 async function loadKnockoutFixtures(teamName, countryMap) {
     const stages = [
+        { collection: 'roundOf32Teams', sectionId: 'round-of-32-section', tableId: 'round-of-32-table', stageName: 'Round of 32', docId: 'matches' },
         { collection: 'roundOf16Teams', sectionId: 'round-of-16-section', tableId: 'round-of-16-table', stageName: 'Round of 16', docId: 'matches' },
         { collection: 'quarterFinalsTeams', sectionId: 'quarter-finals-section', tableId: 'quarter-finals-table', stageName: 'Quarter Finals', docId: 'matches' },
         { collection: 'semiFinalsTeams', sectionId: 'semi-finals-section', tableId: 'semi-finals-table', stageName: 'Semi Finals', docId: 'matches' },

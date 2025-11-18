@@ -228,6 +228,7 @@ button#logout-button:hover {
 /* Center the score inputs and the score divider */
 .quarter-finals-container .score-section,
 .semi-finals-container .score-section,
+.round-of-32-container .score-section,
 .round-of-16-container .score-section,
 .third-place-playoff-container .score-section {
     display: flex;
@@ -331,6 +332,7 @@ button#logout-button:hover {
 
     /* Increase the size of the score input section */
     .quarter-finals-container .score-section,
+    .round-of-32-container .score-section,
     .round-of-16-container .score-section,
     .semi-finals-container .score-section,
     .third-place-playoff-container .score-section {
@@ -340,6 +342,7 @@ button#logout-button:hover {
 
     /* Adjust the score input width for better usability */
     .quarter-finals-container .score-input,
+    .round-of-32-container .score-input,
     .round-of-16-container .score-input,
     .semi-finals-container .score-input,
     .final-container .score-input,
@@ -349,6 +352,7 @@ button#logout-button:hover {
     }
 
     .quarter-finals-container .extra-time-label,
+    .round-of-32-container .extra-time-label,
     .round-of-16-container .extra-time-label,
     .semi-finals-container .extra-time-label,
     .final-container .extra-time-label,
@@ -455,6 +459,7 @@ button#logout-button:hover {
 .quarter-finals-container,
 .semi-finals-container,
 .final-container,
+.round-of-32-container,
 .round-of-16-container,
 .third-place-playoff-container {
     grid-column: 1 / span 6; /* Full width for knockout stages */
@@ -471,6 +476,7 @@ button#logout-button:hover {
 /* Center the score inputs and the score divider */
 .quarter-finals-container td,
 .semi-finals-container td,
+.round-of-32-container td,
 .round-of-16-container td,
 .final-container td,
 .third-place-playoff-container td {
@@ -480,6 +486,7 @@ button#logout-button:hover {
 
 .quarter-finals-container .team-name,
 .semi-finals-container .team-name,
+.round-of-32-container .team-name,
 .round-of-16-container .team-name,
 .final-container .team-name,
 .third-place-playoff-container .team-name {
@@ -487,6 +494,7 @@ button#logout-button:hover {
 }
 
 /* Center the submit button */
+.round-of-32-container .submit-button,
 .round-of-16-container .submit-button {
     margin: 0 auto;
 }
