@@ -1,6 +1,7 @@
 // Import Firebase configuration and services
 import { db, auth, setAdminRoleURL } from '../scripts/config/firebase-config.js';
 import { clearDB } from './create-round-matches/admin-helper/clear-db.js';
+import { generateRoundOf32Matches } from './create-round-matches/admin-helper/generate-round-of-32.js';
 import { generateRoundOf16Matches } from './create-round-matches/admin-helper/generate-round-of-16.js';
 import { generateQuarterFinalsMatches } from './create-round-matches/admin-helper/generate-quarter-finals.js';
 import { generateSemiFinalsMatches } from './create-round-matches/admin-helper/generate-semi-finals.js';
@@ -108,6 +109,7 @@ function renderAdminContent(container) {
             </div>
             <div class="d-flex flex-column align-items-center">
                 <button id="clear-db" class="submit-button mb-2">Clear Group Stage</button>
+                <button id="generate-round-of-32" class="submit-button mb-2">Generate Round of 32</button>
                 <button id="generate-round-of-16" class="submit-button mb-2">Generate Round of 16</button>
                 <button id="generate-quarter-finals" class="submit-button mb-2">Generate Quarter Finals</button>
                 <button id="generate-semi-finals" class="submit-button mb-2">Generate Semi Finals</button>
@@ -140,6 +142,9 @@ function renderAdminContent(container) {
     // Attach event listeners for admin buttons
     document.getElementById('clear-db').addEventListener('click', async () => {
         clearDB();
+    });
+    document.getElementById('generate-round-of-32').addEventListener('click', async () => {
+        generateRoundOf32Matches();
     });
     document.getElementById('generate-round-of-16').addEventListener('click', async () => {
         generateRoundOf16Matches();
