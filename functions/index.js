@@ -1,10 +1,10 @@
 import { google } from "googleapis";
-import { https } from "firebase-functions";
+import { https, firestore } from "firebase-functions";
 import pkg from "firebase-admin";
 import cors from "cors";
 import { readFileSync } from "fs";
 
-const { firestore, auth: _auth } = pkg;
+const { firestore: firestoreAdmin, auth: _auth } = pkg;
 
 const credentials = JSON.parse(readFileSync("./credentials.json"));
 const allowedOrigins = credentials.allowedOrigins.origin;
@@ -466,4 +466,150 @@ export const setAdminRole = https.onRequest((req, res) => {
       res.status(500).send("Failed to assign admin role: " + error.message);
     }
   });
+});
+
+// Firestore trigger to sync teams table when groups collection changes
+export const syncTeamsOnGroupsUpdate = firestore.document('groups/{groupId}').onWrite(async (change, context) => {
+  try {
+    console.log('Groups collection changed, syncing teams table...');
+    
+    // Load country mappings
+    let countryMap = new Map();
+    try {
+      const countriesText = readFileSync('./countries.txt', 'utf8');
+      const lines = countriesText.split('\n').slice(1); // Skip header
+      lines.forEach(line => {
+        const parts = line.split('\t');
+        if (parts.length >= 2) {
+          const abbreviation = parts[0].trim();
+          const fullName = parts[1].trim();
+          if (abbreviation && fullName) {
+            countryMap.set(abbreviation, fullName);
+          }
+        }
+      });
+      console.log(`Loaded ${countryMap.size} country mappings`);
+    } catch (error) {
+      console.warn('Could not load countries.txt, using abbreviations as full names');
+    }
+    
+    // Get all groups to extract all teams
+    const groupsSnapshot = await serviceFirestore.collection('groups').get();
+    
+    // Extract all teams from all groups
+    const teamsInGroups = new Set();
+    const teamDetails = new Map(); // Map to store full name -> full details
+    
+    groupsSnapshot.forEach(groupDoc => {
+      const groupData = groupDoc.data();
+      if (groupData.teams) {
+        Object.values(groupData.teams).forEach(team => {
+          if (team.name && team.name !== 'TBD') {
+            const abbreviation = team.name;
+            const fullName = countryMap.get(abbreviation) || abbreviation;
+            
+            teamsInGroups.add(fullName);
+            if (!teamDetails.has(fullName)) {
+              teamDetails.set(fullName, {
+                fullName: fullName,
+                abbreviation: abbreviation,
+                assigned: false // Will be updated based on users collection
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    console.log(`Found ${teamsInGroups.size} unique teams in groups`);
+    
+    // Get all existing teams in teams table
+    const teamsSnapshot = await serviceFirestore.collection('teams').get();
+    const existingTeams = new Set();
+    const teamsToDelete = [];
+    
+    teamsSnapshot.forEach(teamDoc => {
+      const teamData = teamDoc.data();
+      const teamName = teamData.fullName || teamData.abbreviation;
+      existingTeams.add(teamName);
+      
+      // Mark teams for deletion if they're not in groups anymore
+      if (!teamsInGroups.has(teamName)) {
+        teamsToDelete.push(teamDoc.id);
+      }
+    });
+    
+    // Check which users have teams assigned
+    const usersSnapshot = await serviceFirestore.collection('users').get();
+    const assignedTeamsSet = new Set();
+    
+    usersSnapshot.forEach(userDoc => {
+      const userData = userDoc.data();
+      if (userData.team) {
+        assignedTeamsSet.add(userData.team);
+      }
+    });
+    
+    // Update assigned status for teams
+    teamsInGroups.forEach(teamName => {
+      const details = teamDetails.get(teamName);
+      details.assigned = assignedTeamsSet.has(teamName);
+    });
+    
+    // Delete teams that are no longer in groups
+    const batch = serviceFirestore.batch();
+    let batchCount = 0;
+    
+    for (const teamId of teamsToDelete) {
+      console.log(`Deleting team ${teamId} (no longer in groups)`);
+      batch.delete(serviceFirestore.collection('teams').doc(teamId));
+      batchCount++;
+      
+      if (batchCount === 500) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    }
+    
+    // Add or update teams from groups
+    for (const [teamName, details] of teamDetails) {
+      // Check if team already exists
+      const existingTeamQuery = await serviceFirestore.collection('teams')
+        .where('fullName', '==', teamName)
+        .get();
+      
+      if (existingTeamQuery.empty) {
+        // Add new team
+        console.log(`Adding new team: ${teamName}`);
+        batch.set(serviceFirestore.collection('teams').doc(), details);
+        batchCount++;
+      } else {
+        // Update existing team
+        console.log(`Updating team: ${teamName}`);
+        existingTeamQuery.forEach(doc => {
+          batch.update(doc.ref, { assigned: details.assigned });
+          batchCount++;
+        });
+      }
+      
+      if (batchCount === 500) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    }
+    
+    // Commit any remaining operations
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+    
+    console.log('Teams table synced successfully');
+    console.log(`Deleted ${teamsToDelete.length} obsolete teams`);
+    console.log(`Updated/added ${teamsInGroups.size} teams`);
+    
+    return null;
+  } catch (error) {
+    console.error('Error syncing teams table:', error);
+    return null;
+  }
 });
