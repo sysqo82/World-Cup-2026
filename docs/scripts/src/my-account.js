@@ -5,6 +5,7 @@ import { db, sendEmailURL } from '../config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { getMatchdayMatches } from '../utils/match-scheduling.js';
 import { EmailTemplate } from '../utils/email-templates.js';
+import { matchSchedule, knockoutMatchSchedule } from '../utils/match-schedule-constants.js';
 
 // Add event listener for navigation dropdown
 document.getElementById('navigation-select').addEventListener('change', navigateToPage);
@@ -136,7 +137,9 @@ async function loadGroupStageFixtures(teamName, countryMap) {
                         fixture.team2.id,
                         teamShortName,
                         countryMap,
-                        myTeamIsLeft
+                        myTeamIsLeft,
+                        teamGroup.id,
+                        matchday
                     );
                     groupStageBody.appendChild(row);
                 }
@@ -193,7 +196,9 @@ async function loadGroupStageFixtures(teamName, countryMap) {
                     ourMatch.team2Id,
                     teamShortName,
                     countryMap,
-                    myTeamIsLeft
+                    myTeamIsLeft,
+                    teamGroup.id,
+                    matchdayString
                 );
                 groupStageBody.appendChild(row);
             }
@@ -226,17 +231,25 @@ function checkAllMatchesPlayed(teamGroup, teamShortName) {
     return false;
 }
 
-function addKnockoutProgressionStatus(stageSection, matchData, teamShortName, teamFullName, stageName) {
+async function addKnockoutProgressionStatus(stageSection, matchData, teamShortName, teamFullName, stageName, countryMap) {
     // Check if the team won this knockout match
     const teamWon = matchData.winner === teamShortName;
     
     // Define next stage for progression message
     const nextStageMap = {
+        'Round of 32': 'Round of 16',
         'Round of 16': 'Quarter Finals',
         'Quarter Finals': 'Semi Finals', 
         'Semi Finals': 'Final',
         'Final': 'World Cup Champions',
         'Third Place Playoff': '3rd Place'
+    };
+    
+    const nextCollectionMap = {
+        'Round of 32': 'roundOf16Teams',
+        'Round of 16': 'quarterFinalsTeams',
+        'Quarter Finals': 'semiFinalsTeams',
+        'Semi Finals': 'finalTeams'
     };
     
     const nextStage = nextStageMap[stageName];
@@ -253,7 +266,59 @@ function addKnockoutProgressionStatus(stageSection, matchData, teamShortName, te
         } else if (stageName === 'Third Place Playoff') {
             progressionDiv.textContent = `🥉 ${teamFullName} finished 3rd in the World Cup! 🥉`;
         } else {
-            progressionDiv.textContent = `🎉 ${teamFullName} advanced to the ${nextStage}! 🎉`;
+            let message = `🎉 ${teamFullName} advanced to the ${nextStage}! 🎉`;
+            
+            // Try to fetch next match details
+            const nextCollection = nextCollectionMap[stageName];
+            if (nextCollection) {
+                try {
+                    const docRef = await db.collection(nextCollection).doc('matches').get();
+                    if (docRef.exists) {
+                        const data = docRef.data();
+                        const matches = data.matches || [];
+                        
+                        // Find the match involving this team
+                        const nextMatch = matches.find(match => 
+                            match.team1 === teamShortName || match.team2 === teamShortName ||
+                            match.team1 === teamFullName || match.team2 === teamFullName
+                        );
+                        
+                        if (nextMatch) {
+                            const opponentShort = nextMatch.team1 === teamShortName || nextMatch.team1 === teamFullName 
+                                ? nextMatch.team2 
+                                : nextMatch.team1;
+                            
+                            // Convert opponent short name to full name
+                            const opponentFull = getCountryFullName(countryMap, opponentShort).fullName;
+                            
+                            // Get match date from schedule
+                            const matchIndex = matches.indexOf(nextMatch);
+                            let matchDate = 'TBD';
+                            let matchDateFull = '';
+                            if (knockoutMatchSchedule[nextStage]) {
+                                const matchKey = `match${matchIndex + 1}`;
+                                const scheduledDate = knockoutMatchSchedule[nextStage][matchKey];
+                                if (scheduledDate) {
+                                    try {
+                                        const date = new Date(scheduledDate);
+                                        matchDate = date.toLocaleDateString('en-UK', { month: 'short', day: 'numeric', year: 'numeric' });
+                                        matchDateFull = date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                                    } catch (e) {
+                                        matchDate = scheduledDate;
+                                        matchDateFull = scheduledDate;
+                                    }
+                                }
+                            }
+                            
+                            message;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching next match:', error);
+                }
+            }
+            
+            progressionDiv.textContent = message;
         }
     } else {
         progressionDiv.classList.add('eliminated');
@@ -298,8 +363,18 @@ function addQualificationStatus(groupStageSection, teamGroup, teamShortName, tea
     }) + 1;
     
     // Determine qualification status
+    // Top 2 teams automatically qualify, 3rd place teams can also qualify as best third-place teams
     const qualified = teamRank <= 2;
-    const qualificationText = qualified ? "made it" : "didn't make it";
+    const possibleQualified = teamRank === 3; // Third place teams might qualify
+    
+    let qualificationText;
+    if (qualified) {
+        qualificationText = "made it";
+    } else if (possibleQualified) {
+        qualificationText = "could make it as one of the best third-place teams";
+    } else {
+        qualificationText = "didn't make it";
+    }
     
     // Get rank ordinal (1st, 2nd, 3rd, 4th)
     const getRankOrdinal = (rank) => {
@@ -315,17 +390,19 @@ function addQualificationStatus(groupStageSection, teamGroup, teamShortName, tea
     // Add qualified or eliminated class
     if (qualified) {
         qualificationDiv.classList.add('qualified');
+    } else if (possibleQualified) {
+        qualificationDiv.classList.add('qualified'); // Third place still has a chance
     } else {
         qualificationDiv.classList.add('eliminated');
     }
     
-    qualificationDiv.textContent = `${teamFullName} finished ${getRankOrdinal(teamRank)} and ${qualificationText} to the Round of 16`;
+    qualificationDiv.textContent = `${teamFullName} finished ${getRankOrdinal(teamRank)} and ${qualificationText} to the Round of 32`;
     
     // Add it to the group stage section
     groupStageSection.appendChild(qualificationDiv);
 }
 
-function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey, team1Id, team2Id, myTeam, countryMap, myTeamIsLeft = null) {
+function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey, team1Id, team2Id, myTeam, countryMap, myTeamIsLeft = null, groupId = null, matchday = null) {
     const row = document.createElement('tr');
     
     // Get full team names and flag codes
@@ -385,14 +462,27 @@ function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey
         resultClass = 'pending';
     }
     
-    // Format date if available
+    // Get date from existing match or from schedule
     let dateDisplay = 'TBD';
-    if (matchData && matchData.date) {
+    let dateTitle = '';
+    const matchDate = matchData?.date || (groupId && matchday ? matchSchedule[groupId]?.[matchday] : null);
+    if (matchDate) {
         try {
-            const date = new Date(matchData.date);
-            dateDisplay = date.toLocaleDateString();
+            const date = new Date(matchDate);
+            dateDisplay = date.toLocaleDateString('en-UK', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+            dateTitle = date.toLocaleDateString('en-UK', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
         } catch (e) {
-            dateDisplay = matchData.date;
+            dateDisplay = matchDate;
+            dateTitle = matchDate;
         }
     }
     
@@ -415,7 +505,7 @@ function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey
                 ${team2FullName}
             </div>
         </td>
-        <td data-label="Date">${dateDisplay}</td>
+        <td data-label="Date" title="${dateTitle}">${dateDisplay}</td>
     `;
     
     return row;
@@ -509,17 +599,9 @@ async function loadKnockoutFixtures(teamName, countryMap) {
     ];
 
     const teamShortName = getTeamShortName(teamName, countryMap);
-    
-    // Check if all group stage matches have been completed
-    const groupStageComplete = await hasCompletedAllGroupStageMatches(teamName, countryMap);
 
     for (const stage of stages) {
         try {
-            // Skip Round of 16 if not all group stage matches have been played
-            if (stage.stageName === 'Round of 16' && !groupStageComplete) {
-                continue;
-            }
-            
             // Get the matches document for this stage
             const docRef = await db.collection(stage.collection).doc(stage.docId).get();
             const section = document.getElementById(stage.sectionId);
@@ -530,7 +612,9 @@ async function loadKnockoutFixtures(teamName, countryMap) {
                 const data = docRef.data();
                 const matches = data.matches || [];
 
-                matches.forEach((matchData, index) => {
+                for (let index = 0; index < matches.length; index++) {
+                    const matchData = matches[index];
+                    
                     // Check if this match involves our team (actual or potential)
                     const team1 = matchData.team1;
                     const team2 = matchData.team2;
@@ -546,6 +630,14 @@ async function loadKnockoutFixtures(teamName, countryMap) {
                         hasMatches = true;
                         // Use just the stage name without match numbers
                         const matchId = stage.stageName;
+                        
+                        // Get scheduled date from knockout match schedule
+                        let scheduledDate = null;
+                        if (knockoutMatchSchedule[stage.stageName]) {
+                            const matchKey = `match${index + 1}`;
+                            scheduledDate = knockoutMatchSchedule[stage.stageName][matchKey];
+                        }
+                        
                         const row = createKnockoutFixtureRow(
                             matchId,
                             team1,
@@ -554,16 +646,17 @@ async function loadKnockoutFixtures(teamName, countryMap) {
                             teamShortName,
                             countryMap,
                             stage.stageName,
-                            isActualParticipant
+                            isActualParticipant,
+                            scheduledDate
                         );
                         tableBody.appendChild(row);
                         
                         // Check if match is completed and add progression status
                         if (isActualParticipant && matchData.winner) {
-                            addKnockoutProgressionStatus(section, matchData, teamShortName, teamName, stage.stageName);
+                            await addKnockoutProgressionStatus(section, matchData, teamShortName, teamName, stage.stageName, countryMap);
                         }
                     }
-                });
+                }
             }
 
             if (hasMatches) {
@@ -618,7 +711,7 @@ function checkPotentialParticipation(team1, team2, teamShortName, teamFullName) 
     return isPlaceholder || isQuarterFinalProgression;
 }
 
-function createKnockoutFixtureRow(matchInfo, team1, team2, matchData, myTeam, countryMap, stageName, isActualParticipant) {
+function createKnockoutFixtureRow(matchInfo, team1, team2, matchData, myTeam, countryMap, stageName, isActualParticipant, scheduledDate = null) {
     const row = document.createElement('tr');
     
     // Handle team names and flags
@@ -641,7 +734,7 @@ function createKnockoutFixtureRow(matchInfo, team1, team2, matchData, myTeam, co
     }
     
     // Determine result display - handle knockout format (regularTime scores)
-    let resultDisplay = 'TBD';
+    let resultDisplay = 'vs';
     let resultClass = 'pending';
     
     // Check for regular time scores first
@@ -724,12 +817,25 @@ function createKnockoutFixtureRow(matchInfo, team1, team2, matchData, myTeam, co
     
     // Format date if available
     let dateDisplay = 'TBD';
+    let dateTitle = '';
     if (matchData.date) {
         try {
             const date = new Date(matchData.date);
-            dateDisplay = date.toLocaleDateString();
+            dateDisplay = date.toLocaleDateString('en-UK', { month: 'short', day: 'numeric', year: 'numeric' });
+            dateTitle = date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
         } catch (e) {
             dateDisplay = matchData.date;
+            dateTitle = matchData.date;
+        }
+    } else if (scheduledDate) {
+        // Use scheduled date from knockout match schedule as fallback
+        try {
+            const date = new Date(scheduledDate);
+            dateDisplay = date.toLocaleDateString('en-UK', { month: 'short', day: 'numeric', year: 'numeric' });
+            dateTitle = date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        } catch (e) {
+            dateDisplay = scheduledDate;
+            dateTitle = scheduledDate;
         }
     }
     
@@ -756,7 +862,7 @@ function createKnockoutFixtureRow(matchInfo, team1, team2, matchData, myTeam, co
                 ${team2Display}
             </div>
         </td>
-        <td data-label="Date">${dateDisplay}</td>
+        <td data-label="Date" title="${dateTitle}">${dateDisplay}</td>
     `;
     
     return row;
@@ -772,7 +878,7 @@ function createFixtureRow(matchInfo, team1, team2, matchData, myTeam, countryMap
     const team2FlagCode = countryMap[team2]?.flagCode || 'unknown';
     
     // Determine result display
-    let resultDisplay = 'TBD';
+    let resultDisplay = 'vs';
     let resultClass = 'pending';
     
     if (matchData.leftScore !== undefined && matchData.rightScore !== undefined) {
@@ -795,12 +901,15 @@ function createFixtureRow(matchInfo, team1, team2, matchData, myTeam, countryMap
     
     // Format date if available
     let dateDisplay = 'TBD';
+    let dateTitle = '';
     if (matchData.date) {
         try {
             const date = new Date(matchData.date);
-            dateDisplay = date.toLocaleDateString();
+            dateDisplay = date.toLocaleDateString('en-UK', { month: 'short', day: 'numeric', year: 'numeric' });
+            dateTitle = date.toLocaleDateString('en-UK', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
         } catch (e) {
             dateDisplay = matchData.date;
+            dateTitle = matchData.date;
         }
     }
     
@@ -823,7 +932,7 @@ function createFixtureRow(matchInfo, team1, team2, matchData, myTeam, countryMap
                 ${team2FullName}
             </div>
         </td>
-        <td data-label="Date">${dateDisplay}</td>
+        <td data-label="Date" title="${dateTitle}">${dateDisplay}</td>
     `;
     
     return row;

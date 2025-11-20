@@ -92,7 +92,7 @@ h1 {
     display: grid;
     grid-template-columns: repeat(6, 1fr); /* 6 columns for layout */
     gap: 20px;
-    padding: 20px;
+    padding: 10px 20px 20px 20px;
 }
 
 #tables-container,
@@ -103,6 +103,67 @@ h1 {
     gap: 20px;
     padding: 20px;
     justify-content: center; /* Center the columns horizontally */
+}
+
+/* Third Place Teams Container */
+#third-place-standings-container {
+    grid-column: 2 / 6; /* Match fixtures container alignment - columns 2-6 */
+    margin: 30px 0;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#third-place-standings-container h2 {
+    text-align: center;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+.third-place-info {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+#third-place-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto;
+}
+
+#third-place-table thead {
+    background-color: #4CAF50;
+    color: black;
+}
+
+#third-place-table th,
+#third-place-table td {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+#third-place-table tbody tr:nth-child(-n+8) {
+    background-color: #e8f5e9; /* Highlight top 8 qualified teams */
+}
+
+#third-place-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+#third-place-table .team-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+#third-place-table .fi {
+    border: 2px solid #ccc;
+    border-radius: 4px;
 }
 
 /* Fixtures container layout */
@@ -122,6 +183,11 @@ h1 {
     border-radius: 5px;
     background-color: #f9f9f9;
     white-space: nowrap;
+}
+
+.group-container h2 {
+    margin-top: 10px;
+    margin-bottom: 20px;
 }
 
 /* Table styling */
@@ -249,6 +315,10 @@ button#logout-button:hover {
         justify-content: center; /* Center the columns horizontally */
     }
 
+    #third-place-standings-container {
+        grid-column: 2 / span 4; /* Match fixtures width */
+    }
+
     /* Fixtures container layout */
     #fixtures-container {
         grid-column: 2 / span 4; /* Fixtures take up columns 2-5 */
@@ -269,6 +339,10 @@ button#logout-button:hover {
         gap: 20px;
         padding: 20px;
         justify-content: center; /* Center the columns horizontally */
+    }
+
+    #third-place-standings-container {
+        grid-column: 2 / span 4; /* Match fixtures width */
     }
 
     /* Fixtures container layout */
@@ -294,13 +368,78 @@ button#logout-button:hover {
         margin: 0;
     }
 
+    .main-container {
+        padding: 0 10px; /* Minimal side padding for spacing */
+    }
+
     #tables-container {
         grid-column: 1 / span 6; /* Full width for smaller screens */
-        grid-template-columns: 1fr; /* Single column for groups */
+        grid-template-columns: 1fr; /* Single column - one group per row */
+        gap: 15px;
+        padding: 0 10px; /* Side padding for spacing */
+    }
+
+    .group-container {
+        white-space: normal; /* Allow text wrapping on mobile */
+        padding: 15px; /* Consistent padding inside containers */
+        width: 100%;
+        margin: 0 auto; /* Center the container */
+        box-sizing: border-box; /* Include padding in width calculation */
+    }
+
+    .group-container h2 {
+        font-size: 18px;
+        margin: 0 0 10px 0;
+    }
+
+    .group-container table {
+        font-size: 12px;
+        width: 100%;
+    }
+
+    .group-container th,
+    .group-container td {
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+
+    .country-container {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    #third-place-standings-container {
+        grid-column: 1 / span 6; /* Full width for smaller screens */
+        padding: 15px; /* Consistent padding with group containers */
+        margin: 20px 10px;
+        box-sizing: border-box; /* Include padding in width calculation */
+    }
+
+    #third-place-table {
+        width: 100%;
+        font-size: 10px;
+    }
+
+    #third-place-table th,
+    #third-place-table td {
+        padding: 4px 2px;
+        font-size: 10px;
+    }
+
+    #third-place-standings-container h2 {
+        font-size: 18px;
+    }
+
+    .third-place-info {
+        font-size: 12px;
     }
 
     #fixtures-container {
         grid-column: 1 / span 6; /* Full width for fixtures */
+        padding: 15px; /* Consistent padding with other containers */
+        margin: 0 10px;
+        box-sizing: border-box; /* Include padding in width calculation */
     }
 
     /* Make the fixture table responsive */
@@ -319,6 +458,18 @@ button#logout-button:hover {
 
     #fixtures-container th {
         text-align: center;
+    }
+
+    /* Hide Submit button column on mobile (only present when logged in) */
+    #fixtures-container th:last-child:not(:nth-last-child(1)),
+    #fixtures-container td:last-child:not(:nth-last-child(1)) {
+        display: none;
+    }
+    
+    /* When there are 7 columns (logged in), hide the 7th column (submit button) */
+    #fixtures-container tr:has(th:nth-child(7)) th:nth-child(7),
+    #fixtures-container tr:has(td:nth-child(7)) td:nth-child(7) {
+        display: none;
     }
 
     .score-input {

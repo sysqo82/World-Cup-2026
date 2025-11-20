@@ -56,6 +56,37 @@ export async function clearDB() {
     }
 
     console.log('Database cleared successfully.');
+
+    // Reset knockout stage collections to initial state
+    console.log('Resetting knockout stage collections...');
+    
+    const knockoutCollections = [
+      'roundOf32Teams',
+      'roundOf16Teams', 
+      'quarterFinalsTeams',
+      'semiFinalsTeams',
+      'thirdPlacePlayoffTeams',
+      'finalTeams'
+    ];
+
+    for (const collectionName of knockoutCollections) {
+      try {
+        const docRef = db.collection(collectionName).doc('matches');
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+          // Clear all matches - set to empty array
+          await docRef.set({ matches: [] });
+          console.log(`Cleared ${collectionName} - set to empty matches array`);
+        } else {
+          console.log(`${collectionName} does not exist, skipping...`);
+        }
+      } catch (error) {
+        console.error(`Error resetting ${collectionName}:`, error);
+      }
+    }
+
+    console.log('All knockout stages reset to initial state.');
   } catch (error) {
     console.error('Error clearing database:', error);
   }
