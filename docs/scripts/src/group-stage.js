@@ -22,6 +22,7 @@ db.collection('groups').onSnapshot(async snapshot => {
 
     createTables(groups);
     populateTables(groups, countryMap);
+    updateThirdPlaceStandings(groups, countryMap);
     generateFixtures(groups, countryMap);
 }, err => {
     console.error('Error fetching groups:', err);
@@ -125,6 +126,80 @@ function populateTables(groups, countryMap) {
                 });
             }
         }
+    });
+}
+
+function updateThirdPlaceStandings(groups, countryMap) {
+    const thirdPlaceTeams = [];
+    
+    groups.forEach(group => {
+        if (group.teams && typeof group.teams === 'object') {
+            const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
+                id,
+                name: team.name || 'Unknown',
+                played: team.P || 0,
+                wins: team.W || 0,
+                draws: team.D || 0,
+                losses: team.L || 0,
+                goalsScored: team.goalsScored || 0,
+                goalsReceived: team.goalsReceived || 0,
+                points: (team.W || 0) * 3 + (team.D || 0),
+                goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
+            })).sort((a, b) => {
+                return (
+                    b.points - a.points ||
+                    b.goalDifference - a.goalDifference ||
+                    b.goalsScored - a.goalsScored
+                );
+            });
+            
+            // Get the 3rd place team (index 2)
+            if (sortedTeams.length >= 3) {
+                const thirdPlace = sortedTeams[2];
+                thirdPlaceTeams.push({
+                    ...thirdPlace,
+                    groupName: group.name
+                });
+            }
+        }
+    });
+    
+    // Sort third place teams by FIFA rules: points, goal difference, goals scored
+    thirdPlaceTeams.sort((a, b) => {
+        return (
+            b.points - a.points ||
+            b.goalDifference - a.goalDifference ||
+            b.goalsScored - a.goalsScored
+        );
+    });
+    
+    // Populate the third place table
+    const tableBody = document.querySelector('#third-place-table tbody');
+    tableBody.innerHTML = '';
+    
+    thirdPlaceTeams.forEach((team, index) => {
+        const row = document.createElement('tr');
+        const { fullName: teamFullName, flagCode: teamFlagCode } = getCountryFullName(countryMap, team.name);
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${team.groupName.replace('Group ', '')}</td>
+            <td>
+                <div class="team-name">
+                    <span class="fi fi-${teamFlagCode}"></span>
+                    <span title="${teamFullName}">${team.name}</span>
+                </div>
+            </td>
+            <td>${team.played}</td>
+            <td>${team.wins}</td>
+            <td>${team.draws}</td>
+            <td>${team.losses}</td>
+            <td>${team.goalsScored}-${team.goalsReceived}</td>
+            <td>${team.goalDifference >= 0 ? '+' : ''}${team.goalDifference}</td>
+            <td><strong>${team.points}</strong></td>
+        `;
+        
+        tableBody.appendChild(row);
     });
 }
 

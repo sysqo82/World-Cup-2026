@@ -2,6 +2,7 @@ import { getMatchdayMatches } from '../src/group-stage.js';
 import { handleGroupStageScoreSubmission } from '../score-submissions/groups-stage.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { auth } from '../config/firebase-config.js';
+import { matchSchedule } from '../utils/match-schedule-constants.js';
 
 export async function generateFixtures(groups) {
     const stage = 'Group Stage';
@@ -38,6 +39,7 @@ export async function generateFixtures(groups) {
                     <th></th>
                     <th>Result</th>
                     <th></th>
+                    <th>Date</th>
                     ${isLoggedIn ? '<th></th>' : ''}
                 </tr>
             `;
@@ -63,6 +65,30 @@ export async function generateFixtures(groups) {
                             const team1FlagCode = countryMap[match.team1.name]?.flagCode || 'unknown';
                             const team2FlagCode = countryMap[match.team2.name]?.flagCode || 'unknown';
 
+                            // Get date from existing match or from schedule
+                            let dateDisplay = 'TBD';
+                            let dateTitle = '';
+                            const matchDate = existingMatch.date || matchSchedule[group.id]?.[matchday];
+                            if (matchDate) {
+                                try {
+                                    const date = new Date(matchDate);
+                                    dateDisplay = date.toLocaleDateString('en-UK', { 
+                                        month: 'short', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                    });
+                                    dateTitle = date.toLocaleDateString('en-UK', { 
+                                        weekday: 'long', 
+                                        month: 'long', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                    });
+                                } catch (e) {
+                                    dateDisplay = matchDate;
+                                    dateTitle = matchDate;
+                                }
+                            }
+
                             row.innerHTML = `
                                 <td>${matchNumber++}</td>
                                 <td>${group.name}</td>
@@ -79,6 +105,7 @@ export async function generateFixtures(groups) {
                                 <td class="team2" title="${team2FullName}">
                                    ${match.team2.name} <span class="fi fi-${team2FlagCode}"></span>
                                 </td>
+                                <td title="${dateTitle}">${dateDisplay}</td>
                                 ${isLoggedIn ? `
                                     <td><button class="submit-button" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
                                 ` : ''}

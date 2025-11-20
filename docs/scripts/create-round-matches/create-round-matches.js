@@ -3,6 +3,7 @@ import { handleRegularTimeSubmission } from '../score-submissions/regular-time.j
 import { handleExtraTimeSubmission } from '../score-submissions/extra-time.js';
 import { handlePenaltyShootoutsSubmission } from '../score-submissions/penalty-shootouts.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
+import { knockoutMatchSchedule } from '../utils/match-schedule-constants.js';
 
 export async function generateRoundMatches(selector, dataBase, round) {
     const container = document.querySelector(`${selector}`);
@@ -37,10 +38,29 @@ export async function generateRoundMatches(selector, dataBase, round) {
             return;
         }
 
-        matches.forEach((match) => {
+        matches.forEach((match, index) => {
+            // Get match date from schedule
+            let dateDisplay = '';
+            const matchKey = `match${index + 1}`;
+            const scheduledDate = knockoutMatchSchedule[round]?.[matchKey];
+            if (scheduledDate) {
+                try {
+                    const date = new Date(scheduledDate);
+                    dateDisplay = date.toLocaleDateString('en-UK', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                    });
+                } catch (e) {
+                    dateDisplay = scheduledDate;
+                }
+            }
+            
             const table = document.createElement('table');
             table.classList.add('match-table');
             table.innerHTML = `
+            ${dateDisplay ? `<tr class="date-row"><td colspan="${isLoggedIn ? 4 : 3}" style="text-align: center; font-weight: bold; background-color: #f0f0f0; padding: 8px;">${dateDisplay}</td></tr>` : ''}
             <tr>
                 <td class="team-name" data-team="team1" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team1).fullName}">
                     <span class="country-container">

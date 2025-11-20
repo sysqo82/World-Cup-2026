@@ -1,5 +1,6 @@
 import { db } from '../config/firebase-config.js';
 import { sendMatchEmails } from '../utils/email-notifications.js';
+import { matchSchedule } from '../utils/match-schedule-constants.js';
 
 export async function handleGroupStageScoreSubmission(event, stage) {
     const button = event.target;
@@ -30,8 +31,15 @@ export async function handleGroupStageScoreSubmission(event, stage) {
         const existingMatch = groupData.matchdays?.[matchday]?.[`${teamLeftId}_${teamRightId}`];
         const groupName = groupData['name'];
 
+        // Get the match date from schedule
+        const matchDate = matchSchedule[groupId]?.[matchday] || null;
+
         const updates = {
-            [`matchdays.${matchday}.${teamLeftId}_${teamRightId}`]: { leftScore, rightScore }
+            [`matchdays.${matchday}.${teamLeftId}_${teamRightId}`]: { 
+                leftScore, 
+                rightScore,
+                ...(matchDate && { date: matchDate })
+            }
         };
 
         if (!existingMatch) {

@@ -7,6 +7,7 @@ import { generateQuarterFinalsMatches } from './create-round-matches/admin-helpe
 import { generateSemiFinalsMatches } from './create-round-matches/admin-helper/generate-semi-finals.js';
 import { generateFinalMatch } from './create-round-matches/admin-helper/generate-final.js';
 import { generateThirdPlacePlayoffMatch } from './create-round-matches/admin-helper/generate-third-forth-playoff.js';
+import { populateMatchDates } from './create-round-matches/admin-helper/populate-match-dates.js';
 import { fetchCountryMap } from './utils/country-utils.js';
 
 // Store country map globally for easy access
@@ -108,7 +109,8 @@ function renderAdminContent(container) {
                 <!-- Teams will be dynamically displayed here -->
             </div>
             <div class="d-flex flex-column align-items-center">
-                <button id="clear-db" class="submit-button mb-2">Clear Group Stage</button>
+                <button id="clear-db" class="submit-button mb-2">Clear DB</button>
+                <button id="populate-match-dates" class="submit-button mb-2">Populate Match Dates</button>
                 <button id="generate-round-of-32" class="submit-button mb-2">Generate Round of 32</button>
                 <button id="generate-round-of-16" class="submit-button mb-2">Generate Round of 16</button>
                 <button id="generate-quarter-finals" class="submit-button mb-2">Generate Quarter Finals</button>
@@ -142,6 +144,9 @@ function renderAdminContent(container) {
     // Attach event listeners for admin buttons
     document.getElementById('clear-db').addEventListener('click', async () => {
         clearDB();
+    });
+    document.getElementById('populate-match-dates').addEventListener('click', async () => {
+        populateMatchDates();
     });
     document.getElementById('generate-round-of-32').addEventListener('click', async () => {
         generateRoundOf32Matches();

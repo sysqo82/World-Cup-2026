@@ -24,8 +24,8 @@ export async function generateRoundOf16Matches() {
             // Extract winners from Round of 32 (should be 16 teams)
             const winners = roundOf32Matches.map(match => match.winner);
 
-            if (winners.length !== 32) {
-                alert(`Expected 32 winners from Round of 32, but found ${winners.length}. Please check the Round of 32 matches.`);
+            if (winners.length !== 16) {
+                alert(`Expected 16 winners from Round of 32, but found ${winners.length}. Please check the Round of 32 matches.`);
                 return;
             }
 
