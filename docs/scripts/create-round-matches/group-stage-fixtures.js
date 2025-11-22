@@ -1,18 +1,21 @@
 import { getMatchdayMatches } from '../src/group-stage.js';
 import { handleGroupStageScoreSubmission } from '../score-submissions/groups-stage.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
+import { matchInvolvesAssignedTeam } from '../utils/user-utils.js';
 import { auth } from '../config/firebase-config.js';
 import { matchSchedule } from '../utils/match-schedule-constants.js';
 
-export async function generateFixtures(groups) {
+export async function generateFixtures(groups, countryMap) {
     const stage = 'Group Stage';
     const fixturesContainer = document.getElementById('fixtures-container');
     fixturesContainer.innerHTML = ''; // Clear any existing fixtures
 
     const matchdays = ['matchday1', 'matchday2', 'matchday3'];
 
-    // Fetch the country map
-    const countryMap = await fetchCountryMap();
+    // Fetch the country map if not provided
+    if (!countryMap) {
+        countryMap = await fetchCountryMap();
+    }
 
     // Check if the user is logged in
     let isLoggedIn = false;
@@ -23,10 +26,10 @@ export async function generateFixtures(groups) {
         renderFixtures(); // Re-render fixtures when the auth state changes
     });
 
-    function renderFixtures() {
+    async function renderFixtures() {
         fixturesContainer.innerHTML = ''; // Clear the container before re-rendering
 
-        matchdays.forEach((matchday, index) => {
+        for (const [index, matchday] of matchdays.entries()) {
             const matchdayHeader = document.createElement('h2');
             matchdayHeader.textContent = `Matchday ${index + 1}`;
             fixturesContainer.appendChild(matchdayHeader);
@@ -46,7 +49,7 @@ export async function generateFixtures(groups) {
 
             let matchNumber = 1;
 
-            groups.forEach(group => {
+            for (const group of groups) {
                 if (group.teams && typeof group.teams === 'object') {
                     const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
                         id,
@@ -57,9 +60,15 @@ export async function generateFixtures(groups) {
                     if (sortedTeams.length >= 4) {
                         const matches = getMatchdayMatches(matchday, sortedTeams);
 
-                        matches.forEach(match => {
+                        for (const match of matches) {
                             const existingMatch = group.matchdays?.[matchday]?.[`${match.team1.id}_${match.team2.id}`] || {};
                             const row = document.createElement('tr');
+                            
+                            // Highlight row if assigned team is playing
+                            if (await matchInvolvesAssignedTeam(match.team1.name, match.team2.name)) {
+                                row.classList.add('assigned-team-highlight');
+                            }
+                            
                             const { fullName: team1FullName } = getCountryFullName(countryMap, match.team1.name);
                             const { fullName: team2FullName } = getCountryFullName(countryMap, match.team2.name);
                             const team1FlagCode = countryMap[match.team1.name]?.flagCode || 'unknown';
@@ -165,13 +174,13 @@ export async function generateFixtures(groups) {
                                     }
                                 });
                             }
-                        });
+                        }
                     }
                 }
-            });
+            }
 
             fixturesContainer.appendChild(matchdayTable);
-        });
+        }
     }
 
     // Initial render

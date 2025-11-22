@@ -2,7 +2,7 @@
 import { db } from '../config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { generateFixtures } from '../create-round-matches/group-stage-fixtures.js';
-import { getAssignedTeam, logoutUser } from '../utils/user-utils.js';
+import { getAssignedTeam, logoutUser, highlightIfAssignedTeam, shouldHighlightTeamAsync } from '../utils/user-utils.js';
 import { isAllowed, isRegistered } from "../navigation/navigation.js";
 
 // Check if the user is allowed in the site
@@ -10,6 +10,9 @@ await isRegistered();
 await isAllowed();
 
 document.getElementById('logout').addEventListener('click', logoutUser);
+
+// Fetch assigned team on page load
+await getAssignedTeam();
 
 db.collection('groups').onSnapshot(async snapshot => {
     const groups = snapshot.docs.map(doc => ({
@@ -21,9 +24,9 @@ db.collection('groups').onSnapshot(async snapshot => {
     const countryMap = await fetchCountryMap();
 
     createTables(groups);
-    populateTables(groups, countryMap);
-    updateThirdPlaceStandings(groups, countryMap);
-    generateFixtures(groups, countryMap);
+    await populateTables(groups, countryMap);
+    await updateThirdPlaceStandings(groups, countryMap);
+    await generateFixtures(groups, countryMap);
 }, err => {
     console.error('Error fetching groups:', err);
 });
@@ -54,8 +57,8 @@ function createTables(groups) {
     });
 }
 
-function populateTables(groups, countryMap) {
-    groups.forEach(group => {
+async function populateTables(groups, countryMap) {
+    for (const group of groups) {
         const tableId = group.name.replace(/[^a-zA-Z0-9_-]/g, '-');
         const table = document.querySelector(`#${tableId}-table`);
 
@@ -90,8 +93,11 @@ function populateTables(groups, countryMap) {
                     );
                 });
 
-                sortedTeams.forEach((team, index) => {
+                for (const [index, team] of sortedTeams.entries()) {
                     const row = table.insertRow();
+                    
+                    // Highlight row if this is the assigned team
+                    await highlightIfAssignedTeam(row, team.name);
 
                     const cellRank = row.insertCell(0);
                     cellRank.textContent = index + 1;
@@ -123,20 +129,23 @@ function populateTables(groups, countryMap) {
 
                     const cellPoints = row.insertCell(7);
                     cellPoints.textContent = team.points;
-                });
+                }
             }
         }
-    });
+    }
 }
 
-function updateThirdPlaceStandings(groups, countryMap) {
+async function updateThirdPlaceStandings(groups, countryMap) {
     const thirdPlaceTeams = [];
     
     groups.forEach(group => {
         if (group.teams && typeof group.teams === 'object') {
+            const matchesPlayed = Object.values(group.teams).some(team => team.P > 0);
+            
             const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
                 id,
                 name: team.name || 'Unknown',
+                initialRank: team['#'] || 0,
                 played: team.P || 0,
                 wins: team.W || 0,
                 draws: team.D || 0,
@@ -146,6 +155,9 @@ function updateThirdPlaceStandings(groups, countryMap) {
                 points: (team.W || 0) * 3 + (team.D || 0),
                 goalDifference: (team.goalsScored || 0) - (team.goalsReceived || 0)
             })).sort((a, b) => {
+                if (!matchesPlayed) {
+                    return a.initialRank - b.initialRank;
+                }
                 return (
                     b.points - a.points ||
                     b.goalDifference - a.goalDifference ||
@@ -177,8 +189,14 @@ function updateThirdPlaceStandings(groups, countryMap) {
     const tableBody = document.querySelector('#third-place-table tbody');
     tableBody.innerHTML = '';
     
-    thirdPlaceTeams.forEach((team, index) => {
+    for (const [index, team] of thirdPlaceTeams.entries()) {
         const row = document.createElement('tr');
+        
+        // Highlight row if this is the assigned team
+        if (await shouldHighlightTeamAsync(team.name)) {
+            row.classList.add('assigned-team-highlight');
+        }
+        
         const { fullName: teamFullName, flagCode: teamFlagCode } = getCountryFullName(countryMap, team.name);
         
         row.innerHTML = `
@@ -200,7 +218,7 @@ function updateThirdPlaceStandings(groups, countryMap) {
         `;
         
         tableBody.appendChild(row);
-    });
+    }
 }
 
 export function getMatchdayMatches(matchday, teams) {

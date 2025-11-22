@@ -2,6 +2,18 @@ import { db, registerUser, verifyLoginCodeURL } from "../config/firebase-config.
 import { sendVerificationEmail } from "./email-service.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
 import { basePath } from "../config/path-config.js";
+import { fetchCountryMap } from "./country-utils.js";
+
+// Cache for country map
+let countryMapCache = null;
+
+// Get or fetch country map
+async function getCountryMap() {
+    if (!countryMapCache) {
+        countryMapCache = await fetchCountryMap();
+    }
+    return countryMapCache;
+}
 
 // Utility function to set a cookie
 export function setCookie(name, value, days) {
@@ -382,6 +394,24 @@ async function resendVerificationCode(email, resendButton) {
 }
 
 // Search the DB for the assigned team according to the user email found in the cookie
+// Get assigned team from cookie (synchronous)
+export function getAssignedTeamFromCookie() {
+    const userDetails = getCookie('userDetails');
+    if (userDetails) {
+        try {
+            const userDetailsObj = JSON.parse(userDetails);
+            const team = userDetailsObj.assignedTeam || null;
+            console.log('Assigned team from cookie:', team);
+            return team;
+        } catch (error) {
+            console.error('Error parsing user details:', error);
+            return null;
+        }
+    }
+    return null;
+}
+
+// Fetch and display assigned team (updates UI and returns team name)
 export async function getAssignedTeam() {
     const userDetails = getCookie('userDetails');
     if (userDetails) {
@@ -395,7 +425,9 @@ export async function getAssignedTeam() {
                     assignedTeam = doc.data().team || null;
                 });
                 const winningTeam = document.getElementById('winning-team');
-                winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
+                if (winningTeam) {
+                    winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
+                }
                 const currentAssignedTeam = userDetailsObj.assignedTeam;
                 if (currentAssignedTeam !== assignedTeam) {
                     setCookie(
@@ -420,6 +452,131 @@ export async function getAssignedTeam() {
         console.warn('User details cookie not found.');
         return null;
     }
+}
+
+// Helper function to check if two team identifiers match (handles abbreviations and full names)
+async function teamsMatchAsync(team1, team2) {
+    if (!team1 || !team2) return false;
+    
+    const t1 = team1.trim().toUpperCase();
+    const t2 = team2.trim().toUpperCase();
+    
+    // Exact match
+    if (t1 === t2) {
+        console.log(`Exact match: ${team1} === ${team2}`);
+        return true;
+    }
+    
+    // Get country map for fuzzy matching
+    const countryMap = await getCountryMap();
+    
+    // Find abbreviation and full name for both teams
+    let team1Abbr = null;
+    let team1Full = null;
+    let team2Abbr = null;
+    let team2Full = null;
+    
+    // Check if team1 is an abbreviation or full name
+    if (countryMap[team1]) {
+        team1Abbr = team1;
+        team1Full = countryMap[team1].fullName.toUpperCase();
+    } else {
+        // Search for team1 in full names
+        for (const [abbr, data] of Object.entries(countryMap)) {
+            if (data.fullName.toUpperCase() === t1 || data.fullName.toUpperCase().includes(t1) || t1.includes(data.fullName.toUpperCase())) {
+                team1Abbr = abbr;
+                team1Full = data.fullName.toUpperCase();
+                break;
+            }
+        }
+    }
+    
+    // Check if team2 is an abbreviation or full name
+    if (countryMap[team2]) {
+        team2Abbr = team2;
+        team2Full = countryMap[team2].fullName.toUpperCase();
+    } else {
+        // Search for team2 in full names
+        for (const [abbr, data] of Object.entries(countryMap)) {
+            if (data.fullName.toUpperCase() === t2 || data.fullName.toUpperCase().includes(t2) || t2.includes(data.fullName.toUpperCase())) {
+                team2Abbr = abbr;
+                team2Full = data.fullName.toUpperCase();
+                break;
+            }
+        }
+    }
+    
+    // Compare abbreviations or full names
+    const match = (team1Abbr && team2Abbr && team1Abbr === team2Abbr) || 
+                  (team1Full && team2Full && team1Full === team2Full) ||
+                  (team1Abbr === t2) || (team2Abbr === t1);
+    
+    if (match) {
+        console.log(`Fuzzy match: ${team1} matches ${team2} (abbr: ${team1Abbr}/${team2Abbr}, full: ${team1Full}/${team2Full})`);
+    }
+    
+    return match;
+}
+
+// Synchronous version that checks basic matches
+function teamsMatchSync(team1, team2) {
+    if (!team1 || !team2) return false;
+    
+    const t1 = team1.trim().toUpperCase();
+    const t2 = team2.trim().toUpperCase();
+    
+    // Exact match
+    if (t1 === t2) return true;
+    
+    // Simple contains check
+    return t1.includes(t2) || t2.includes(t1);
+}
+
+// Helper function to check if a team should be highlighted
+export function shouldHighlightTeam(teamName) {
+    const assignedTeam = getAssignedTeamFromCookie();
+    
+    // Use synchronous check first for performance
+    const result = teamsMatchSync(assignedTeam, teamName);
+    console.log(`shouldHighlightTeam(${teamName}): assignedTeam=${assignedTeam}, result=${result}`);
+    
+    // If sync check fails, queue async check
+    if (!result && assignedTeam && teamName) {
+        teamsMatchAsync(assignedTeam, teamName).then(asyncResult => {
+            if (asyncResult) {
+                console.log(`Async fuzzy match found for ${teamName}`);
+                // Trigger re-render if needed
+                const event = new CustomEvent('teamMatchFound', { detail: { teamName } });
+                document.dispatchEvent(event);
+            }
+        });
+    }
+    
+    return result;
+}
+
+// Async version for use in async contexts
+export async function shouldHighlightTeamAsync(teamName) {
+    const assignedTeam = getAssignedTeamFromCookie();
+    const result = await teamsMatchAsync(assignedTeam, teamName);
+    console.log(`shouldHighlightTeamAsync(${teamName}): assignedTeam=${assignedTeam}, result=${result}`);
+    return result;
+}
+
+// Helper function to add highlight class to a row if it's the assigned team
+export async function highlightIfAssignedTeam(row, teamName) {
+    const shouldHighlight = await shouldHighlightTeamAsync(teamName);
+    if (shouldHighlight) {
+        row.classList.add('assigned-team-highlight');
+        console.log(`✓ Highlighted row for team: ${teamName}`);
+    }
+}
+
+// Helper function to check if a match involves the assigned team
+export async function matchInvolvesAssignedTeam(team1Name, team2Name) {
+    const result = (await shouldHighlightTeamAsync(team1Name)) || (await shouldHighlightTeamAsync(team2Name));
+    console.log(`matchInvolvesAssignedTeam(${team1Name}, ${team2Name}): ${result}`);
+    return result;
 }
 
 export async function logoutUser() {

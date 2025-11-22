@@ -154,6 +154,16 @@ h1 {
     background-color: #f5f5f5;
 }
 
+/* Highlight assigned team */
+.assigned-team-highlight {
+    background-color: #fff3cd !important; /* Light yellow highlight */
+    border-left: 4px solid #ffc107 !important; /* Yellow left border */
+}
+
+.assigned-team-highlight:hover {
+    background-color: #ffe69c !important; /* Slightly darker on hover */
+}
+
 #third-place-table .team-name {
     display: flex;
     align-items: center;
