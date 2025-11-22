@@ -164,6 +164,37 @@ h1 {
     background-color: #ffe69c !important; /* Slightly darker on hover */
 }
 
+/* Highlight advancing teams (top 2 in group) */
+.advancing-team {
+    background-color: #d4edda !important; /* Light green */
+    border-left: 4px solid #28a745 !important; /* Green left border */
+}
+
+.advancing-team:hover {
+    background-color: #c3e6cb !important; /* Slightly darker green on hover */
+}
+
+/* Highlight 3rd place team (potential advancement) */
+.third-place-team {
+    background-color: #ffe0b2 !important; /* Light orange */
+    border-left: 4px solid #ff9800 !important; /* Orange left border */
+}
+
+.third-place-team:hover {
+    background-color: #ffcc80 !important; /* Darker orange on hover */
+}
+
+/* Ensure assigned team highlight takes priority */
+.assigned-team-highlight.advancing-team {
+    background: linear-gradient(to right, #fff3cd 0%, #d4edda 100%) !important;
+    border-left: 4px solid #ffc107 !important;
+}
+
+.assigned-team-highlight.third-place-team {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+}
+
 #third-place-table .team-name {
     display: flex;
     align-items: center;

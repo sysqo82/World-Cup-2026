@@ -4,6 +4,7 @@ import { handleExtraTimeSubmission } from '../score-submissions/extra-time.js';
 import { handlePenaltyShootoutsSubmission } from '../score-submissions/penalty-shootouts.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { knockoutMatchSchedule } from '../utils/match-schedule-constants.js';
+import { shouldHighlightTeamAsync } from '../utils/user-utils.js';
 
 export async function generateRoundMatches(selector, dataBase, round) {
     const container = document.querySelector(`${selector}`);
@@ -38,7 +39,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
             return;
         }
 
-        matches.forEach((match, index) => {
+        matches.forEach(async (match, index) => {
             // Get match date from schedule
             let dateDisplay = '';
             const matchKey = `match${index + 1}`;
@@ -57,8 +58,16 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 }
             }
             
+            // Check if assigned team is in this match
+            const isTeam1Assigned = await shouldHighlightTeamAsync(match.team1);
+            const isTeam2Assigned = await shouldHighlightTeamAsync(match.team2);
+            const highlightMatch = isTeam1Assigned || isTeam2Assigned;
+            
             const table = document.createElement('table');
             table.classList.add('match-table');
+            if (highlightMatch) {
+                table.classList.add('assigned-team-highlight');
+            }
             table.innerHTML = `
             ${dateDisplay ? `<tr class="date-row"><td colspan="${isLoggedIn ? 4 : 3}" style="text-align: center; font-weight: bold; background-color: #f0f0f0; padding: 8px;">${dateDisplay}</td></tr>` : ''}
             <tr>

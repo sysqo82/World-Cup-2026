@@ -401,7 +401,6 @@ export function getAssignedTeamFromCookie() {
         try {
             const userDetailsObj = JSON.parse(userDetails);
             const team = userDetailsObj.assignedTeam || null;
-            console.log('Assigned team from cookie:', team);
             return team;
         } catch (error) {
             console.error('Error parsing user details:', error);
@@ -463,7 +462,6 @@ async function teamsMatchAsync(team1, team2) {
     
     // Exact match
     if (t1 === t2) {
-        console.log(`Exact match: ${team1} === ${team2}`);
         return true;
     }
     
@@ -511,10 +509,6 @@ async function teamsMatchAsync(team1, team2) {
                   (team1Full && team2Full && team1Full === team2Full) ||
                   (team1Abbr === t2) || (team2Abbr === t1);
     
-    if (match) {
-        console.log(`Fuzzy match: ${team1} matches ${team2} (abbr: ${team1Abbr}/${team2Abbr}, full: ${team1Full}/${team2Full})`);
-    }
-    
     return match;
 }
 
@@ -538,13 +532,11 @@ export function shouldHighlightTeam(teamName) {
     
     // Use synchronous check first for performance
     const result = teamsMatchSync(assignedTeam, teamName);
-    console.log(`shouldHighlightTeam(${teamName}): assignedTeam=${assignedTeam}, result=${result}`);
     
     // If sync check fails, queue async check
     if (!result && assignedTeam && teamName) {
         teamsMatchAsync(assignedTeam, teamName).then(asyncResult => {
             if (asyncResult) {
-                console.log(`Async fuzzy match found for ${teamName}`);
                 // Trigger re-render if needed
                 const event = new CustomEvent('teamMatchFound', { detail: { teamName } });
                 document.dispatchEvent(event);
@@ -559,7 +551,6 @@ export function shouldHighlightTeam(teamName) {
 export async function shouldHighlightTeamAsync(teamName) {
     const assignedTeam = getAssignedTeamFromCookie();
     const result = await teamsMatchAsync(assignedTeam, teamName);
-    console.log(`shouldHighlightTeamAsync(${teamName}): assignedTeam=${assignedTeam}, result=${result}`);
     return result;
 }
 
@@ -568,14 +559,12 @@ export async function highlightIfAssignedTeam(row, teamName) {
     const shouldHighlight = await shouldHighlightTeamAsync(teamName);
     if (shouldHighlight) {
         row.classList.add('assigned-team-highlight');
-        console.log(`✓ Highlighted row for team: ${teamName}`);
     }
 }
 
 // Helper function to check if a match involves the assigned team
 export async function matchInvolvesAssignedTeam(team1Name, team2Name) {
     const result = (await shouldHighlightTeamAsync(team1Name)) || (await shouldHighlightTeamAsync(team2Name));
-    console.log(`matchInvolvesAssignedTeam(${team1Name}, ${team2Name}): ${result}`);
     return result;
 }
 
