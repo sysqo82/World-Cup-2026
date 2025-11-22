@@ -1383,8 +1383,8 @@ img {
         grid-column: 1 / -1;
         grid-row: 3;
         text-align: center;
-        color: #666 !important; /* Ensure date text is visible */
-        font-size: 13px;
+        color: #333 !important; /* Ensure date text is visible */
+        font-size: 20px;
         margin-top: 15px;
         padding-top: 15px;
         border-top: 1px solid #e9ecef;
