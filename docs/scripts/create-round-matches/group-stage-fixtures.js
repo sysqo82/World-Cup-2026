@@ -5,6 +5,9 @@ import { matchInvolvesAssignedTeam } from '../utils/user-utils.js';
 import { auth } from '../config/firebase-config.js';
 import { matchSchedule } from '../utils/match-schedule-constants.js';
 
+let authListenerSetup = false;
+let isLoggedIn = false;
+
 export async function generateFixtures(groups, countryMap) {
     const stage = 'Group Stage';
     const fixturesContainer = document.getElementById('fixtures-container');
@@ -17,14 +20,13 @@ export async function generateFixtures(groups, countryMap) {
         countryMap = await fetchCountryMap();
     }
 
-    // Check if the user is logged in
-    let isLoggedIn = false;
-
-    // Listen for authentication state changes
-    auth.onAuthStateChanged(user => {
-        isLoggedIn = !!user;
-        renderFixtures(); // Re-render fixtures when the auth state changes
-    });
+    // Set up auth listener only once
+    if (!authListenerSetup) {
+        authListenerSetup = true;
+        auth.onAuthStateChanged(user => {
+            isLoggedIn = !!user;
+        });
+    }
 
     async function renderFixtures() {
         fixturesContainer.innerHTML = ''; // Clear the container before re-rendering
@@ -47,7 +49,7 @@ export async function generateFixtures(groups, countryMap) {
                 </tr>
             `;
 
-            let matchNumber = 1;
+            let matchNumber = (index * 24) + 1; // Start at 1, 25, 49 for each matchday
 
             for (const group of groups) {
                 if (group.teams && typeof group.teams === 'object') {
@@ -183,6 +185,6 @@ export async function generateFixtures(groups, countryMap) {
         }
     }
 
-    // Initial render
+    // Call renderFixtures directly instead of through auth listener
     renderFixtures();
 }

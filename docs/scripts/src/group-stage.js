@@ -98,6 +98,17 @@ async function populateTables(groups, countryMap) {
                     
                     // Highlight row if this is the assigned team
                     await highlightIfAssignedTeam(row, team.name);
+                    
+                    // Add position-based styling after 3 matches are played
+                    if (matchesPlayed && team.played === 3) {
+                        if (index === 0 || index === 1) {
+                            // Top 2 teams advance (green)
+                            row.classList.add('advancing-team');
+                        } else if (index === 2) {
+                            // 3rd place team (orange)
+                            row.classList.add('third-place-team');
+                        }
+                    }
 
                     const cellRank = row.insertCell(0);
                     cellRank.textContent = index + 1;
