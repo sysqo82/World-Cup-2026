@@ -102,8 +102,8 @@ JPN	Japan	jp
 JOR	Jordan	jo
 KAZ	Kazakhstan	kz
 KEN	Kenya	ke
-PRK	Korea DPR (North Korea)	kp
-KOR	Korea Republic (South Korea)	kr
+PRK	North Korea	kp
+KOR	South Korea	kr
 KOS	Kosovo	xk
 KUW	Kuwait	kw
 KGZ	Kyrgyz Republic	kg
@@ -162,7 +162,7 @@ RUS	Russia	ru
 RWA	Rwanda	rw
 SKN	Saint Kitts and Nevis	kn
 LCA	Saint Lucia	lc
-VIN	Saint Vincent and the Grenadines	vc
+VIN	St. Vincent & the Grenadines	vc
 SAM	Samoa	ws
 SMR	San Marino	sm
 STP	São Tomé and Príncipe	st

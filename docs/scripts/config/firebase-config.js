@@ -14,13 +14,11 @@ const firebaseConfig = {
     verifyLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/verifyLoginCode",
 
     // Local development URLs
-    /*
-    registerUser: "http://localhost:5001/world-cup-2026-b1fda/us-central1/registerUser",
-    sendEmailURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/sendEmail",
-    setAdminRoleURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/setAdminRole",
-    requestLoginCodeURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/requestLoginCode",
-    verifyLoginCodeURL: "http://localhost:5001/world-cup-2026-b1fda/us-central1/verifyLoginCode",
-    */
+    // registerUser: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/registerUser",
+    // sendEmailURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/sendEmail",
+    // setAdminRoleURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/setAdminRole",
+    // requestLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/requestLoginCode",
+    // verifyLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/verifyLoginCode",
 };
 
 // Initialize Firebase
