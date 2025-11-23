@@ -142,6 +142,7 @@ NCA	Nicaragua	ni
 NIG	Niger	ne
 NGA	Nigeria	ng
 MKD	North Macedonia	mk
+NOR	Norway	no
 SCO	Scotland	gb-sct
 WAL	Wales	gb-wls
 OMA	Oman	om
