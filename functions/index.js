@@ -1,5 +1,6 @@
 import { google } from "googleapis";
-import { https, firestore } from "firebase-functions";
+import { onRequest } from "firebase-functions/v2/https";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import pkg from "firebase-admin";
 import cors from "cors";
 import { readFileSync } from "fs";
@@ -30,7 +31,7 @@ const serviceApp = pkg.initializeApp(
 );
 const serviceFirestore = serviceApp.firestore();
 
-export const registerUser = https.onRequest((req, res) => {
+export const registerUser = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
     if (!origin || !allowedOrigins.includes(origin)) {
@@ -111,7 +112,7 @@ oAuth2Client.setCredentials({
   refresh_token: refresh_token,
 });
 
-export const sendEmail = https.onRequest((req, res) => {
+export const sendEmail = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
     if (!origin || !allowedOrigins.includes(origin)) {
@@ -344,7 +345,7 @@ export const sendEmail = https.onRequest((req, res) => {
   });
 });
 
-export const verifyLoginCode = https.onRequest((req, res) => {
+export const verifyLoginCode = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
     if (!origin || !allowedOrigins.includes(origin)) {
@@ -420,7 +421,7 @@ export const verifyLoginCode = https.onRequest((req, res) => {
   });
 });
 
-export const setAdminRole = https.onRequest((req, res) => {
+export const setAdminRole = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
     if (!origin || !allowedOrigins.includes(origin)) {
@@ -469,7 +470,7 @@ export const setAdminRole = https.onRequest((req, res) => {
 });
 
 // Firestore trigger to sync teams table when groups collection changes
-export const syncTeamsOnGroupsUpdate = firestore.document('groups/{groupId}').onWrite(async (change, context) => {
+export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", async (event) => {
   try {
     console.log('Groups collection changed, syncing teams table...');
     
