@@ -100,12 +100,15 @@ export function initializeHomepage() {
             contentPlaceholder.innerHTML = `
             <div id="prize-pot-container">
                 <h3>The prize pot stands on:</h3>
-                <div id="prize-pot-amount">${updatePrizePotCounter()}</div>
+                <div id="prize-pot-amount">Loading...</div>
             </div>
             <p>Welcome, ${userDetails.firstName} ${userDetails.lastName}!</p>
             <p>You've drawn <strong>${userDetails.assignedTeam}</strong> as your winning team</p>
             <p>Please use the navigation menu to access different sections of the site.</p>
             `;
+            
+            // Update prize pot after DOM is ready
+            updatePrizePotCounter();
         }
     }
 

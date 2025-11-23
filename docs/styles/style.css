@@ -1799,3 +1799,64 @@ img {
         opacity: 0.6 !important;
     }
 }
+
+/* Prize Pot Table Styling */
+.prize-pot-total {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #2c5aa0;
+}
+
+.prize-pot-table {
+    margin: 0 auto;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    max-width: 350px;
+}
+
+.prize-pot-table thead tr {
+    background: linear-gradient(135deg, #2c5aa0, #1e3d72);
+}
+
+.prize-pot-table thead th {
+    padding: 8px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+}
+
+.prize-pot-table thead th:first-child {
+    text-align: left;
+}
+
+.prize-pot-table thead th:last-child {
+    text-align: right;
+}
+
+.prize-pot-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.prize-pot-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.prize-pot-table tbody td {
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #000000 !important;
+}
+
+.prize-pot-table tbody td:first-child {
+    text-align: left;
+}
+
+.prize-pot-table tbody td:last-child {
+    text-align: right;
+    font-weight: bold;
+    color: #2c5aa0 !important;
+}
