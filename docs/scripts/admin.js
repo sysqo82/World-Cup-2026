@@ -322,9 +322,23 @@ function convertToCountryCode(input) {
         return exactMatch[0]; // Return the 3-letter code
     }
     
+    // Check if input matches alternative names in parentheses
+    const alternativeMatch = Object.entries(countryMap).find(
+        ([, details]) => {
+            const fullName = details.fullName.toLowerCase();
+            const parenMatch = fullName.match(/\(([^)]+)\)/);
+            return parenMatch && parenMatch[1] === lowerInput;
+        }
+    );
+    
+    if (alternativeMatch) {
+        return alternativeMatch[0]; // Return the 3-letter code
+    }
+    
     // Fuzzy search: normalize strings for comparison
     const normalizeString = (str) => {
-        return str.toLowerCase()
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .toLowerCase()
             .replace(/\s+/g, ' ') // Normalize whitespace
             .replace(/[^\w\s]/g, '') // Remove punctuation
             .trim();

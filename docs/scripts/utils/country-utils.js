@@ -26,6 +26,15 @@ export async function fetchCountryMap() {
 }
 
 /**
+ * Normalize a string by removing accents and diacritics.
+ * @param {string} str - The string to normalize.
+ * @returns {string} The normalized string.
+ */
+function normalizeString(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/**
  * Get the full name and flag code of a country based on its abbreviation or name.
  * @param {Object} countryMap - The map of abbreviations to country details.
  * @param {string} nameOrAbbreviation - The name or abbreviation of the country.
@@ -40,12 +49,48 @@ export function getCountryFullName(countryMap, nameOrAbbreviation) {
         };
     }
 
-    // Check if the input matches a full name
-    const country = Object.entries(countryMap).find(
+    const normalizedInput = normalizeString(nameOrAbbreviation);
+
+    // Check if the input matches a full name (exact match)
+    const exactMatch = Object.entries(countryMap).find(
         ([, details]) => details.fullName.toLowerCase() === nameOrAbbreviation.toLowerCase()
     );
 
-    return country
-        ? { fullName: country[1].fullName, flagCode: country[1].flagCode }
+    if (exactMatch) {
+        return { fullName: exactMatch[1].fullName, flagCode: exactMatch[1].flagCode };
+    }
+
+    // Check if the input matches a full name (normalized match for accented characters)
+    const normalizedMatch = Object.entries(countryMap).find(
+        ([, details]) => normalizeString(details.fullName) === normalizedInput
+    );
+
+    if (normalizedMatch) {
+        return { fullName: normalizedMatch[1].fullName, flagCode: normalizedMatch[1].flagCode };
+    }
+
+    // Check if input matches alternative names in parentheses
+    const alternativeMatch = Object.entries(countryMap).find(
+        ([, details]) => {
+            const fullName = details.fullName.toLowerCase();
+            const input = nameOrAbbreviation.toLowerCase();
+            
+            // Extract text within parentheses
+            const parenMatch = fullName.match(/\(([^)]+)\)/);
+            if (parenMatch && parenMatch[1] === input) {
+                return true;
+            }
+            
+            // Also check normalized version of parentheses content
+            if (parenMatch && normalizeString(parenMatch[1]) === normalizedInput) {
+                return true;
+            }
+            
+            return false;
+        }
+    );
+
+    return alternativeMatch
+        ? { fullName: alternativeMatch[1].fullName, flagCode: alternativeMatch[1].flagCode }
         : { fullName: "Unknown", flagCode: "unknown" };
 }

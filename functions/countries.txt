@@ -35,7 +35,7 @@ BDI	Burundi	bi
 CAM	Cambodia	kh
 CMR	Cameroon	cm
 CAN	Canada	ca
-CPV	Cape Verde	cv
+CPV	Cape Verde (Cabo Verde)	cv
 CAY	Cayman Islands	ky
 CTA	Central African Republic	cf
 CHA	Chad	td
@@ -177,7 +177,7 @@ SVK	Slovakia	sk
 SVN	Slovenia	si
 SOL	Solomon Islands	sb
 SOM	Somalia	so
-RSA	South Africa	zaf
+RSA	South Africa	za
 SSD	South Sudan	ss
 ESP	Spain	es
 SRI	Sri Lanka	lk
@@ -211,3 +211,4 @@ VIR	US Virgin Islands	vi
 YEM	Yemen	ye
 ZAM	Zambia	zm
 ZIM	Zimbabwe	zw
+TBD	To be decided	xx
