@@ -87,6 +87,23 @@ export async function clearDB() {
     }
 
     console.log('All knockout stages reset to initial state.');
+
+    // Reset all team assignments to false
+    console.log('Resetting team assignments...');
+    try {
+      const teamsSnapshot = await db.collection('teams').get();
+      const batch = db.batch();
+      
+      teamsSnapshot.forEach(doc => {
+        batch.update(doc.ref, { assigned: false });
+      });
+      
+      await batch.commit();
+      console.log(`Reset ${teamsSnapshot.size} teams to unassigned state.`);
+    } catch (error) {
+      console.error('Error resetting team assignments:', error);
+    }
+
   } catch (error) {
     console.error('Error clearing database:', error);
   }
