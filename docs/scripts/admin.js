@@ -1,6 +1,7 @@
 // Import Firebase configuration and services
 import { db, auth, setAdminRoleURL } from '../scripts/config/firebase-config.js';
 import { clearDB } from './create-round-matches/admin-helper/clear-db.js';
+import { decryptTeamName } from './utils/team-encryption.js';
 import { generateRoundOf32Matches } from './create-round-matches/admin-helper/generate-round-of-32.js';
 import { generateRoundOf16Matches } from './create-round-matches/admin-helper/generate-round-of-16.js';
 import { generateQuarterFinalsMatches } from './create-round-matches/admin-helper/generate-quarter-finals.js';
@@ -469,9 +470,13 @@ function convertToCountryCode(input) {
 
                             // Update the team's assigned flag to false
                             if (user.team) {
-                                db.collection('teams')
-                                    .where('fullName', '==', user.team) // Find the team by name
-                                    .get()
+                                // Decrypt the team name first
+                                decryptTeamName(user.team)
+                                    .then(decryptedTeamName => {
+                                        return db.collection('teams')
+                                            .where('fullName', '==', decryptedTeamName) // Find the team by decrypted name
+                                            .get();
+                                    })
                                     .then(teamSnapshot => {
                                         if (!teamSnapshot.empty) {
                                             teamSnapshot.forEach(teamDoc => {
@@ -483,19 +488,20 @@ function convertToCountryCode(input) {
                                                     loadRegisteredUsers(); // Refresh the "Registered Users" table
                                                 })
                                                 .catch(err => {
-                                                    console.error(`Error updating team ${user.team}:`, err);
+                                                    console.error(`Error updating team:`, err);
                                                     alert('Failed to update team assignment. Please try again.');
                                                 });
                                             });
                                         } else {
-                                            console.warn(`No team found with name ${user.team}.`);
+                                            console.warn(`No team found for user's assigned team.`);
                                             alert(`User with email ${email} deleted successfully.`);
                                             loadRegisteredUsers(); // Refresh the "Registered Users" table
                                         }
                                     })
                                     .catch(err => {
-                                        console.error('Error querying team by name:', err);
-                                        alert('Failed to update team assignment. Please try again.');
+                                        console.error('Error decrypting team name or querying team:', err);
+                                        alert(`User deleted but failed to update team assignment.`);
+                                        loadRegisteredUsers();
                                     });
                             } else {
                                 console.warn('User has no assigned team.');
