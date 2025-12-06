@@ -3,6 +3,7 @@ import { sendVerificationEmail } from "./email-service.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
 import { basePath } from "../config/path-config.js";
 import { fetchCountryMap } from "./country-utils.js";
+import { decryptTeamName } from "./team-encryption.js";
 
 // Cache for country map
 let countryMapCache = null;
@@ -315,6 +316,9 @@ async function handleVerificationSubmission(email, verifyButton) {
 
         // Handle successful verification based on payment status
         if (userData.hasPaid === true) {
+            // Decrypt the team name before storing
+            const decryptedTeam = await decryptTeamName(userData.team);
+            
             alert(`Welcome back ${userData.firstName}! Your payment has been approved, you can now access the site.`);
             // Set the cookie with user details from the database
             setCookie(
@@ -324,7 +328,7 @@ async function handleVerificationSubmission(email, verifyButton) {
                     lastName: userData.lastName,
                     email: userData.email,
                     hasPaid: userData.hasPaid,
-                    assignedTeam: userData.team
+                    assignedTeam: decryptedTeam
                 }),
                 30
             );
@@ -426,22 +430,26 @@ export async function getAssignedTeam() {
                 snapshot.forEach(doc => {
                     assignedTeam = doc.data().team || null;
                 });
+                
+                // Decrypt the team name
+                const decryptedTeam = await decryptTeamName(assignedTeam);
+                
                 const winningTeam = document.getElementById('winning-team');
                 if (winningTeam) {
-                    winningTeam.innerHTML = `<strong>${assignedTeam || "No team assigned yet"}</strong>`;
+                    winningTeam.innerHTML = `<strong>${decryptedTeam || "No team assigned yet"}</strong>`;
                 }
                 const currentAssignedTeam = userDetailsObj.assignedTeam;
-                if (currentAssignedTeam !== assignedTeam) {
+                if (currentAssignedTeam !== decryptedTeam) {
                     setCookie(
                         "userDetails",
                         JSON.stringify({
                             ...userDetailsObj,
-                            assignedTeam: assignedTeam || "No team assigned yet"
+                            assignedTeam: decryptedTeam || "No team assigned yet"
                         }),
                         30
                     );
                 }
-                return assignedTeam;
+                return decryptedTeam;
             } else {
                 console.warn('No user found with this email.');
                 return null;
