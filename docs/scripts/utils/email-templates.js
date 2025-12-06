@@ -1,5 +1,6 @@
 import { db } from '../config/firebase-config.js';
 import { fetchCountryMap } from './country-utils.js';
+import { decryptTeamName } from './team-encryption.js';
 
 export class EmailTemplate {
 constructor(winner, loser, matchId, stage) {
@@ -17,19 +18,35 @@ constructor(winner, loser, matchId, stage) {
       console.error(`No country found for abbreviation: ${teamAbbreviation}`);
       return null;
     }
+    
+    // Fetch all users since team names are encrypted
     const usersRef = db.collection('users');
-    const snapshot = await usersRef.where('team', '==', teamFullName).get();
+    const snapshot = await usersRef.get();
+    
     if (snapshot.empty) {
-      console.warn(`No user found for country: ${teamFullName}`);
+      console.warn(`No users found in database`);
       return null;
     }
-    let teamEmail = null;
-    let teamsOwnerName = null;
-    snapshot.forEach(doc => {
-      teamEmail = doc.data().email;
-      teamsOwnerName = doc.data().firstName;
-    });
-    return { teamEmail, teamsOwnerName };
+    
+    // Decrypt and compare each team name
+    for (const doc of snapshot.docs) {
+      const userData = doc.data();
+      const encryptedTeam = userData.team;
+      
+      if (encryptedTeam) {
+        const decryptedTeam = await decryptTeamName(encryptedTeam);
+        
+        if (decryptedTeam === teamFullName) {
+          return {
+            teamEmail: userData.email,
+            teamsOwnerName: userData.firstName
+          };
+        }
+      }
+    }
+    
+    console.warn(`No user found for country: ${teamFullName}`);
+    return null;
   }
   // Fetch emails for both winner and loser
   async fetchEmailAndOwnersName() {

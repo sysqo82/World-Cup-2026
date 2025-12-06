@@ -4,11 +4,37 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import pkg from "firebase-admin";
 import cors from "cors";
 import { readFileSync } from "fs";
+import crypto from "crypto";
 
 const { firestore: firestoreAdmin, auth: _auth } = pkg;
 
 const credentials = JSON.parse(readFileSync("./credentials.json"));
 const allowedOrigins = credentials.allowedOrigins.origin;
+
+// Encryption configuration
+const ENCRYPTION_KEY = credentials.encryptionKey || process.env.TEAM_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const ALGORITHM = 'aes-256-cbc';
+
+// Encryption helper functions
+function encryptTeamName(teamName) {
+  const key = Buffer.from(ENCRYPTION_KEY.substring(0, 64), 'hex');
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(teamName, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+function decryptTeamName(encryptedTeam) {
+  const key = Buffer.from(ENCRYPTION_KEY.substring(0, 64), 'hex');
+  const parts = encryptedTeam.split(':');
+  const iv = Buffer.from(parts[0], 'hex');
+  const encryptedText = parts[1];
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
 
 pkg.initializeApp();
 const corsHandler = cors({
@@ -83,7 +109,7 @@ export const registerUser = onRequest((req, res) => {
         firstName,
         lastName,
         email: normalizedEmail,
-        team: selectedTeam.fullName,
+        team: encryptTeamName(selectedTeam.fullName),
         index: nextIndex,
         hasPaid: 'Pending',
         allowUpdates: true,
@@ -613,4 +639,33 @@ export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", asy
     console.error('Error syncing teams table:', error);
     return null;
   }
+});
+
+// Export decrypt function for client use
+export const decryptTeam = onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid request');
+    }
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    const { encryptedTeam } = req.body;
+
+    if (!encryptedTeam) {
+      return res.status(400).send("Missing required field: encryptedTeam");
+    }
+
+    try {
+      const decrypted = decryptTeamName(encryptedTeam);
+      res.status(200).json({ teamName: decrypted });
+    } catch (error) {
+      res.status(500).send("Error decrypting team: " + error.message);
+    }
+  });
 });
