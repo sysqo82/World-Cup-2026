@@ -102,8 +102,8 @@ JPN	Japan	jp
 JOR	Jordan	jo
 KAZ	Kazakhstan	kz
 KEN	Kenya	ke
-PRK	North Korea	kp
-KOR	South Korea	kr
+PRK	Korea DPR (North Korea)	kp
+KOR	Korea Republic (South Korea)	kr
 KOS	Kosovo	xk
 KUW	Kuwait	kw
 KGZ	Kyrgyz Republic	kg
