@@ -189,12 +189,18 @@ export async function initializeHomepage() {
     // SECURITY FIX 1.2: Check user session server-side after event listeners are safely attached.
     // Event listeners are set up first so forms always work, even if this fetch hangs or fails.
     try {
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 5000);
+
         const statusResponse = await fetch(getUserStatusURL, {
             method: "POST",
             credentials: "include", // Include cookies in request
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}) // Session token in HttpOnly cookie
+            body: JSON.stringify({}), // Session token in HttpOnly cookie
+            signal: abortController.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (statusResponse.ok) {
             const userStatus = await statusResponse.json();
