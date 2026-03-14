@@ -140,8 +140,18 @@ export const registerUser = onRequest(async (req, res) => {
 
       await teamsRef.doc(selectedTeam.id).update({ assigned: true });
 
+      // Create a session immediately so the client can go straight to the payment screen
+      const sessionToken = generateSessionToken();
+      const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await serviceFirestore.collection("users").doc(normalizedEmail).update({
+        sessionToken: sessionToken,
+        sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
+      });
+
+      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Strict`);
       res.status(200).json({
         message: "User registered successfully.",
+        sessionToken: sessionToken,
       });
     } catch (error) {
       res.status(500).send("Error registering user: " + error.message);

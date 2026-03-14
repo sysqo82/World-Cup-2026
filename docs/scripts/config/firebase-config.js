@@ -7,20 +7,20 @@ const firebaseConfig = {
     messagingSenderId: "355932893733",
     appId: "1:355932893733:web:cb338ea08dc12705bf05cc",
     measurementId: "G-6QWWJLC2LM",
-    // registerUser: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/registerUser",
-    // sendEmailURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/sendEmail",
-    // setAdminRoleURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/setAdminRole",
-    // requestLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/requestLoginCode",
-    // verifyLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/verifyLoginCode",
-    // getUserStatusURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/getUserStatus",
+    registerUser: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/registerUser",
+    sendEmailURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/sendEmail",
+    setAdminRoleURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/setAdminRole",
+    requestLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/requestLoginCode",
+    verifyLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/verifyLoginCode",
+    getUserStatusURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/getUserStatus",
 
     // Local development URLs
-    registerUser: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/registerUser",
-    sendEmailURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/sendEmail",
-    setAdminRoleURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/setAdminRole",
-    requestLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/requestLoginCode",
-    verifyLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/verifyLoginCode",
-    getUserStatusURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/getUserStatus",
+    // registerUser: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/registerUser",
+    // sendEmailURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/sendEmail",
+    // setAdminRoleURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/setAdminRole",
+    // requestLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/requestLoginCode",
+    // verifyLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/verifyLoginCode",
+    // getUserStatusURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/getUserStatus",
 };
 
 // Initialize Firebase

@@ -14,6 +14,7 @@ function setSessionToken(token) {
 }
 function clearSessionToken() {
     sessionStorage.removeItem('sessionToken');
+    _assignedTeamCache = undefined;
 }
 function sessionHeaders() {
     const headers = { 'Content-Type': 'application/json' };
@@ -22,6 +23,8 @@ function sessionHeaders() {
     return headers;
 }
 let countryMapCache = null;
+// Cache for the decrypted assigned team — undefined = not yet fetched, null = fetched/no team
+let _assignedTeamCache = undefined;
 
 // Get or fetch country map
 async function getCountryMap() {
@@ -138,11 +141,11 @@ export async function initializeHomepage() {
                 throw new Error(errorMessage);
             }
 
-            const { message } = await response.json();
+            const data = await response.json();
 
-            // SECURITY FIX 1.2: Do NOT store user details in plain text cookies
-            // User will need to log in to establish a secure session
-            alert(`${message}`);
+            // Store the session token so the payment screen shows immediately on reload
+            setSessionToken(data.sessionToken);
+            alert(data.message);
             registrationForm.reset();
             registerSubmitButton.disabled = false;
             registerSubmitButton.innerHTML = 'Register';
@@ -374,7 +377,11 @@ async function resendVerificationCode(email, resendButton) {
 
 // SECURITY FIX 1.2: Get assigned team from server-side session instead of client-side cookie
 // This ensures the server controls what team is shown to the user
+// Result is cached per page session so getUserStatus + decryptTeam are only called once.
 export async function getAssignedTeamFromServer() {
+    if (_assignedTeamCache !== undefined) {
+        return _assignedTeamCache;
+    }
     try {
         const response = await fetch(getUserStatusURL, {
             method: "POST",
@@ -385,12 +392,15 @@ export async function getAssignedTeamFromServer() {
         if (response.ok) {
             const userStatus = await response.json();
             if (userStatus.authenticated && userStatus.team) {
-                return await decryptTeamName(userStatus.team);
+                _assignedTeamCache = await decryptTeamName(userStatus.team);
+                return _assignedTeamCache;
             }
         }
+        _assignedTeamCache = null;
         return null;
     } catch (error) {
         console.error('Error fetching assigned team from server:', error);
+        _assignedTeamCache = null;
         return null;
     }
 }
@@ -406,29 +416,12 @@ export function getAssignedTeamFromCookie() {
 // Fetch and display assigned team (updates UI and returns team name)
 export async function getAssignedTeam() {
     try {
-        // SECURITY FIX 1.2: Fetch from server instead of client-side cookie
-        const response = await fetch(getUserStatusURL, {
-            method: "POST",
-            headers: sessionHeaders(),
-            body: JSON.stringify({})
-        });
-
-        if (response.ok) {
-            const userStatus = await response.json();
-            if (userStatus.authenticated) {
-                // Decrypt the team name
-                const decryptedTeam = await decryptTeamName(userStatus.team);
-                
-                const winningTeam = document.getElementById('winning-team');
-                if (winningTeam) {
-                    winningTeam.innerHTML = `<strong>${decryptedTeam || "No team assigned yet"}</strong>`;
-                }
-                return decryptedTeam;
-            }
-        } else {
-            console.warn('User not authenticated or team not assigned.');
-            return null;
+        const decryptedTeam = await getAssignedTeamFromServer();
+        const winningTeam = document.getElementById('winning-team');
+        if (winningTeam) {
+            winningTeam.innerHTML = `<strong>${decryptedTeam || "No team assigned yet"}</strong>`;
         }
+        return decryptedTeam;
     } catch (error) {
         console.error('Error fetching assigned team:', error);
         return null;
