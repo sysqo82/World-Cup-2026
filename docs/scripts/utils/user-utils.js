@@ -547,8 +547,6 @@ export async function matchInvolvesAssignedTeam(team1Name, team2Name) {
 }
 
 export async function logoutUser() {
-    // SECURITY FIX 1.2: Clear secure session
-    // Note: We cannot delete HttpOnly cookies from JavaScript
-    // The server will clear the session on the next request
+    clearSessionToken();
     window.location.href = `${basePath}index.html`;
 }

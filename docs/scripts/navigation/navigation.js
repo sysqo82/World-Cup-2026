@@ -1,6 +1,27 @@
 import { getCookie, deleteCookie, setCookie } from "../utils/user-utils.js";
-import { db } from "../config/firebase-config.js"
+import { db, getUserStatusURL } from "../config/firebase-config.js"
 import { basePath, isLocal } from "../config/path-config.js";
+
+// Read the session token stored in sessionStorage by user-utils.js
+function getSessionToken() {
+    return sessionStorage.getItem('sessionToken');
+}
+
+async function fetchUserStatus() {
+    const token = getSessionToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    try {
+        const res = await fetch(getUserStatusURL, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({})
+        });
+        return await res.json();
+    } catch {
+        return { authenticated: false };
+    }
+}
 
 const pageMap = {
     '': 'index.html',
@@ -69,55 +90,29 @@ window.navigateToPage = navigateToPage;
 
 document.addEventListener('DOMContentLoaded', setSelectedPage);
 
-const userDetailsObj = JSON.parse(getCookie("userDetails"));
+const userDetailsObj = null; // legacy — replaced by server-side session
 
-// checks if there is an email in the cookie, if there is, checks if the user is registered in the database
+// checks if the user has an active session, if not redirects to homepage
 export async function isRegistered() {
-    const userEmail = getCookie("userDetails") ? JSON.parse(getCookie("userDetails")).email : null;
-    if (!userEmail) {
-        alert ("You are not registered. Please register to access this site.");
+    const userStatus = await fetchUserStatus();
+    if (!userStatus.authenticated) {
+        alert("You are not registered. Please register to access this site.");
         window.location.href = `${basePath}index.html`;
         return false;
     }
-    
-    const snapshot = await db.collection("users").where("email", "==", userEmail).get();
-    
-    if (snapshot.empty) {
-        alert ("You are not registered. Please register to access this site.");
-        deleteCookie("userDetails");
-        window.location.href = `${basePath}index.html`;
-        return false;
-    }
-    
     return true;
 }
 
-
 export async function isAllowed() {
-    const userEmail = getCookie("userDetails") ? JSON.parse(getCookie("userDetails")).email : null;
-    const snapshot = await db.collection("users").where("email", "==", userEmail).get();
-    
-    const userHasPaid = snapshot.docs.some(doc => {
-        const data = doc.data();
-        return data.email === userEmail && data.hasPaid === true;
-    });
-    
-    if (!userHasPaid) {
-        alert ("Your payment is still pending. Please check your payment status.");
-        const currentPage = window.location.pathname.replace(/\\/g, '/').replace(basePath, '').replace(/^\/+/, '');
-        if (currentPage !== 'index.html') {
-            window.location.href = `${basePath}index.html`;
-            alert('You are not allowed on this page. Please complete your payment process.');
-            setCookie(
-                "userDetails",
-                JSON.stringify({
-                    ...userDetailsObj,
-                    assignedTeam: "Pending",
-                    hasPaid: "Pending",
-                }),
-                7,
-            );
-        }
+    const userStatus = await fetchUserStatus();
+    if (!userStatus.authenticated) {
+        alert("You are not registered. Please register to access this site.");
+        window.location.href = `${basePath}index.html`;
+        return false;
+    }
+    if (userStatus.hasPaid !== true) {
+        alert("Your payment is still pending. Please check your payment status.");
+        window.location.href = `${basePath}index.html`;
         return false;
     }
     return true;
