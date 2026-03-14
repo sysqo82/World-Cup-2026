@@ -71,71 +71,9 @@ export async function initializeHomepage() {
 
     // Hide the navigation dropdown initially
     navigationDropdown.classList.add("hidden");
-    
-    // SECURITY FIX 1.2: Check user session server-side instead of trusting client cookie
-    // Extract session token from HttpOnly cookie by calling server endpoint
-    try {
-        const statusResponse = await fetch(getUserStatusURL, {
-            method: "POST",
-            credentials: "include", // Include cookies in request
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}) // Session token in HttpOnly cookie
-        });
 
-        if (statusResponse.ok) {
-            const userStatus = await statusResponse.json();
-            
-            if (!userStatus.authenticated) {
-                // User is not authenticated, show registration and login forms
-                return;
-            }
-
-            if (userStatus.hasPaid === "Pending" || userStatus.hasPaid === false) {
-                // Hide registration form and show payment button
-                registrationFormContainer.classList.add("hidden");
-                paymentContainer.classList.remove("hidden");
-                contentPlaceholder.classList.remove("hidden");
-                loginForm.classList.remove("hidden");
-
-                // Add event listener for the payment button
-                const paymentButton = document.getElementById("payment");
-                if (paymentButton) {
-                  paymentButton.addEventListener("click", () => {
-                    openEncryptedURL("paymentLocation");
-                  });
-                }
-            } else if (userStatus.hasPaid === true) {
-                // User has paid, show navigation dropdown and hide registration, payment and login forms
-                navigationDropdown.classList.remove("hidden");
-                paymentContainer.classList.add("hidden");
-                registrationFormContainer.classList.add("hidden");
-                contentPlaceholder.classList.remove("hidden");
-
-                // Decrypt team name
-                const decryptedTeam = await decryptTeamName(userStatus.team);
-
-                // Show user details in the content placeholder (retrieved from server, not cookie)
-                contentPlaceholder.innerHTML = `
-                <div id="prize-pot-container">
-                    <h3>The prize pot stands on:</h3>
-                    <div id="prize-pot-amount">Loading...</div>
-                </div>
-                <p>Welcome, ${userStatus.firstName} ${userStatus.lastName}!</p>
-                <p>You've drawn <strong>${decryptedTeam}</strong> as your winning team</p>
-                <p>Please use the navigation menu to access different sections of the site.</p>
-                `;
-                
-                // Update prize pot after DOM is ready
-                updatePrizePotCounter();
-            }
-        }
-        // If not authenticated, show default forms
-    } catch (error) {
-        console.log("User not authenticated or session expired, showing login forms");
-        // User is not authenticated, show registration and login forms
-    }
-
-    // Handle registration form submission (unchanged)
+    // Attach event listeners immediately (before any async calls) so forms never
+    // fall back to native GET submission if the server check hangs or fails.
     registrationForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
@@ -247,6 +185,63 @@ export async function initializeHomepage() {
             loginSubmitButton.innerHTML = 'Login';
         }
     });
+
+    // SECURITY FIX 1.2: Check user session server-side after event listeners are safely attached.
+    // Event listeners are set up first so forms always work, even if this fetch hangs or fails.
+    try {
+        const statusResponse = await fetch(getUserStatusURL, {
+            method: "POST",
+            credentials: "include", // Include cookies in request
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}) // Session token in HttpOnly cookie
+        });
+
+        if (statusResponse.ok) {
+            const userStatus = await statusResponse.json();
+
+            if (!userStatus.authenticated) {
+                // User is not authenticated — forms are already set up, nothing more to do
+                return;
+            }
+
+            if (userStatus.hasPaid === "Pending" || userStatus.hasPaid === false) {
+                // Hide registration form and show payment button
+                registrationFormContainer.classList.add("hidden");
+                paymentContainer.classList.remove("hidden");
+                contentPlaceholder.classList.remove("hidden");
+                loginForm.classList.remove("hidden");
+
+                const paymentButton = document.getElementById("payment");
+                if (paymentButton) {
+                    paymentButton.addEventListener("click", () => {
+                        openEncryptedURL("paymentLocation");
+                    });
+                }
+            } else if (userStatus.hasPaid === true) {
+                // User has paid — show nav, hide forms
+                navigationDropdown.classList.remove("hidden");
+                paymentContainer.classList.add("hidden");
+                registrationFormContainer.classList.add("hidden");
+                contentPlaceholder.classList.remove("hidden");
+
+                const decryptedTeam = await decryptTeamName(userStatus.team);
+
+                contentPlaceholder.innerHTML = `
+                <div id="prize-pot-container">
+                    <h3>The prize pot stands on:</h3>
+                    <div id="prize-pot-amount">Loading...</div>
+                </div>
+                <p>Welcome, ${userStatus.firstName} ${userStatus.lastName}!</p>
+                <p>You've drawn <strong>${decryptedTeam}</strong> as your winning team</p>
+                <p>Please use the navigation menu to access different sections of the site.</p>
+                `;
+
+                updatePrizePotCounter();
+            }
+        }
+    } catch (error) {
+        console.log("User not authenticated or session expired, showing login forms");
+    }
 }
 
 // Show verification code form
