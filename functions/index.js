@@ -37,28 +37,6 @@ function decryptTeamName(encryptedTeam) {
 }
 
 pkg.initializeApp();
-const corsHandler = cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(new Error('Not allowed by CORS'));
-    
-    // Allow local development origins (127.0.0.1 and localhost with any port)
-    if (origin.includes('127.0.0.1') || origin.includes('localhost')) {
-      return callback(null, true);
-    }
-    
-    // Allow configured origins for production
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Type'],
-  maxAge: 3600
-});
 
 const serviceApp = pkg.initializeApp(
   {
@@ -76,21 +54,8 @@ function isOriginAllowed(origin) {
   return allowedOrigins.includes(origin);
 }
 
-// Helper function to set explicit CORS headers for credentials
-function setExplicitCorsHeaders(req, res) {
-  const origin = req.get('origin');
-  if (isOriginAllowed(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Access-Control-Allow-Credentials', 'true');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.set('Access-Control-Max-Age', '3600');
-  }
-}
-
-export const registerUser = onRequest((req, res) => {
-  const origin = req.get('origin');
-  
+// Helper to handle CORS and return early for OPTIONS
+function handleCorsAndOptions(req, res, origin) {
   // Set CORS headers for all responses
   if (isOriginAllowed(origin)) {
     res.set('Access-Control-Allow-Origin', origin);
@@ -100,28 +65,35 @@ export const registerUser = onRequest((req, res) => {
     res.set('Access-Control-Max-Age', '3600');
   }
   
-  // Handle preflight OPTIONS request directly without corsHandler
+  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
+    return { handled: true };
+  }
+  
+  return { handled: false };
+}
+
+export const registerUser = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return res.status(204).send('');
+  
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
+  
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
   }
 
-  // For actual requests, pass through corsHandler
-  corsHandler(req, res, async () => {
-    if (!isOriginAllowed(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
+  const { firstName, lastName, email } = req.body;
 
-    const { firstName, lastName, email } = req.body;
+  if (!firstName || !lastName || !email) {
+    return res.status(400).send("Missing required fields");
+  }
 
-    if (!firstName || !lastName || !email) {
-      return res.status(400).send("Missing required fields");
-    }
-
-    try {
-      const teamsRef = serviceFirestore.collection("teams");
+  try {
+    const teamsRef = serviceFirestore.collection("teams");
       const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
 
       if (availableTeamsSnapshot.empty) {
@@ -169,7 +141,6 @@ export const registerUser = onRequest((req, res) => {
     } catch (error) {
       res.status(500).send("Error registering user: " + error.message);
     }
-  });
 });
 
 // Load OAuth2 credentials
@@ -182,36 +153,22 @@ oAuth2Client.setCredentials({
   refresh_token: refresh_token,
 });
 
-export const sendEmail = onRequest((req, res) => {
+export const sendEmail = onRequest(async (req, res) => {
   const origin = req.get('origin');
-  
-  // Set CORS headers for all responses
-  if (isOriginAllowed(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Access-Control-Allow-Credentials', 'true');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.set('Access-Control-Max-Age', '3600');
-  }
-  
-  // Handle preflight OPTIONS request directly without corsHandler
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return res.status(204).send('');
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
   }
 
-  // For actual requests, pass through corsHandler
-  corsHandler(req, res, async () => {
-    if (!isOriginAllowed(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
 
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
+  const { type, recipient, subject, message, email, newEmail, verificationCode, requestCode } = req.body;
 
-    const { type, recipient, subject, message, email, newEmail, verificationCode, requestCode } = req.body;
-
-    try {
+  try {
       if (type === "verification") {
         // Verification code email flow
         if (!email) {
@@ -426,7 +383,6 @@ export const sendEmail = onRequest((req, res) => {
       console.error("Error sending email:", error);
       res.status(500).send("Failed to send email: " + error.message);
     }
-  });
 });
 
 // SECURITY FIX 1.2: Generate secure session tokens for server-side session management
@@ -434,49 +390,35 @@ function generateSessionToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-export const verifyLoginCode = onRequest((req, res) => {
+export const verifyLoginCode = onRequest(async (req, res) => {
   const origin = req.get('origin');
-  
-  // Set CORS headers for all responses
-  if (isOriginAllowed(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Access-Control-Allow-Credentials', 'true');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.set('Access-Control-Max-Age', '3600');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return res.status(204).send('');
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
   }
-  
-  // Handle preflight OPTIONS request directly without corsHandler
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
   }
 
-  // For actual requests, pass through corsHandler
-  corsHandler(req, res, async () => {
-    if (!isOriginAllowed(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
+  const { email, verificationCode } = req.body;
+
+  if (!email || !verificationCode) {
+    return res.status(400).send("Missing required fields");
+  }
+
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Get user document
+    const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).send("User not found");
     }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
 
-    const { email, verificationCode } = req.body;
-
-    if (!email || !verificationCode) {
-      return res.status(400).send("Missing required fields");
-    }
-
-    try {
-      const normalizedEmail = email.toLowerCase().trim();
-
-      // Get user document
-      const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
-
-      if (!userDoc.exists) {
-        return res.status(404).send("User not found");
-      }
-
-      const userData = userDoc.data();
+    const userData = userDoc.data();
 
       // Check if verification code exists
       if (!userData.verificationCode) {
@@ -523,32 +465,17 @@ export const verifyLoginCode = onRequest((req, res) => {
       console.error("Error verifying code:", error);
       res.status(500).send("Error verifying code: " + error.message);
     }
-  });
 });
 
 // SECURITY FIX 1.2: New endpoint to get user status from session token (server-side verification)
-export const getUserStatus = onRequest((req, res) => {
+export const getUserStatus = onRequest(async (req, res) => {
   const origin = req.get('origin');
-  
-  // Set CORS headers for all responses
-  if (isOriginAllowed(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Access-Control-Allow-Credentials', 'true');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.set('Access-Control-Max-Age', '3600');
-  }
-  
-  // Handle preflight OPTIONS request directly without corsHandler
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
-  }
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return res.status(204).send('');
 
-  // For actual requests, pass through corsHandler
-  corsHandler(req, res, async () => {
-    if (!isOriginAllowed(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
@@ -601,67 +528,52 @@ export const getUserStatus = onRequest((req, res) => {
       console.error("Error getting user status:", error);
       res.status(500).send("Error getting user status: " + error.message);
     }
-  });
 });
 
-export const setAdminRole = onRequest((req, res) => {
+export const setAdminRole = onRequest(async (req, res) => {
   const origin = req.get('origin');
-  
-  // Set CORS headers for all responses
-  if (isOriginAllowed(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Access-Control-Allow-Credentials', 'true');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.set('Access-Control-Max-Age', '3600');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return res.status(204).send('');
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
   }
-  
-  // Handle preflight OPTIONS request directly without corsHandler
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
   }
 
-  corsHandler(req, res, async () => {
-    if (!isOriginAllowed(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
+  // Check if the request is authenticated
+  if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) {
+    return res.status(403).send("Unauthorized");
+  }
+
+  const idToken = req.headers.authorization.split("Bearer ")[1];
+
+  try {
+    // Verify the ID token
+    const decodedToken = await _auth().verifyIdToken(idToken);
+
+    // Check if the user has the admin claim
+    if (!decodedToken.admin) {
+      return res.status(403).send("Permission denied: Only admins can assign admin roles.");
     }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
+
+    const { uid } = req.body;
+
+    if (!uid) {
+      return res.status(400).send("Missing required field: uid");
     }
 
-    // Check if the request is authenticated
-    if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) {
-      return res.status(403).send("Unauthorized");
-    }
+    // Set the admin custom claim
+    await _auth().setCustomUserClaims(uid, { admin: true });
 
-    const idToken = req.headers.authorization.split("Bearer ")[1];
-
-    try {
-      // Verify the ID token
-      const decodedToken = await _auth().verifyIdToken(idToken);
-
-      // Check if the user has the admin claim
-      if (!decodedToken.admin) {
-        return res.status(403).send("Permission denied: Only admins can assign admin roles.");
-      }
-
-      const { uid } = req.body;
-
-      if (!uid) {
-        return res.status(400).send("Missing required field: uid");
-      }
-
-      // Set the admin custom claim
-      await _auth().setCustomUserClaims(uid, { admin: true });
-
-      res.status(200).json({
-        message: `Admin role assigned to user with UID: ${uid}`,
-      });
-    } catch (error) {
-      console.error("Error assigning admin role:", error);
-      res.status(500).send("Failed to assign admin role: " + error.message);
-    }
-  });
+    res.status(200).json({
+      message: `Admin role assigned to user with UID: ${uid}`,
+    });
+  } catch (error) {
+    console.error("Error assigning admin role:", error);
+    res.status(500).send("Failed to assign admin role: " + error.message);
+  }
 });
 
 // Firestore trigger to sync teams table when groups collection changes
@@ -811,42 +723,28 @@ export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", asy
 });
 
 // Export decrypt function for client use
-export const decryptTeam = onRequest((req, res) => {
+export const decryptTeam = onRequest(async (req, res) => {
   const origin = req.get('origin');
-  
-  // Set CORS headers for all responses
-  if (isOriginAllowed(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Access-Control-Allow-Credentials', 'true');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.set('Access-Control-Max-Age', '3600');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return res.status(204).send('');
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
   }
-  
-  // Handle preflight OPTIONS request directly without corsHandler
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
   }
 
-  corsHandler(req, res, async () => {
-    if (!isOriginAllowed(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
+  const { encryptedTeam } = req.body;
 
-    const { encryptedTeam } = req.body;
+  if (!encryptedTeam) {
+    return res.status(400).send("Missing required field: encryptedTeam");
+  }
 
-    if (!encryptedTeam) {
-      return res.status(400).send("Missing required field: encryptedTeam");
-    }
-
-    try {
-      const decrypted = decryptTeamName(encryptedTeam);
-      res.status(200).json({ teamName: decrypted });
-    } catch (error) {
-      res.status(500).send("Error decrypting team: " + error.message);
-    }
-  });
+  try {
+    const decrypted = decryptTeamName(encryptedTeam);
+    res.status(200).json({ teamName: decrypted });
+  } catch (error) {
+    res.status(500).send("Error decrypting team: " + error.message);
+  }
 });
