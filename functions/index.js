@@ -55,7 +55,9 @@ const corsHandler = cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Type'],
+  maxAge: 3600
 });
 
 const serviceApp = pkg.initializeApp(
@@ -67,10 +69,43 @@ const serviceApp = pkg.initializeApp(
 );
 const serviceFirestore = serviceApp.firestore();
 
+// Helper function to validate origin (allows localhost/127.0.0.1 for development)
+function isOriginAllowed(origin) {
+  if (!origin) return false;
+  if (origin.includes('127.0.0.1') || origin.includes('localhost')) return true;
+  return allowedOrigins.includes(origin);
+}
+
+// Helper function to set explicit CORS headers for credentials
+function setExplicitCorsHeaders(req, res) {
+  const origin = req.get('origin');
+  if (isOriginAllowed(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
+    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.set('Access-Control-Max-Age', '3600');
+  }
+}
+
 export const registerUser = onRequest((req, res) => {
+  // Explicitly set CORS headers before corsHandler
+  const origin = req.get('origin');
+  if (isOriginAllowed(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
+    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.set('Access-Control-Max-Age', '3600');
+  }
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+  
   corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
+    if (!isOriginAllowed(origin)) {
       return res.status(403).send('Forbidden: Invalid request');
     }
     if (req.method === "OPTIONS") {
@@ -149,9 +184,23 @@ oAuth2Client.setCredentials({
 });
 
 export const sendEmail = onRequest((req, res) => {
+  // Explicitly set CORS headers before corsHandler
+  const origin = req.get('origin');
+  if (isOriginAllowed(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
+    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.set('Access-Control-Max-Age', '3600');
+  }
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+  
   corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
+    if (!isOriginAllowed(origin)) {
       return res.status(403).send('Forbidden: Invalid request');
     }
     if (req.method === "OPTIONS") {
@@ -387,13 +436,24 @@ function generateSessionToken() {
 }
 
 export const verifyLoginCode = onRequest((req, res) => {
+  // Explicitly set CORS headers before corsHandler
+  const origin = req.get('origin');
+  if (isOriginAllowed(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
+    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.set('Access-Control-Max-Age', '3600');
+  }
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+  
   corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
+    if (!isOriginAllowed(origin)) {
       return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
     }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
@@ -467,13 +527,24 @@ export const verifyLoginCode = onRequest((req, res) => {
 
 // SECURITY FIX 1.2: New endpoint to get user status from session token (server-side verification)
 export const getUserStatus = onRequest((req, res) => {
+  // Explicitly set CORS headers before corsHandler
+  const origin = req.get('origin');
+  if (isOriginAllowed(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
+    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.set('Access-Control-Max-Age', '3600');
+  }
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+  
   corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
+    if (!isOriginAllowed(origin)) {
       return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
     }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
@@ -533,7 +604,7 @@ export const getUserStatus = onRequest((req, res) => {
 export const setAdminRole = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
+    if (!isOriginAllowed(origin)) {
       return res.status(403).send('Forbidden: Invalid request');
     }
     if (req.method === "OPTIONS") {
@@ -728,7 +799,7 @@ export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", asy
 export const decryptTeam = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
+    if (!isOriginAllowed(origin)) {
       return res.status(403).send('Forbidden: Invalid request');
     }
     if (req.method === "OPTIONS") {
