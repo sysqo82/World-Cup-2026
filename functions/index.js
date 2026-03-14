@@ -37,16 +37,6 @@ function decryptTeamName(encryptedTeam) {
 }
 
 pkg.initializeApp();
-const corsHandler = cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(new Error('Not allowed by CORS'));
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  }
-});
 
 const serviceApp = pkg.initializeApp(
   {
@@ -57,27 +47,58 @@ const serviceApp = pkg.initializeApp(
 );
 const serviceFirestore = serviceApp.firestore();
 
-export const registerUser = onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
+// Helper function to validate origin (allows localhost/127.0.0.1 for development)
+function isOriginAllowed(origin) {
+  if (!origin) return false;
+  if (origin.includes('127.0.0.1') || origin.includes('localhost')) return true;
+  return allowedOrigins.includes(origin);
+}
 
-    const { firstName, lastName, email } = req.body;
+// Helper to handle CORS and return early for OPTIONS
+function handleCorsAndOptions(req, res, origin) {
+  const corsHeaders = {};
+  if (isOriginAllowed(origin)) {
+    corsHeaders['Access-Control-Allow-Origin'] = origin;
+    corsHeaders['Access-Control-Allow-Credentials'] = 'true';
+    corsHeaders['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS,PUT,DELETE';
+    corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type,Authorization';
+    corsHeaders['Access-Control-Max-Age'] = '3600';
+  }
 
-    if (!firstName || !lastName || !email) {
-      return res.status(400).send("Missing required fields");
-    }
+  if (req.method === 'OPTIONS') {
+    // Use writeHead + end to bypass any Express/emulator middleware that
+    // might clear or override headers set via res.set()
+    res.writeHead(204, corsHeaders);
+    res.end();
+    return { handled: true };
+  }
 
-    try {
-      const teamsRef = serviceFirestore.collection("teams");
+  // For normal requests, set CORS headers so they appear on the actual response
+  Object.entries(corsHeaders).forEach(([k, v]) => res.set(k, v));
+  return { handled: false };
+}
+
+export const registerUser = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
+  
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
+  
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
+
+  const { firstName, lastName, email } = req.body;
+
+  if (!firstName || !lastName || !email) {
+    return res.status(400).send("Missing required fields");
+  }
+
+  try {
+    const teamsRef = serviceFirestore.collection("teams");
       const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
 
       if (availableTeamsSnapshot.empty) {
@@ -119,13 +140,22 @@ export const registerUser = onRequest((req, res) => {
 
       await teamsRef.doc(selectedTeam.id).update({ assigned: true });
 
+      // Create a session immediately so the client can go straight to the payment screen
+      const sessionToken = generateSessionToken();
+      const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await serviceFirestore.collection("users").doc(normalizedEmail).update({
+        sessionToken: sessionToken,
+        sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
+      });
+
+      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Strict`);
       res.status(200).json({
         message: "User registered successfully.",
+        sessionToken: sessionToken,
       });
     } catch (error) {
       res.status(500).send("Error registering user: " + error.message);
     }
-  });
 });
 
 // Load OAuth2 credentials
@@ -138,22 +168,22 @@ oAuth2Client.setCredentials({
   refresh_token: refresh_token,
 });
 
-export const sendEmail = onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
+export const sendEmail = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
 
-    const { type, recipient, subject, message, email, newEmail, verificationCode, requestCode } = req.body;
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
 
-    try {
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
+
+  const { type, recipient, subject, message, email, newEmail, verificationCode, requestCode } = req.body;
+
+  try {
       if (type === "verification") {
         // Verification code email flow
         if (!email) {
@@ -368,39 +398,42 @@ export const sendEmail = onRequest((req, res) => {
       console.error("Error sending email:", error);
       res.status(500).send("Failed to send email: " + error.message);
     }
-  });
 });
 
-export const verifyLoginCode = onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
+// SECURITY FIX 1.2: Generate secure session tokens for server-side session management
+function generateSessionToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+export const verifyLoginCode = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
+
+  const { email, verificationCode } = req.body;
+
+  if (!email || !verificationCode) {
+    return res.status(400).send("Missing required fields");
+  }
+
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Get user document
+    const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).send("User not found");
     }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
 
-    const { email, verificationCode } = req.body;
-
-    if (!email || !verificationCode) {
-      return res.status(400).send("Missing required fields");
-    }
-
-    try {
-      const normalizedEmail = email.toLowerCase().trim();
-
-      // Get user document
-      const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
-
-      if (!userDoc.exists) {
-        return res.status(404).send("User not found");
-      }
-
-      const userData = userDoc.data();
+    const userData = userDoc.data();
 
       // Check if verification code exists
       if (!userData.verificationCode) {
@@ -423,76 +456,147 @@ export const verifyLoginCode = onRequest((req, res) => {
         return res.status(400).send("Invalid verification code.");
       }
 
-      // Clear verification code after successful verification
+      // SECURITY FIX 1.2: Generate secure session token
+      const sessionToken = generateSessionToken();
+      const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+      // SECURITY FIX 1.2: Store session token on server-side
       await serviceFirestore.collection("users").doc(normalizedEmail).update({
         verificationCode: null,
         verificationCodeExpiry: null,
+        sessionToken: sessionToken,
+        sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
       });
 
-      // Return user data for successful login
+      // Set HttpOnly cookie for production (HTTPS) environments
+      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Strict`);
+
+      // Also return the token in the body so the client can store it for
+      // environments where cookies aren't reliably sent (e.g. local emulator)
       res.status(200).json({
         message: "Verification successful",
-        userData: {
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          email: userData.email,
-          hasPaid: userData.hasPaid,
-          team: userData.team,
-        }
+        sessionToken: sessionToken
       });
     } catch (error) {
       console.error("Error verifying code:", error);
       res.status(500).send("Error verifying code: " + error.message);
     }
-  });
 });
 
-export const setAdminRole = onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
-    }
+// SECURITY FIX 1.2: New endpoint to get user status from session token (server-side verification)
+export const getUserStatus = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
     if (req.method !== "POST") {
       return res.status(405).send("Method Not Allowed");
     }
 
-    // Check if the request is authenticated
-    if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) {
-      return res.status(403).send("Unauthorized");
-    }
-
-    const idToken = req.headers.authorization.split("Bearer ")[1];
-
     try {
-      // Verify the ID token
-      const decodedToken = await _auth().verifyIdToken(idToken);
-
-      // Check if the user has the admin claim
-      if (!decodedToken.admin) {
-        return res.status(403).send("Permission denied: Only admins can assign admin roles.");
+      // Accept session token from Authorization: Bearer header (SPA/local dev)
+      // or fall back to the HttpOnly cookie (production)
+      let sessionToken = null;
+      const authHeader = req.get('Authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        sessionToken = authHeader.substring(7).trim();
+      }
+      if (!sessionToken) {
+        const cookies = req.get('cookie') || '';
+        const sessionIdMatch = cookies.match(/sessionId=([^;]+)/);
+        sessionToken = sessionIdMatch ? sessionIdMatch[1] : null;
       }
 
-      const { uid } = req.body;
-
-      if (!uid) {
-        return res.status(400).send("Missing required field: uid");
+      if (!sessionToken) {
+        return res.status(200).json({ authenticated: false, message: "No session token" });
       }
 
-      // Set the admin custom claim
-      await _auth().setCustomUserClaims(uid, { admin: true });
+      // Find user by session token
+      const usersSnapshot = await serviceFirestore.collection("users")
+        .where("sessionToken", "==", sessionToken)
+        .limit(1)
+        .get();
 
+      if (usersSnapshot.empty) {
+        return res.status(200).json({ authenticated: false, message: "Invalid session token" });
+      }
+
+      const userDoc = usersSnapshot.docs[0];
+      const userData = userDoc.data();
+
+      // Check session expiry
+      const now = new Date();
+      if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
+        // Clear expired session
+        await userDoc.ref.update({
+          sessionToken: null,
+          sessionExpiry: null,
+        });
+        return res.status(200).json({ authenticated: false, message: "Session expired" });
+      }
+
+      // Return user status from server (server decides what user can access)
       res.status(200).json({
-        message: `Admin role assigned to user with UID: ${uid}`,
+        authenticated: true,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        hasPaid: userData.hasPaid,
+        team: userData.team, // Still encrypted on server
       });
     } catch (error) {
-      console.error("Error assigning admin role:", error);
-      res.status(500).send("Failed to assign admin role: " + error.message);
+      console.error("Error getting user status:", error);
+      res.status(500).send("Error getting user status: " + error.message);
     }
-  });
+});
+
+export const setAdminRole = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
+
+  // Check if the request is authenticated
+  if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) {
+    return res.status(403).send("Unauthorized");
+  }
+
+  const idToken = req.headers.authorization.split("Bearer ")[1];
+
+  try {
+    // Verify the ID token
+    const decodedToken = await _auth().verifyIdToken(idToken);
+
+    // Check if the user has the admin claim
+    if (!decodedToken.admin) {
+      return res.status(403).send("Permission denied: Only admins can assign admin roles.");
+    }
+
+    const { uid } = req.body;
+
+    if (!uid) {
+      return res.status(400).send("Missing required field: uid");
+    }
+
+    // Set the admin custom claim
+    await _auth().setCustomUserClaims(uid, { admin: true });
+
+    res.status(200).json({
+      message: `Admin role assigned to user with UID: ${uid}`,
+    });
+  } catch (error) {
+    console.error("Error assigning admin role:", error);
+    res.status(500).send("Failed to assign admin role: " + error.message);
+  }
 });
 
 // Firestore trigger to sync teams table when groups collection changes
@@ -642,30 +746,28 @@ export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", asy
 });
 
 // Export decrypt function for client use
-export const decryptTeam = onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    const origin = req.get('origin');
-    if (!origin || !allowedOrigins.includes(origin)) {
-      return res.status(403).send('Forbidden: Invalid request');
-    }
-    if (req.method === "OPTIONS") {
-      return res.status(204).send('');
-    }
-    if (req.method !== "POST") {
-      return res.status(405).send("Method Not Allowed");
-    }
+export const decryptTeam = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
 
-    const { encryptedTeam } = req.body;
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
 
-    if (!encryptedTeam) {
-      return res.status(400).send("Missing required field: encryptedTeam");
-    }
+  const { encryptedTeam } = req.body;
 
-    try {
-      const decrypted = decryptTeamName(encryptedTeam);
-      res.status(200).json({ teamName: decrypted });
-    } catch (error) {
-      res.status(500).send("Error decrypting team: " + error.message);
-    }
-  });
+  if (!encryptedTeam) {
+    return res.status(400).send("Missing required field: encryptedTeam");
+  }
+
+  try {
+    const decrypted = decryptTeamName(encryptedTeam);
+    res.status(200).json({ teamName: decrypted });
+  } catch (error) {
+    res.status(500).send("Error decrypting team: " + error.message);
+  }
 });

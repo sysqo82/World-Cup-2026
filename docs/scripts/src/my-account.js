@@ -1,11 +1,28 @@
-import { getAssignedTeam, logoutUser, getCookie, deleteCookie } from '../utils/user-utils.js';
+import { getAssignedTeam, logoutUser } from '../utils/user-utils.js';
 import { isAllowed, isRegistered } from "../navigation/navigation.js";
 import { basePath } from "../config/path-config.js";
-import { db, sendEmailURL } from '../config/firebase-config.js';
+import { db, sendEmailURL, getUserStatusURL } from '../config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { getMatchdayMatches } from '../utils/match-scheduling.js';
 import { EmailTemplate } from '../utils/email-templates.js';
 import { matchSchedule, knockoutMatchSchedule } from '../utils/match-schedule-constants.js';
+import { decryptTeamName } from '../utils/team-encryption.js';
+
+// Cache the server-side user status so we don't re-fetch on every function call
+let _cachedUserStatus = null;
+async function getMyUserStatus() {
+    if (_cachedUserStatus) return _cachedUserStatus;
+    const token = sessionStorage.getItem('sessionToken');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    try {
+        const res = await fetch(getUserStatusURL, { method: 'POST', headers, body: JSON.stringify({}) });
+        _cachedUserStatus = await res.json();
+    } catch {
+        _cachedUserStatus = { authenticated: false };
+    }
+    return _cachedUserStatus;
+}
 
 // Add event listener for navigation dropdown
 document.getElementById('navigation-select').addEventListener('change', navigateToPage);
@@ -29,11 +46,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadTeamFixtures() {
-    const userDetails = getCookie('userDetails');
-    if (!userDetails) return;
+    const userStatus = await getMyUserStatus();
+    if (!userStatus.authenticated || !userStatus.team) return;
 
-    const userDetailsObj = JSON.parse(userDetails);
-    const assignedTeam = userDetailsObj.assignedTeam;
+    // Decrypt the team name from the server response
+    const assignedTeam = await decryptTeamName(userStatus.team);
     
     if (!assignedTeam || assignedTeam === 'Pending' || assignedTeam === 'No team assigned yet') {
         document.getElementById('fixtures-loading').textContent = 'No team assigned yet.';
@@ -952,13 +969,11 @@ function getTeamShortName(fullTeamName, countryMap) {
 
 // Email Preferences Functions
 async function loadEmailPreferences() {
-    const userDetails = getCookie('userDetails');
-    if (!userDetails) return;
+    const userStatus = await getMyUserStatus();
+    if (!userStatus.authenticated) return;
 
     try {
-        const userDetailsObj = JSON.parse(userDetails);
-        const userEmail = userDetailsObj.email;
-        
+        const userEmail = userStatus.email;
         if (!userEmail) return;
 
         // Query the users collection to get current email preferences
@@ -978,16 +993,15 @@ async function loadEmailPreferences() {
 }
 
 async function handleEmailPreferencesChange(event) {
-    const userDetails = getCookie('userDetails');
-    if (!userDetails) return;
+    const userStatus = await getMyUserStatus();
+    if (!userStatus.authenticated) return;
 
     const isChecked = event.target.checked;
     
     try {
         showStatusMessage('Updating preferences...', 'loading');
         
-        const userDetailsObj = JSON.parse(userDetails);
-        const userEmail = userDetailsObj.email;
+        const userEmail = userStatus.email;
         
         if (!userEmail) {
             throw new Error('User email not found');
@@ -1040,14 +1054,13 @@ function hideStatusMessage() {
 
 // Change Email Functions
 async function loadCurrentEmail() {
-    const userDetails = getCookie('userDetails');
-    if (!userDetails) return;
+    const userStatus = await getMyUserStatus();
+    if (!userStatus.authenticated) return;
 
     try {
-        const userDetailsObj = JSON.parse(userDetails);
         const currentEmailInput = document.getElementById('current-email');
         if (currentEmailInput) {
-            currentEmailInput.value = userDetailsObj.email || '';
+            currentEmailInput.value = userStatus.email || '';
         }
     } catch (error) {
         console.error('Error loading current email:', error);
@@ -1057,8 +1070,8 @@ async function loadCurrentEmail() {
 async function handleChangeEmailSubmit(event) {
     event.preventDefault();
     
-    const userDetails = getCookie('userDetails');
-    if (!userDetails) return;
+    const userStatus = await getMyUserStatus();
+    if (!userStatus.authenticated) return;
 
     const newEmail = document.getElementById('new-email').value.trim().toLowerCase();
     const changeEmailButton = document.getElementById('change-email-button');
@@ -1069,8 +1082,7 @@ async function handleChangeEmailSubmit(event) {
     }
 
     try {
-        const userDetailsObj = JSON.parse(userDetails);
-        const currentEmail = userDetailsObj.email;
+        const currentEmail = userStatus.email;
 
         if (newEmail === currentEmail) {
             showChangeEmailStatus('New email must be different from current email', 'error');
@@ -1190,9 +1202,9 @@ async function handleEmailVerificationSubmit(currentEmail, newEmail, verifyButto
         statusElement.textContent = 'Email changed successfully! Logging out...';
         statusElement.className = 'status-message success';
 
-        // Delete the cookie and redirect after 2 seconds
+        // Clear the session and redirect after 2 seconds
         setTimeout(() => {
-            deleteCookie('userDetails');
+            sessionStorage.removeItem('sessionToken');
             window.location.href = `${basePath}index.html`;
         }, 2000);
 
@@ -1206,15 +1218,14 @@ async function handleEmailVerificationSubmit(currentEmail, newEmail, verifyButto
 }
 
 async function resendEmailVerificationCode(email, resendButton) {
-    const userDetails = getCookie('userDetails');
-    if (!userDetails) return;
+    const userStatus = await getMyUserStatus();
+    if (!userStatus.authenticated) return;
 
     resendButton.disabled = true;
     resendButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
 
     try {
-        const userDetailsObj = JSON.parse(userDetails);
-        const currentEmail = userDetailsObj.email;
+        const currentEmail = userStatus.email;
 
         // Request new verification code via sendEmail endpoint with type "emailChange"
         const response = await fetch(sendEmailURL, {

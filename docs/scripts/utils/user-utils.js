@@ -1,12 +1,30 @@
-import { db, registerUser, verifyLoginCodeURL } from "../config/firebase-config.js";
+import { db, registerUser, verifyLoginCodeURL, getUserStatusURL } from "../config/firebase-config.js";
 import { sendVerificationEmail } from "./email-service.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
 import { basePath } from "../config/path-config.js";
 import { fetchCountryMap } from "./country-utils.js";
 import { decryptTeamName } from "./team-encryption.js";
 
-// Cache for country map
+// Session token helpers — avoids cookies/credentials:include so CORS works everywhere
+function getSessionToken() {
+    return sessionStorage.getItem('sessionToken');
+}
+function setSessionToken(token) {
+    if (token) sessionStorage.setItem('sessionToken', token);
+}
+function clearSessionToken() {
+    sessionStorage.removeItem('sessionToken');
+    _assignedTeamCache = undefined;
+}
+function sessionHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getSessionToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+}
 let countryMapCache = null;
+// Cache for the decrypted assigned team — undefined = not yet fetched, null = fetched/no team
+let _assignedTeamCache = undefined;
 
 // Get or fetch country map
 async function getCountryMap() {
@@ -14,28 +32,6 @@ async function getCountryMap() {
         countryMapCache = await fetchCountryMap();
     }
     return countryMapCache;
-}
-
-// Utility function to set a cookie
-export function setCookie(name, value, days) {
-    const date = new Date();
-    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-    document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/`;
-}
-
-// Utility function to get a cookie
-export function getCookie(name) {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [key, value] = cookie.trim().split('=');
-        if (key === name) return value;
-    }
-    return null;
-}
-
-// Utility function to delete a cookie
-export function deleteCookie(name) {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 }
 
 export function openEncryptedURL(location) {
@@ -58,7 +54,7 @@ export function openEncryptedURL(location) {
 }
 
 // Initialize homepage logic
-export function initializeHomepage() {
+export async function initializeHomepage() {
     const registrationForm = document.getElementById("registration-form");
     const loginForm = document.getElementById("login-form");
     const loginFormContainer = document.getElementById("login-form-container");
@@ -71,49 +67,9 @@ export function initializeHomepage() {
 
     // Hide the navigation dropdown initially
     navigationDropdown.classList.add("hidden");
-    // Check for existing cookie on page load
-    const userDetailsCookie = getCookie("userDetails");
-    if (userDetailsCookie) {
-        const userDetails = JSON.parse(userDetailsCookie);
 
-        if (userDetails.hasPaid === "Pending" || userDetails.hasPaid === false) {
-            // Hide registration form and show payment button
-            registrationFormContainer.classList.add("hidden");
-            paymentContainer.classList.remove("hidden");
-            contentPlaceholder.classList.remove("hidden");
-            loginForm.classList.remove("hidden");
-
-            // Add event listener for the payment button
-            const paymentButton = document.getElementById("payment");
-            if (paymentButton) {
-              paymentButton.addEventListener("click", () => {
-                openEncryptedURL("paymentLocation");
-              });
-            }
-        } else if (userDetails.hasPaid === true) {
-            // User has paid, show navigation dropdown and hide registration, payment and login forms
-            navigationDropdown.classList.remove("hidden");
-            paymentContainer.classList.add("hidden");
-            registrationFormContainer.classList.add("hidden");
-            contentPlaceholder.classList.remove("hidden");
-
-            // Show user details in the content placeholder
-            contentPlaceholder.innerHTML = `
-            <div id="prize-pot-container">
-                <h3>The prize pot stands on:</h3>
-                <div id="prize-pot-amount">Loading...</div>
-            </div>
-            <p>Welcome, ${userDetails.firstName} ${userDetails.lastName}!</p>
-            <p>You've drawn <strong>${userDetails.assignedTeam}</strong> as your winning team</p>
-            <p>Please use the navigation menu to access different sections of the site.</p>
-            `;
-            
-            // Update prize pot after DOM is ready
-            updatePrizePotCounter();
-        }
-    }
-
-    // Handle registration form submission (unchanged)
+    // Attach event listeners immediately (before any async calls) so forms never
+    // fall back to native GET submission if the server check hangs or fails.
     registrationForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
@@ -163,22 +119,11 @@ export function initializeHomepage() {
                 throw new Error(errorMessage);
             }
 
-            const { message } = await response.json();
+            const data = await response.json();
 
-            // Set cookie with user details
-            setCookie(
-                "userDetails",
-                JSON.stringify({
-                    firstName,
-                    lastName,
-                    email,
-                    hasPaid: "Pending",
-                    assignedTeam: "Pending"
-                }),
-                7
-            );
-
-            alert(`${message}`);
+            // Store the session token so the payment screen shows immediately on reload
+            setSessionToken(data.sessionToken);
+            alert(data.message);
             registrationForm.reset();
             registerSubmitButton.disabled = false;
             registerSubmitButton.innerHTML = 'Register';
@@ -212,9 +157,7 @@ export function initializeHomepage() {
                 alert("No user found with this email. Please register first.");
                 loginSubmitButton.disabled = false;
                 loginSubmitButton.innerHTML = 'Login';
-                if (getCookie("userDetails")) {
-                    deleteCookie("userDetails");
-                }
+                // SECURITY FIX 1.2: Don't rely on client-side cookies
                 loginForm.reset();
                 return;
             }
@@ -238,6 +181,66 @@ export function initializeHomepage() {
             loginSubmitButton.innerHTML = 'Login';
         }
     });
+
+    // SECURITY FIX 1.2: Check user session server-side after event listeners are safely attached.
+    // Event listeners are set up first so forms always work, even if this fetch hangs or fails.
+    try {
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 5000);
+
+        const statusResponse = await fetch(getUserStatusURL, {
+            method: "POST",
+            headers: { ...sessionHeaders() },
+            body: JSON.stringify({}),
+            signal: abortController.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const userStatus = await statusResponse.json().catch(() => ({ authenticated: false }));
+
+        if (!userStatus.authenticated) {
+            // User is not authenticated — forms are already set up, nothing more to do
+            return;
+        }
+
+            if (userStatus.hasPaid === "Pending" || userStatus.hasPaid === false) {
+                // Hide registration form and show payment button
+                registrationFormContainer.classList.add("hidden");
+                paymentContainer.classList.remove("hidden");
+                contentPlaceholder.classList.remove("hidden");
+                loginForm.classList.remove("hidden");
+
+                const paymentButton = document.getElementById("payment");
+                if (paymentButton) {
+                    paymentButton.addEventListener("click", () => {
+                        openEncryptedURL("paymentLocation");
+                    });
+                }
+            } else if (userStatus.hasPaid === true) {
+                // User has paid — show nav, hide forms
+                navigationDropdown.classList.remove("hidden");
+                paymentContainer.classList.add("hidden");
+                registrationFormContainer.classList.add("hidden");
+                contentPlaceholder.classList.remove("hidden");
+
+                const decryptedTeam = await decryptTeamName(userStatus.team);
+
+                contentPlaceholder.innerHTML = `
+                <div id="prize-pot-container">
+                    <h3>The prize pot stands on:</h3>
+                    <div id="prize-pot-amount">Loading...</div>
+                </div>
+                <p>Welcome, ${userStatus.firstName} ${userStatus.lastName}!</p>
+                <p>You've drawn <strong>${decryptedTeam}</strong> as your winning team</p>
+                <p>Please use the navigation menu to access different sections of the site.</p>
+                `;
+
+                updatePrizePotCounter();
+            }
+    } catch (error) {
+        console.log("User not authenticated or session expired, showing login forms");
+    }
 }
 
 // Show verification code form
@@ -312,62 +315,12 @@ async function handleVerificationSubmission(email, verifyButton) {
             throw new Error(errorMessage);
         }
 
-        const { userData } = await response.json();
+        // Store the session token returned by the server
+        const data = await response.json();
+        setSessionToken(data.sessionToken);
 
-        // Handle successful verification based on payment status
-        if (userData.hasPaid === true) {
-            // Decrypt the team name before storing
-            const decryptedTeam = await decryptTeamName(userData.team);
-            
-            alert(`Welcome back ${userData.firstName}! Your payment has been approved, you can now access the site.`);
-            // Set the cookie with user details from the database
-            setCookie(
-                "userDetails",
-                JSON.stringify({
-                    firstName: userData.firstName,
-                    lastName: userData.lastName,
-                    email: userData.email,
-                    hasPaid: userData.hasPaid,
-                    assignedTeam: decryptedTeam
-                }),
-                30
-            );
-            window.location.reload();
-        } else if (userData.hasPaid === "Pending" || userData.hasPaid === false) {
-            alert(`Welcome back ${userData.firstName}! If you haven't paid yet, please do, otherwise, your payment is still pending.`);
-            
-            const registrationFormContainer = document.getElementById("registration-form-container");
-            const paymentContainer = document.getElementById("payment-container");
-            const loginFormContainer = document.getElementById("login-form-container");
-            
-            registrationFormContainer.classList.add("hidden");
-            paymentContainer.classList.remove("hidden");
-            loginFormContainer.innerHTML =
-              '<p>Payment approval is still in progress, please try again later.</p>' +
-              `<p>Please contact <a href="#" id="contact-link">Assaf</a> for any issues.</p>`;
-
-            // Attach the click event listener to the link after rendering the HTML
-            const contactLink = document.getElementById("contact-link");
-            if (contactLink) {
-              contactLink.addEventListener("click", (event) => {
-                event.preventDefault();
-                openEncryptedURL("contactLocation");
-              });
-            }
-            setCookie(
-                "userDetails",
-                JSON.stringify({
-                    firstName: userData.firstName,
-                    lastName: userData.lastName,
-                    email: userData.email,
-                    hasPaid: userData.hasPaid,
-                    assignedTeam: "Pending"
-                }),
-                30
-            );
-        } else {
-            alert("Payment not completed. Please complete your payment.");
-        }
+        alert(`Welcome back ${email}! Your session has been established securely.`);
+        window.location.reload();
 
     } catch (error) {
         console.error("Error verifying code:", error);
@@ -400,66 +353,55 @@ async function resendVerificationCode(email, resendButton) {
     }
 }
 
-// Search the DB for the assigned team according to the user email found in the cookie
-// Get assigned team from cookie (synchronous)
-export function getAssignedTeamFromCookie() {
-    const userDetails = getCookie('userDetails');
-    if (userDetails) {
-        try {
-            const userDetailsObj = JSON.parse(userDetails);
-            const team = userDetailsObj.assignedTeam || null;
-            return team;
-        } catch (error) {
-            console.error('Error parsing user details:', error);
-            return null;
-        }
+// SECURITY FIX 1.2: Get assigned team from server-side session instead of client-side cookie
+// This ensures the server controls what team is shown to the user
+// Result is cached per page session so getUserStatus + decryptTeam are only called once.
+export async function getAssignedTeamFromServer() {
+    if (_assignedTeamCache !== undefined) {
+        return _assignedTeamCache;
     }
+    try {
+        const response = await fetch(getUserStatusURL, {
+            method: "POST",
+            headers: sessionHeaders(),
+            body: JSON.stringify({})
+        });
+
+        if (response.ok) {
+            const userStatus = await response.json();
+            if (userStatus.authenticated && userStatus.team) {
+                _assignedTeamCache = await decryptTeamName(userStatus.team);
+                return _assignedTeamCache;
+            }
+        }
+        _assignedTeamCache = null;
+        return null;
+    } catch (error) {
+        console.error('Error fetching assigned team from server:', error);
+        _assignedTeamCache = null;
+        return null;
+    }
+}
+
+// Synchronous version - use with caution, prefer async version
+export function getAssignedTeamFromCookie() {
+    // SECURITY FIX 1.2: Deprecated - do not use client-side cookies for sensitive data
+    // This is kept for backward compatibility but should be replaced with getAssignedTeamFromServer
+    console.warn("getAssignedTeamFromCookie is deprecated. Use getAssignedTeamFromServer instead.");
     return null;
 }
 
 // Fetch and display assigned team (updates UI and returns team name)
 export async function getAssignedTeam() {
-    const userDetails = getCookie('userDetails');
-    if (userDetails) {
-        try {
-            const userDetailsObj = JSON.parse(userDetails);
-            const email = userDetailsObj.email.toLowerCase().trim();
-            const snapshot = await db.collection('users').where('email', '==', email).get();
-            if (!snapshot.empty) {
-                let assignedTeam = null;
-                snapshot.forEach(doc => {
-                    assignedTeam = doc.data().team || null;
-                });
-                
-                // Decrypt the team name
-                const decryptedTeam = await decryptTeamName(assignedTeam);
-                
-                const winningTeam = document.getElementById('winning-team');
-                if (winningTeam) {
-                    winningTeam.innerHTML = `<strong>${decryptedTeam || "No team assigned yet"}</strong>`;
-                }
-                const currentAssignedTeam = userDetailsObj.assignedTeam;
-                if (currentAssignedTeam !== decryptedTeam) {
-                    setCookie(
-                        "userDetails",
-                        JSON.stringify({
-                            ...userDetailsObj,
-                            assignedTeam: decryptedTeam || "No team assigned yet"
-                        }),
-                        30
-                    );
-                }
-                return decryptedTeam;
-            } else {
-                console.warn('No user found with this email.');
-                return null;
-            }
-        } catch (error) {
-            console.error('Error fetching assigned team:', error);
-            return null;
+    try {
+        const decryptedTeam = await getAssignedTeamFromServer();
+        const winningTeam = document.getElementById('winning-team');
+        if (winningTeam) {
+            winningTeam.innerHTML = `<strong>${decryptedTeam || "No team assigned yet"}</strong>`;
         }
-    } else {
-        console.warn('User details cookie not found.');
+        return decryptedTeam;
+    } catch (error) {
+        console.error('Error fetching assigned team:', error);
         return null;
     }
 }
@@ -538,31 +480,27 @@ function teamsMatchSync(team1, team2) {
 }
 
 // Helper function to check if a team should be highlighted
-export function shouldHighlightTeam(teamName) {
-    const assignedTeam = getAssignedTeamFromCookie();
+// SECURITY FIX 1.2: Updated to use server-side data
+export async function shouldHighlightTeam(teamName) {
+    const assignedTeam = await getAssignedTeamFromServer();
     
-    // Use synchronous check first for performance
-    const result = teamsMatchSync(assignedTeam, teamName);
-    
-    // If sync check fails, queue async check
-    if (!result && assignedTeam && teamName) {
-        teamsMatchAsync(assignedTeam, teamName).then(asyncResult => {
-            if (asyncResult) {
-                // Trigger re-render if needed
-                const event = new CustomEvent('teamMatchFound', { detail: { teamName } });
-                document.dispatchEvent(event);
-            }
-        });
+    if (!assignedTeam) {
+        return false;
     }
     
+    // Use async check for secure data
+    const result = await teamsMatchAsync(assignedTeam, teamName);
     return result;
 }
 
 // Async version for use in async contexts
 export async function shouldHighlightTeamAsync(teamName) {
-    const assignedTeam = getAssignedTeamFromCookie();
-    const result = await teamsMatchAsync(assignedTeam, teamName);
-    return result;
+    const assignedTeam = await getAssignedTeamFromServer();
+    if (assignedTeam) {
+        const result = await teamsMatchAsync(assignedTeam, teamName);
+        return result;
+    }
+    return false;
 }
 
 // Helper function to add highlight class to a row if it's the assigned team
@@ -580,6 +518,6 @@ export async function matchInvolvesAssignedTeam(team1Name, team2Name) {
 }
 
 export async function logoutUser() {
-    deleteCookie("userDetails");
+    clearSessionToken();
     window.location.href = `${basePath}index.html`;
 }
