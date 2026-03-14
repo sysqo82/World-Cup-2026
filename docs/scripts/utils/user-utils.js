@@ -209,20 +209,19 @@ export async function initializeHomepage() {
 
         const statusResponse = await fetch(getUserStatusURL, {
             method: "POST",
-            headers: { ...sessionHeaders(), },
+            headers: { ...sessionHeaders() },
             body: JSON.stringify({}),
             signal: abortController.signal
         });
 
         clearTimeout(timeoutId);
 
-        if (statusResponse.ok) {
-            const userStatus = await statusResponse.json();
+        const userStatus = await statusResponse.json().catch(() => ({ authenticated: false }));
 
-            if (!userStatus.authenticated) {
-                // User is not authenticated — forms are already set up, nothing more to do
-                return;
-            }
+        if (!userStatus.authenticated) {
+            // User is not authenticated — forms are already set up, nothing more to do
+            return;
+        }
 
             if (userStatus.hasPaid === "Pending" || userStatus.hasPaid === false) {
                 // Hide registration form and show payment button
@@ -258,7 +257,6 @@ export async function initializeHomepage() {
 
                 updatePrizePotCounter();
             }
-        }
     } catch (error) {
         console.log("User not authenticated or session expired, showing login forms");
     }

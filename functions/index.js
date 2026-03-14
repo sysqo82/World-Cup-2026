@@ -501,7 +501,7 @@ export const getUserStatus = onRequest(async (req, res) => {
       }
 
       if (!sessionToken) {
-        return res.status(401).json({ authenticated: false, message: "Unauthorized: No session token" });
+        return res.status(200).json({ authenticated: false, message: "No session token" });
       }
 
       // Find user by session token
@@ -511,7 +511,7 @@ export const getUserStatus = onRequest(async (req, res) => {
         .get();
 
       if (usersSnapshot.empty) {
-        return res.status(401).json({ authenticated: false, message: "Unauthorized: Invalid session token" });
+        return res.status(200).json({ authenticated: false, message: "Invalid session token" });
       }
 
       const userDoc = usersSnapshot.docs[0];
@@ -525,7 +525,7 @@ export const getUserStatus = onRequest(async (req, res) => {
           sessionToken: null,
           sessionExpiry: null,
         });
-        return res.status(401).json({ authenticated: false, message: "Unauthorized: Session expired" });
+        return res.status(200).json({ authenticated: false, message: "Session expired" });
       }
 
       // Return user status from server (server decides what user can access)
