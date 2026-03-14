@@ -12,6 +12,7 @@ const firebaseConfig = {
     setAdminRoleURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/setAdminRole",
     requestLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/requestLoginCode",
     verifyLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/verifyLoginCode",
+    getUserStatusURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/getUserStatus",
 
     // Local development URLs
     // registerUser: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/registerUser",
@@ -19,6 +20,7 @@ const firebaseConfig = {
     // setAdminRoleURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/setAdminRole",
     // requestLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/requestLoginCode",
     // verifyLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/verifyLoginCode",
+    // getUserStatusURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/getUserStatus",
 };
 
 // Initialize Firebase
@@ -33,3 +35,4 @@ export const sendEmailURL = firebaseConfig.sendEmailURL;
 export const setAdminRoleURL = firebaseConfig.setAdminRoleURL;
 export const requestLoginCodeURL = firebaseConfig.requestLoginCodeURL;
 export const verifyLoginCodeURL = firebaseConfig.verifyLoginCodeURL;
+export const getUserStatusURL = firebaseConfig.getUserStatusURL;

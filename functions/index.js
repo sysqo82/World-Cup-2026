@@ -371,6 +371,11 @@ export const sendEmail = onRequest((req, res) => {
   });
 });
 
+// SECURITY FIX 1.2: Generate secure session tokens for server-side session management
+function generateSessionToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
 export const verifyLoginCode = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     const origin = req.get('origin');
@@ -423,26 +428,94 @@ export const verifyLoginCode = onRequest((req, res) => {
         return res.status(400).send("Invalid verification code.");
       }
 
-      // Clear verification code after successful verification
+      // SECURITY FIX 1.2: Generate secure session token
+      const sessionToken = generateSessionToken();
+      const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+      // SECURITY FIX 1.2: Store session token on server-side
       await serviceFirestore.collection("users").doc(normalizedEmail).update({
         verificationCode: null,
         verificationCodeExpiry: null,
+        sessionToken: sessionToken,
+        sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
       });
 
-      // Return user data for successful login
+      // SECURITY FIX 1.2: Set secure, HttpOnly cookie with session token
+      // Do NOT include sensitive user data in the response
+      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Strict`);
+
+      // Return success message without user data
       res.status(200).json({
-        message: "Verification successful",
-        userData: {
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          email: userData.email,
-          hasPaid: userData.hasPaid,
-          team: userData.team,
-        }
+        message: "Verification successful"
       });
     } catch (error) {
       console.error("Error verifying code:", error);
       res.status(500).send("Error verifying code: " + error.message);
+    }
+  });
+});
+
+// SECURITY FIX 1.2: New endpoint to get user status from session token (server-side verification)
+export const getUserStatus = onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    const origin = req.get('origin');
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).send('Forbidden: Invalid request');
+    }
+    if (req.method === "OPTIONS") {
+      return res.status(204).send('');
+    }
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    try {
+      // SECURITY FIX 1.2: Extract session token from HttpOnly cookie
+      const cookies = req.get('cookie') || '';
+      const sessionIdMatch = cookies.match(/sessionId=([^;]+)/);
+      
+      if (!sessionIdMatch || !sessionIdMatch[1]) {
+        return res.status(401).json({ authenticated: false, message: "Unauthorized: No session token" });
+      }
+
+      const sessionToken = sessionIdMatch[1];
+
+      // Find user by session token
+      const usersSnapshot = await serviceFirestore.collection("users")
+        .where("sessionToken", "==", sessionToken)
+        .limit(1)
+        .get();
+
+      if (usersSnapshot.empty) {
+        return res.status(401).json({ authenticated: false, message: "Unauthorized: Invalid session token" });
+      }
+
+      const userDoc = usersSnapshot.docs[0];
+      const userData = userDoc.data();
+
+      // Check session expiry
+      const now = new Date();
+      if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
+        // Clear expired session
+        await userDoc.ref.update({
+          sessionToken: null,
+          sessionExpiry: null,
+        });
+        return res.status(401).json({ authenticated: false, message: "Unauthorized: Session expired" });
+      }
+
+      // Return user status from server (server decides what user can access)
+      res.status(200).json({
+        authenticated: true,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        hasPaid: userData.hasPaid,
+        team: userData.team, // Still encrypted on server
+      });
+    } catch (error) {
+      console.error("Error getting user status:", error);
+      res.status(500).send("Error getting user status: " + error.message);
     }
   });
 });
