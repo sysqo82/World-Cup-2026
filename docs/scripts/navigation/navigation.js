@@ -1,4 +1,3 @@
-import { getCookie, deleteCookie, setCookie } from "../utils/user-utils.js";
 import { db, getUserStatusURL } from "../config/firebase-config.js"
 import { basePath, isLocal } from "../config/path-config.js";
 

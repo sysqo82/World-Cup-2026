@@ -1,4 +1,4 @@
-import { getAssignedTeam, logoutUser, getCookie, deleteCookie } from '../utils/user-utils.js';
+import { getAssignedTeam, logoutUser } from '../utils/user-utils.js';
 import { isAllowed, isRegistered } from "../navigation/navigation.js";
 import { basePath } from "../config/path-config.js";
 import { db, sendEmailURL, getUserStatusURL } from '../config/firebase-config.js';
