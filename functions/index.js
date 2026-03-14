@@ -56,27 +56,32 @@ function isOriginAllowed(origin) {
 
 // Helper to handle CORS and return early for OPTIONS
 function handleCorsAndOptions(req, res, origin) {
-  // Set CORS headers for all responses
+  const corsHeaders = {};
   if (isOriginAllowed(origin)) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Access-Control-Allow-Credentials', 'true');
-    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.set('Access-Control-Max-Age', '3600');
+    corsHeaders['Access-Control-Allow-Origin'] = origin;
+    corsHeaders['Access-Control-Allow-Credentials'] = 'true';
+    corsHeaders['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS,PUT,DELETE';
+    corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type,Authorization';
+    corsHeaders['Access-Control-Max-Age'] = '3600';
   }
-  
-  // Handle preflight OPTIONS request
+
   if (req.method === 'OPTIONS') {
+    // Use writeHead + end to bypass any Express/emulator middleware that
+    // might clear or override headers set via res.set()
+    res.writeHead(204, corsHeaders);
+    res.end();
     return { handled: true };
   }
-  
+
+  // For normal requests, set CORS headers so they appear on the actual response
+  Object.entries(corsHeaders).forEach(([k, v]) => res.set(k, v));
   return { handled: false };
 }
 
 export const registerUser = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
-  if (corsResult.handled) return res.status(204).send('');
+  if (corsResult.handled) return;
   
   if (!isOriginAllowed(origin)) {
     return res.status(403).send('Forbidden: Invalid request');
@@ -156,7 +161,7 @@ oAuth2Client.setCredentials({
 export const sendEmail = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
-  if (corsResult.handled) return res.status(204).send('');
+  if (corsResult.handled) return;
 
   if (!isOriginAllowed(origin)) {
     return res.status(403).send('Forbidden: Invalid request');
@@ -393,7 +398,7 @@ function generateSessionToken() {
 export const verifyLoginCode = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
-  if (corsResult.handled) return res.status(204).send('');
+  if (corsResult.handled) return;
 
   if (!isOriginAllowed(origin)) {
     return res.status(403).send('Forbidden: Invalid request');
@@ -471,7 +476,7 @@ export const verifyLoginCode = onRequest(async (req, res) => {
 export const getUserStatus = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
-  if (corsResult.handled) return res.status(204).send('');
+  if (corsResult.handled) return;
 
   if (!isOriginAllowed(origin)) {
     return res.status(403).send('Forbidden: Invalid request');
@@ -533,7 +538,7 @@ export const getUserStatus = onRequest(async (req, res) => {
 export const setAdminRole = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
-  if (corsResult.handled) return res.status(204).send('');
+  if (corsResult.handled) return;
 
   if (!isOriginAllowed(origin)) {
     return res.status(403).send('Forbidden: Invalid request');
@@ -726,7 +731,7 @@ export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", asy
 export const decryptTeam = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
-  if (corsResult.handled) return res.status(204).send('');
+  if (corsResult.handled) return;
 
   if (!isOriginAllowed(origin)) {
     return res.status(403).send('Forbidden: Invalid request');
