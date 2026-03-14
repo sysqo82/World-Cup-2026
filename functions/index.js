@@ -458,13 +458,14 @@ export const verifyLoginCode = onRequest(async (req, res) => {
         sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
       });
 
-      // SECURITY FIX 1.2: Set secure, HttpOnly cookie with session token
-      // Do NOT include sensitive user data in the response
-      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; Secure; SameSite=Strict`);
+      // Set HttpOnly cookie for production (HTTPS) environments
+      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Strict`);
 
-      // Return success message without user data
+      // Also return the token in the body so the client can store it for
+      // environments where cookies aren't reliably sent (e.g. local emulator)
       res.status(200).json({
-        message: "Verification successful"
+        message: "Verification successful",
+        sessionToken: sessionToken
       });
     } catch (error) {
       console.error("Error verifying code:", error);
@@ -486,15 +487,22 @@ export const getUserStatus = onRequest(async (req, res) => {
     }
 
     try {
-      // SECURITY FIX 1.2: Extract session token from HttpOnly cookie
-      const cookies = req.get('cookie') || '';
-      const sessionIdMatch = cookies.match(/sessionId=([^;]+)/);
-      
-      if (!sessionIdMatch || !sessionIdMatch[1]) {
-        return res.status(401).json({ authenticated: false, message: "Unauthorized: No session token" });
+      // Accept session token from Authorization: Bearer header (SPA/local dev)
+      // or fall back to the HttpOnly cookie (production)
+      let sessionToken = null;
+      const authHeader = req.get('Authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        sessionToken = authHeader.substring(7).trim();
+      }
+      if (!sessionToken) {
+        const cookies = req.get('cookie') || '';
+        const sessionIdMatch = cookies.match(/sessionId=([^;]+)/);
+        sessionToken = sessionIdMatch ? sessionIdMatch[1] : null;
       }
 
-      const sessionToken = sessionIdMatch[1];
+      if (!sessionToken) {
+        return res.status(401).json({ authenticated: false, message: "Unauthorized: No session token" });
+      }
 
       // Find user by session token
       const usersSnapshot = await serviceFirestore.collection("users")

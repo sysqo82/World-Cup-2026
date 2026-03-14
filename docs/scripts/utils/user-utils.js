@@ -5,7 +5,22 @@ import { basePath } from "../config/path-config.js";
 import { fetchCountryMap } from "./country-utils.js";
 import { decryptTeamName } from "./team-encryption.js";
 
-// Cache for country map
+// Session token helpers — avoids cookies/credentials:include so CORS works everywhere
+function getSessionToken() {
+    return sessionStorage.getItem('sessionToken');
+}
+function setSessionToken(token) {
+    if (token) sessionStorage.setItem('sessionToken', token);
+}
+function clearSessionToken() {
+    sessionStorage.removeItem('sessionToken');
+}
+function sessionHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getSessionToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+}
 let countryMapCache = null;
 
 // Get or fetch country map
@@ -194,9 +209,8 @@ export async function initializeHomepage() {
 
         const statusResponse = await fetch(getUserStatusURL, {
             method: "POST",
-            credentials: "include", // Include cookies in request
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}), // Session token in HttpOnly cookie
+            headers: { ...sessionHeaders(), },
+            body: JSON.stringify({}),
             signal: abortController.signal
         });
 
@@ -310,7 +324,6 @@ async function handleVerificationSubmission(email, verifyButton) {
     try {
         const response = await fetch(verifyLoginCodeURL, {
             method: "POST",
-            credentials: "include", // Include cookies for secure session setting
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
                 email: email, 
@@ -323,7 +336,10 @@ async function handleVerificationSubmission(email, verifyButton) {
             throw new Error(errorMessage);
         }
 
-        // SECURITY FIX 1.2: Server sets secure HttpOnly cookie, don't store sensitive data client-side
+        // Store the session token returned by the server
+        const data = await response.json();
+        setSessionToken(data.sessionToken);
+
         alert(`Welcome back ${email}! Your session has been established securely.`);
         window.location.reload();
 
@@ -364,9 +380,8 @@ export async function getAssignedTeamFromServer() {
     try {
         const response = await fetch(getUserStatusURL, {
             method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}) // Session token is in HttpOnly cookie
+            headers: sessionHeaders(),
+            body: JSON.stringify({})
         });
 
         if (response.ok) {
@@ -396,9 +411,8 @@ export async function getAssignedTeam() {
         // SECURITY FIX 1.2: Fetch from server instead of client-side cookie
         const response = await fetch(getUserStatusURL, {
             method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}) // Session token is in HttpOnly cookie
+            headers: sessionHeaders(),
+            body: JSON.stringify({})
         });
 
         if (response.ok) {
