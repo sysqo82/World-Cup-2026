@@ -40,12 +40,22 @@ pkg.initializeApp();
 const corsHandler = cors({
   origin: function(origin, callback) {
     if (!origin) return callback(new Error('Not allowed by CORS'));
+    
+    // Allow local development origins (127.0.0.1 and localhost with any port)
+    if (origin.includes('127.0.0.1') || origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    // Allow configured origins for production
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
       return callback(new Error('Not allowed by CORS'));
     }
-  }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 });
 
 const serviceApp = pkg.initializeApp(
