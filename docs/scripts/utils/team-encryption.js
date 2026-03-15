@@ -1,3 +1,5 @@
+import { decryptTeamURL } from '../config/firebase-config.js';
+
 // Team encryption/decryption utilities for client-side
 
 /**
@@ -14,11 +16,20 @@ export async function decryptTeamName(encryptedTeam) {
             return encryptedTeam;
         }
         
-        const response = await fetch('https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/decryptTeam', {
+        // SECURITY FIX 1.8: Get session token from sessionStorage and include in Authorization header
+        const sessionToken = sessionStorage.getItem('sessionToken');
+        
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        
+        if (sessionToken) {
+            headers['Authorization'] = `Bearer ${sessionToken}`;
+        }
+        
+        const response = await fetch(decryptTeamURL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: headers,
             body: JSON.stringify({ encryptedTeam }),
         });
 
