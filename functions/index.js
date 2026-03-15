@@ -2,7 +2,6 @@ import { google } from "googleapis";
 import { onRequest } from "firebase-functions/v2/https";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import pkg from "firebase-admin";
-import cors from "cors";
 import { readFileSync } from "fs";
 import crypto from "crypto";
 
@@ -193,7 +192,7 @@ async function logRateLimitEvent(action, identifier, success, reason = null) {
       ip: null, // Would need request context to capture IP
     });
   } catch (error) {
-    console.error('Error logging rate limit event:', error);
+    console.error('Failed to log rate limit event');
   }
 }
 
@@ -602,7 +601,6 @@ export const sendEmail = onRequest(async (req, res) => {
         return res.status(200).send("Email sent successfully!");
       }
     } catch (error) {
-      console.error("Error sending email:", error);
       res.status(500).send("Failed to send email: " + error.message);
     }
 });
@@ -716,7 +714,6 @@ export const verifyLoginCode = onRequest(async (req, res) => {
         sessionToken: sessionToken
       });
     } catch (error) {
-      console.error("Error verifying code:", error);
       res.status(500).send("Error verifying code: " + error.message);
     }
 });
@@ -786,7 +783,6 @@ export const getUserStatus = onRequest(async (req, res) => {
         team: userData.team, // Still encrypted on server
       });
     } catch (error) {
-      console.error("Error getting user status:", error);
       res.status(500).send("Error getting user status: " + error.message);
     }
 });
@@ -832,7 +828,6 @@ export const setAdminRole = onRequest(async (req, res) => {
       message: `Admin role assigned to user with UID: ${uid}`,
     });
   } catch (error) {
-    console.error("Error assigning admin role:", error);
     res.status(500).send("Failed to assign admin role: " + error.message);
   }
 });
