@@ -1,9 +1,9 @@
-import { google } from "googleapis";
 import { onRequest } from "firebase-functions/v2/https";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import pkg from "firebase-admin";
 import { readFileSync } from "fs";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 const { firestore: firestoreAdmin, auth: _auth } = pkg;
 
@@ -292,14 +292,16 @@ export const registerUser = onRequest(async (req, res) => {
     }
 });
 
-// Load OAuth2 credentials
-const { client_id, client_secret, redirect_uris, refresh_token } = credentials.web;
+// Load credentials and create email transporter with Gmail App Password
+const senderEmail = 'slowest.captain@gmail.com';
+const appPassword = 'omws mqhp smmy nqwx'; // Gmail app-specific password (2FA enabled account)
 
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-// Set the refresh token
-oAuth2Client.setCredentials({
-  refresh_token: refresh_token,
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: senderEmail,
+    pass: appPassword,
+  },
 });
 
 export const sendEmail = onRequest(async (req, res) => {
@@ -360,24 +362,11 @@ export const sendEmail = onRequest(async (req, res) => {
         const verificationSubject = 'Your World Cup 2026 Login Verification Code';
         const verificationMessage = `Your verification code for logging in to the World Cup 2026 website is: ${verificationCode}\n\nThis code will expire in 10 minutes. If you did not request this code, please ignore this email.`;
         
-        const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-        const rawEmail = [
-          `From: "Immediate World Cup 2026 Verification" <slowest.captain@gmail.com>`,
-          `To: ${normalizedEmail}`,
-          `Subject: ${verificationSubject}`,
-          "",
-          `${verificationMessage}`,
-        ].join("\n");
-        const encodedEmail = Buffer.from(rawEmail)
-          .toString("base64")
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=+$/, "");
-        await gmail.users.messages.send({
-          userId: "me",
-          requestBody: {
-            raw: encodedEmail,
-          },
+        await transporter.sendMail({
+          from: '"World Cup 2026 Verification" <' + senderEmail + '>',
+          to: normalizedEmail,
+          subject: verificationSubject,
+          text: verificationMessage,
         });
         return res.status(200).json({
           message: "Verification code sent successfully",
@@ -451,29 +440,14 @@ export const sendEmail = onRequest(async (req, res) => {
           });
 
           // Send verification email to NEW email address
-          const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
           const verificationSubject = 'Your World Cup 2026 Email Change Verification Code';
           const verificationMessage = `Your verification code for changing your email address is: ${emailChangeCode}\n\nThis code will expire in 10 minutes. If you did not request this change, please ignore this email.`;
           
-          const rawEmail = [
-            `From: "Immediate World Cup 2026 Updates" <slowest.captain@gmail.com>`,
-            `To: ${normalizedNewEmail}`,
-            `Subject: ${verificationSubject}`,
-            "",
-            `${verificationMessage}`,
-          ].join("\n");
-          
-          const encodedEmail = Buffer.from(rawEmail)
-            .toString("base64")
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=+$/, "");
-          
-          await gmail.users.messages.send({
-            userId: "me",
-            requestBody: {
-              raw: encodedEmail,
-            },
+          await transporter.sendMail({
+            from: '"World Cup 2026 Updates" <' + senderEmail + '>',
+            to: normalizedNewEmail,
+            subject: verificationSubject,
+            text: verificationMessage,
           });
 
           return res.status(200).json({
@@ -579,24 +553,12 @@ export const sendEmail = onRequest(async (req, res) => {
         if (userData.allowUpdates !== true) {
           return res.status(200).send("User has opted out of email updates");
         }
-        const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-        const emailContent = [
-          `From: "Immediate World Cup 2026 Updates" <slowest.captain@gmail.com>`,
-          `To: ${normalizedRecipient}`,
-          `Subject: ${trimmedSubject}`,
-          "",
-          `${trimmedMessage}`,
-        ].join("\n");
-        const encodedEmail = Buffer.from(emailContent)
-          .toString("base64")
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=+$/, "");
-        await gmail.users.messages.send({
-          userId: "me",
-          requestBody: {
-            raw: encodedEmail,
-          },
+        
+        await transporter.sendMail({
+          from: '"World Cup 2026 Updates" <' + senderEmail + '>',
+          to: normalizedRecipient,
+          subject: trimmedSubject,
+          text: trimmedMessage,
         });
         return res.status(200).send("Email sent successfully!");
       }

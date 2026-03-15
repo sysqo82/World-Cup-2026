@@ -14,8 +14,6 @@
   "dependencies": {
     "firebase-admin": "^13.6.0",
     "firebase-tools": "14.26.0",
-    "flag-icons": "^7.3.2",
-    "googleapis": "^148.0.0",
-    "nodemailer": "^6.10.1"
+    "flag-icons": "^7.3.2"
   }
 }
