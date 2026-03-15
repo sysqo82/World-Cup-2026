@@ -2,7 +2,6 @@ import { google } from "googleapis";
 import { onRequest } from "firebase-functions/v2/https";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import pkg from "firebase-admin";
-import cors from "cors";
 import { readFileSync } from "fs";
 import crypto from "crypto";
 
@@ -76,6 +75,31 @@ function handleCorsAndOptions(req, res, origin) {
   // For normal requests, set CORS headers so they appear on the actual response
   Object.entries(corsHeaders).forEach(([k, v]) => res.set(k, v));
   return { handled: false };
+}
+
+// SECURITY FIX 2.3: Validate email format to prevent injection attacks
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return { valid: false, error: 'Email is required and must be a string' };
+  }
+
+  // Trim and check length (RFC 5321 limit is 254 characters)
+  const trimmedEmail = email.toLowerCase().trim();
+  if (trimmedEmail.length > 254) {
+    return { valid: false, error: 'Email is too long' };
+  }
+
+  if (trimmedEmail.length < 5) {
+    return { valid: false, error: 'Email is too short' };
+  }
+
+  // Validate email format using RFC 5322 simplified regex
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    return { valid: false, error: 'Invalid email format' };
+  }
+
+  return { valid: true, normalizedEmail: trimmedEmail };
 }
 
 // SECURITY FIX 1.5: Rate limiting configuration for authentication endpoints
@@ -168,7 +192,7 @@ async function logRateLimitEvent(action, identifier, success, reason = null) {
       ip: null, // Would need request context to capture IP
     });
   } catch (error) {
-    console.error('Error logging rate limit event:', error);
+    console.error('Failed to log rate limit event');
   }
 }
 
@@ -191,6 +215,12 @@ export const registerUser = onRequest(async (req, res) => {
     return res.status(400).send("Missing required fields");
   }
 
+  // SECURITY FIX 2.3: Validate email format
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.valid) {
+    return res.status(400).send(emailValidation.error);
+  }
+
   try {
     const teamsRef = serviceFirestore.collection("teams");
       const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
@@ -206,7 +236,7 @@ export const registerUser = onRequest(async (req, res) => {
 
       const randomIndex = Math.floor(Math.random() * availableTeams.length);
       const selectedTeam = availableTeams[randomIndex];
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedEmail = emailValidation.normalizedEmail;
 
       // SECURITY/DATA INTEGRITY: Check if user already exists before registering
       const existingUserDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
@@ -293,7 +323,13 @@ export const sendEmail = onRequest(async (req, res) => {
         if (!email) {
           return res.status(400).send("Missing required field: email");
         }
-        const normalizedEmail = email.toLowerCase().trim();
+        
+        // SECURITY FIX 2.3: Validate email format
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.valid) {
+          return res.status(400).send(emailValidation.error);
+        }
+        const normalizedEmail = emailValidation.normalizedEmail;
         
         // SECURITY FIX 1.5: Check rate limit on verification code requests
         const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
@@ -352,8 +388,19 @@ export const sendEmail = onRequest(async (req, res) => {
           return res.status(400).send("Missing required fields");
         }
 
-        const normalizedEmail = email.toLowerCase().trim();
-        const normalizedNewEmail = newEmail.toLowerCase().trim();
+        // SECURITY FIX 2.3: Validate both email addresses
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.valid) {
+          return res.status(400).send(emailValidation.error);
+        }
+        
+        const newEmailValidation = validateEmail(newEmail);
+        if (!newEmailValidation.valid) {
+          return res.status(400).send(newEmailValidation.error);
+        }
+
+        const normalizedEmail = emailValidation.normalizedEmail;
+        const normalizedNewEmail = newEmailValidation.normalizedEmail;
 
         // Check if the new email already exists in the database
         const newEmailSnapshot = await serviceFirestore
@@ -495,8 +542,30 @@ export const sendEmail = onRequest(async (req, res) => {
         if (!recipient || !subject || !message) {
           return res.status(400).send("Missing required fields");
         }
+        
+        // SECURITY FIX 2.3: Validate recipient email format
+        const recipientValidation = validateEmail(recipient);
+        if (!recipientValidation.valid) {
+          return res.status(400).send(recipientValidation.error);
+        }
+        const normalizedRecipient = recipientValidation.normalizedEmail;
+        
+        // SECURITY FIX 2.3: Validate subject and message to prevent email header injection
+        if (typeof subject !== 'string' || typeof message !== 'string') {
+          return res.status(400).send("Subject and message must be strings");
+        }
+        const trimmedSubject = subject.trim();
+        const trimmedMessage = message.trim();
+        
+        // Prevent email header injection by rejecting subjects with newlines/carriage returns
+        if (trimmedSubject.includes('\n') || trimmedSubject.includes('\r') || trimmedSubject.length === 0 || trimmedSubject.length > 255) {
+          return res.status(400).send("Subject must be a single line, non-empty, and under 255 characters");
+        }
+        if (trimmedMessage.length === 0 || trimmedMessage.length > 10000) {
+          return res.status(400).send("Message must be non-empty and under 10000 characters");
+        }
+        
         // Check if the user has allowUpdates set to true
-        const normalizedRecipient = recipient.toLowerCase().trim();
         const userSnapshot = await serviceFirestore
           .collection("users")
           .where("email", "==", normalizedRecipient)
@@ -513,10 +582,10 @@ export const sendEmail = onRequest(async (req, res) => {
         const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
         const emailContent = [
           `From: "Immediate World Cup 2026 Updates" <slowest.captain@gmail.com>`,
-          `To: ${recipient}`,
-          `Subject: ${subject}`,
+          `To: ${normalizedRecipient}`,
+          `Subject: ${trimmedSubject}`,
           "",
-          `${message}`,
+          `${trimmedMessage}`,
         ].join("\n");
         const encodedEmail = Buffer.from(emailContent)
           .toString("base64")
@@ -532,7 +601,6 @@ export const sendEmail = onRequest(async (req, res) => {
         return res.status(200).send("Email sent successfully!");
       }
     } catch (error) {
-      console.error("Error sending email:", error);
       res.status(500).send("Failed to send email: " + error.message);
     }
 });
@@ -646,7 +714,6 @@ export const verifyLoginCode = onRequest(async (req, res) => {
         sessionToken: sessionToken
       });
     } catch (error) {
-      console.error("Error verifying code:", error);
       res.status(500).send("Error verifying code: " + error.message);
     }
 });
@@ -716,7 +783,6 @@ export const getUserStatus = onRequest(async (req, res) => {
         team: userData.team, // Still encrypted on server
       });
     } catch (error) {
-      console.error("Error getting user status:", error);
       res.status(500).send("Error getting user status: " + error.message);
     }
 });
@@ -762,7 +828,6 @@ export const setAdminRole = onRequest(async (req, res) => {
       message: `Admin role assigned to user with UID: ${uid}`,
     });
   } catch (error) {
-    console.error("Error assigning admin role:", error);
     res.status(500).send("Failed to assign admin role: " + error.message);
   }
 });
