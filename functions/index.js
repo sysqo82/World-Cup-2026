@@ -78,6 +78,100 @@ function handleCorsAndOptions(req, res, origin) {
   return { handled: false };
 }
 
+// SECURITY FIX 1.5: Rate limiting configuration for authentication endpoints
+const RATE_LIMIT_CONFIG = {
+  VERIFICATION_CODE: {
+    maxAttempts: 5,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    lockoutMs: 5 * 60 * 1000, // 5 minute lockout after max attempts
+  },
+  EMAIL_SENDING: {
+    maxAttempts: 3,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    lockoutMs: 30 * 60 * 1000, // 30 minute lockout
+  },
+};
+
+// SECURITY FIX 1.5: Check and enforce rate limits on sensitive operations
+async function checkRateLimit(identifier, limitType) {
+  const rateLimitDoc = serviceFirestore.collection('rateLimits').doc(`${limitType}:${identifier}`);
+  const doc = await rateLimitDoc.get();
+  const now = Date.now();
+  
+  let rateLimitData = {
+    attempts: 0,
+    firstAttemptTime: now,
+    lastAttemptTime: now,
+    isLocked: false,
+    lockUntil: null,
+  };
+  
+  if (doc.exists) {
+    rateLimitData = doc.data();
+  }
+  
+  const config = RATE_LIMIT_CONFIG[limitType];
+  
+  // Check if user is currently locked out
+  if (rateLimitData.isLocked && rateLimitData.lockUntil && now < rateLimitData.lockUntil) {
+    const remainingMs = rateLimitData.lockUntil - now;
+    return {
+      allowed: false,
+      error: 'Too many attempts. Please try again later.',
+      retryAfter: Math.ceil(remainingMs / 1000),
+    };
+  }
+  
+  // Reset if window has passed
+  if (now - rateLimitData.firstAttemptTime > config.windowMs) {
+    rateLimitData.attempts = 0;
+    rateLimitData.firstAttemptTime = now;
+    rateLimitData.isLocked = false;
+    rateLimitData.lockUntil = null;
+  }
+  
+  // Increment attempts
+  rateLimitData.attempts += 1;
+  rateLimitData.lastAttemptTime = now;
+  
+  // Check if limit exceeded
+  if (rateLimitData.attempts > config.maxAttempts) {
+    rateLimitData.isLocked = true;
+    const jitterFactor = 0.8 + Math.random() * 0.4;
+    rateLimitData.lockUntil = now + Math.floor(config.lockoutMs * jitterFactor);
+    
+    await rateLimitDoc.set(rateLimitData);
+    
+    const retryAfter = Math.ceil((rateLimitData.lockUntil - now) / 1000);
+    return {
+      allowed: false,
+      error: 'Too many attempts. Please try again later.',
+      retryAfter: retryAfter,
+    };
+  }
+  
+  // Save updated attempt count
+  await rateLimitDoc.set(rateLimitData);
+  
+  return { allowed: true };
+}
+
+// SECURITY FIX 1.5: Helper to log rate limit event for monitoring
+async function logRateLimitEvent(action, identifier, success, reason = null) {
+  try {
+    await serviceFirestore.collection('rateLimitEvents').add({
+      action,
+      identifier: identifier.toLowerCase(),
+      success,
+      reason,
+      timestamp: pkg.firestore.FieldValue.serverTimestamp(),
+      ip: null, // Would need request context to capture IP
+    });
+  } catch (error) {
+    console.error('Error logging rate limit event:', error);
+  }
+}
+
 export const registerUser = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
@@ -113,6 +207,16 @@ export const registerUser = onRequest(async (req, res) => {
       const randomIndex = Math.floor(Math.random() * availableTeams.length);
       const selectedTeam = availableTeams[randomIndex];
       const normalizedEmail = email.toLowerCase().trim();
+
+      // SECURITY/DATA INTEGRITY: Check if user already exists before registering
+      const existingUserDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
+      if (existingUserDoc.exists) {
+        // SECURITY FIX 1.6: Don't reveal that email is taken, use generic response
+        await logRateLimitEvent('DUPLICATE_REGISTRATION_ATTEMPT', normalizedEmail, false, 'Email already registered');
+        return res.status(200).json({
+          message: "Thank you for registering. If you already have an account, please use the login form to access it."
+        });
+      }
 
       // Get the current highest index number
       const usersSnapshot = await serviceFirestore.collection("users")
@@ -190,13 +294,25 @@ export const sendEmail = onRequest(async (req, res) => {
           return res.status(400).send("Missing required field: email");
         }
         const normalizedEmail = email.toLowerCase().trim();
-        // Check if user exists
+        
+        // SECURITY FIX 1.5: Check rate limit on verification code requests
+        const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
+        if (!rateLimitCheck.allowed) {
+          res.set('Retry-After', rateLimitCheck.retryAfter);
+          await logRateLimitEvent('VERIFICATION_CODE_REQUEST_BLOCKED', normalizedEmail, false, rateLimitCheck.error);
+          return res.status(429).json({ error: rateLimitCheck.error });
+        }
+        
+        // SECURITY FIX 1.6: Check if user exists (log but don't reveal to prevent email enumeration)
         const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
         if (!userDoc.exists) {
-          return res.status(404).send("User not found");
+          await logRateLimitEvent('VERIFICATION_CODE_USER_NOT_FOUND', normalizedEmail, false, 'Email not registered');
+          return res.status(200).json({
+            message: "If this email is registered, a verification code has been sent. Please check your inbox."
+          });
         }
-        // Generate a 6-digit verification code
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate a 6-digit verification code using cryptographically secure method
+        const verificationCode = generateVerificationCode();
         // Set expiry time to 10 minutes from now
         const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
         // Update user document with verification code and expiry
@@ -246,20 +362,36 @@ export const sendEmail = onRequest(async (req, res) => {
           .get();
 
         if (!newEmailSnapshot.empty) {
-          return res.status(409).send("Email already registered");
+          // SECURITY FIX 1.6: Don't reveal if email is already taken
+          await logRateLimitEvent('EMAIL_ALREADY_EXISTS', normalizedNewEmail, false, 'Email in use');
+          return res.status(200).json({
+            message: "Email change request received. Please check your inbox for verification details."
+          });
         }
 
         // Find the user with the current email
         const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
 
+        // SECURITY FIX 1.6: Don't reveal if user exists
         if (!userDoc.exists) {
-          return res.status(404).send("User not found");
+          await logRateLimitEvent('EMAIL_CHANGE_USER_NOT_FOUND', normalizedEmail, false, 'Email not registered');
+          return res.status(200).json({
+            message: "If this email is registered, you will receive a verification code. Check your inbox."
+          });
         }
 
         // If requestCode is true, generate and send verification code
         if (requestCode === true) {
-          // Generate a 6-digit verification code
-          const emailChangeCode = Math.floor(100000 + Math.random() * 900000).toString();
+          // SECURITY FIX 1.5: Check rate limit on email change code requests
+          const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
+          if (!rateLimitCheck.allowed) {
+            res.set('Retry-After', rateLimitCheck.retryAfter);
+            await logRateLimitEvent('EMAIL_CHANGE_CODE_REQUEST_BLOCKED', normalizedEmail, false, rateLimitCheck.error);
+            return res.status(429).json({ error: rateLimitCheck.error });
+          }
+          
+          // Generate a 6-digit verification code using cryptographically secure method
+          const emailChangeCode = generateVerificationCode();
           
           // Set expiry time to 10 minutes from now
           const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
@@ -308,7 +440,8 @@ export const sendEmail = onRequest(async (req, res) => {
 
           // Check if verification code exists
           if (!userData.emailChangeVerificationCode) {
-            return res.status(400).send("No verification code found. Please request a new one.");
+            await logRateLimitEvent('EMAIL_CHANGE_CODE_NOT_FOUND', normalizedEmail, false, 'No code sent');
+            return res.status(400).json({ error: "Invalid verification code or email." });
           }
 
           // Check if verification code has expired
@@ -320,17 +453,20 @@ export const sendEmail = onRequest(async (req, res) => {
               emailChangeVerificationExpiry: null,
               pendingNewEmail: null,
             });
-            return res.status(400).send("Verification code has expired. Please request a new one.");
+            await logRateLimitEvent('EMAIL_CHANGE_CODE_EXPIRED', normalizedEmail, false, 'Code expired');
+            return res.status(400).json({ error: "Invalid verification code or email." });
           }
 
           // Check if verification code matches
           if (userData.emailChangeVerificationCode !== verificationCode.trim()) {
-            return res.status(400).send("Invalid verification code.");
+            await logRateLimitEvent('EMAIL_CHANGE_CODE_INVALID', normalizedEmail, false, 'Invalid code');
+            return res.status(400).json({ error: "Invalid verification code or email." });
           }
 
           // Check if pending new email matches
           if (userData.pendingNewEmail !== normalizedNewEmail) {
-            return res.status(400).send("New email does not match the pending change request.");
+            await logRateLimitEvent('EMAIL_CHANGE_MISMATCH', normalizedEmail, false, 'Email mismatch');
+            return res.status(400).json({ error: "Invalid verification code or email." });
           }
 
           // Get all user data
@@ -366,7 +502,8 @@ export const sendEmail = onRequest(async (req, res) => {
           .where("email", "==", normalizedRecipient)
           .get();
         if (userSnapshot.empty) {
-          return res.status(404).send("User not found in database");
+          await logRateLimitEvent('EMAIL_SEND_USER_NOT_FOUND', normalizedRecipient, false, 'Email not registered');
+          return res.status(200).send("Email sent successfully!");
         }
         const userData = userSnapshot.docs[0].data();
         // Check if allowUpdates is explicitly set to true
@@ -400,6 +537,19 @@ export const sendEmail = onRequest(async (req, res) => {
     }
 });
 
+// SECURITY FIX 1.4: Generate cryptographically secure verification codes
+// Replaces weak Math.random() with crypto.randomBytes() per CWE-338
+function generateVerificationCode() {
+  // Generate a random 32-bit unsigned integer
+  const buffer = crypto.randomBytes(4);
+  // Read the value as a big-endian unsigned 32-bit integer
+  const randomValue = buffer.readUInt32BE(0);
+  // Map to 6-digit range (100000-999999) using modulo
+  const code = (randomValue % 900000) + 100000;
+  // Ensure it's zero-padded to 6 digits
+  return code.toString().padStart(6, '0');
+}
+
 // SECURITY FIX 1.2: Generate secure session tokens for server-side session management
 function generateSessionToken() {
   return crypto.randomBytes(32).toString('hex');
@@ -426,18 +576,29 @@ export const verifyLoginCode = onRequest(async (req, res) => {
   try {
     const normalizedEmail = email.toLowerCase().trim();
 
+    // SECURITY FIX 1.5: Check rate limit on verification attempts (brute force protection)
+    const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
+    if (!rateLimitCheck.allowed) {
+      res.set('Retry-After', rateLimitCheck.retryAfter);
+      await logRateLimitEvent('VERIFICATION_CODE_VERIFY_BLOCKED', normalizedEmail, false, rateLimitCheck.error);
+      return res.status(429).json({ error: rateLimitCheck.error });
+    }
+
     // Get user document
     const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
 
+    // SECURITY FIX 1.6: Don't reveal account existence (prevent email enumeration)
     if (!userDoc.exists) {
-      return res.status(404).send("User not found");
+      await logRateLimitEvent('VERIFY_CODE_USER_NOT_FOUND', normalizedEmail, false, 'Unknown email');
+      return res.status(400).json({ error: "Invalid email or verification code." });
     }
 
     const userData = userDoc.data();
 
       // Check if verification code exists
       if (!userData.verificationCode) {
-        return res.status(400).send("No verification code found. Please request a new one.");
+        await logRateLimitEvent('VERIFY_CODE_NOT_SENT', normalizedEmail, false, 'No code requested');
+        return res.status(400).json({ error: "Invalid email or verification code." });
       }
 
       // Check if verification code has expired
@@ -448,13 +609,20 @@ export const verifyLoginCode = onRequest(async (req, res) => {
           verificationCode: null,
           verificationCodeExpiry: null,
         });
-        return res.status(400).send("Verification code has expired. Please request a new one.");
+        // SECURITY FIX 1.6: Use generic message (don't reveal code was sent)
+        await logRateLimitEvent('VERIFY_CODE_EXPIRED', normalizedEmail, false, 'Code expired');
+        return res.status(400).json({ error: "Invalid email or verification code." });
       }
 
       // Check if verification code matches
       if (userData.verificationCode !== verificationCode.trim()) {
-        return res.status(400).send("Invalid verification code.");
+        await logRateLimitEvent('VERIFICATION_CODE_INVALID', normalizedEmail, false, 'Invalid code submitted');
+        return res.status(400).json({ error: "Invalid email or verification code." });
       }
+
+      // SECURITY FIX 1.5: Clear rate limit on successful verification
+      await serviceFirestore.collection('rateLimits').doc(`VERIFICATION_CODE:${normalizedEmail}`).delete();
+      await logRateLimitEvent('VERIFICATION_CODE_SUCCESS', normalizedEmail, true);
 
       // SECURITY FIX 1.2: Generate secure session token
       const sessionToken = generateSessionToken();

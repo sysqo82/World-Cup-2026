@@ -80,23 +80,6 @@ export async function initializeHomepage() {
         registerSubmitButton.disabled = true;
         registerSubmitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
 
-        // Don't allow duplicate email registrations
-        try {
-            const normalizedEmail = email.toLowerCase().trim();
-            const snapshot = await db.collection("users").where("email", "==", normalizedEmail).get();
-
-            if (!snapshot.empty) {
-                alert("Email already registered. Please log in.");
-                registerSubmitButton.disabled = false;
-                registerSubmitButton.innerHTML = 'Register';
-                registrationForm.reset();
-                document.getElementById("email-login").value = normalizedEmail;
-                return;
-            }
-        } catch (error) {
-            console.error("Error checking email:", error);
-        }
-
         if (!firstName || !lastName || !email) {
             alert("Please fill out all fields.");
             registerSubmitButton.disabled = false;
@@ -151,17 +134,9 @@ export async function initializeHomepage() {
 
         try {
             const normalizedEmail = email.toLowerCase().trim();
-            const snapshot = await db.collection("users").where("email", "==", normalizedEmail).get();
 
-            if (snapshot.empty) {
-                alert("No user found with this email. Please register first.");
-                loginSubmitButton.disabled = false;
-                loginSubmitButton.innerHTML = 'Login';
-                // SECURITY FIX 1.2: Don't rely on client-side cookies
-                loginForm.reset();
-                return;
-            }
-
+            // SECURITY FIX 1.6: Don't check user existence on client
+            // Server endpoint handles this securely and returns generic message
             // Request verification code
             const result = await sendVerificationEmail(normalizedEmail);
 

@@ -4,3 +4,5 @@ node_modules/
 /*.js
 .idea
 /*.log
+# Ignore security audit reports (internal documentation)
+SECURITY_AUDIT_REPORT.md
