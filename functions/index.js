@@ -926,6 +926,17 @@ export const decryptTeam = onRequest(async (req, res) => {
     return res.status(405).send("Method Not Allowed");
   }
 
+  // SECURITY FIX 1.8: Require authentication to decrypt team data
+  let sessionToken = null;
+  const authHeader = req.get('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    sessionToken = authHeader.substring(7).trim();
+  }
+
+  if (!sessionToken) {
+    return res.status(401).json({ error: "Unauthorized: No session token provided" });
+  }
+
   const { encryptedTeam } = req.body;
 
   if (!encryptedTeam) {
@@ -933,6 +944,30 @@ export const decryptTeam = onRequest(async (req, res) => {
   }
 
   try {
+    // Verify session token is valid
+    const usersSnapshot = await serviceFirestore.collection("users")
+      .where("sessionToken", "==", sessionToken)
+      .limit(1)
+      .get();
+
+    if (usersSnapshot.empty) {
+      return res.status(401).json({ error: "Unauthorized: Invalid session token" });
+    }
+
+    const userDoc = usersSnapshot.docs[0];
+    const userData = userDoc.data();
+
+    // Check session expiry
+    const now = new Date();
+    if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
+      // Clear expired session
+      await userDoc.ref.update({
+        sessionToken: null,
+        sessionExpiry: null,
+      });
+      return res.status(401).json({ error: "Unauthorized: Session expired" });
+    }
+
     const decrypted = decryptTeamName(encryptedTeam);
     res.status(200).json({ teamName: decrypted });
   } catch (error) {
