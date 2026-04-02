@@ -1,8 +1,8 @@
-# World Cup 2026 - Immediate's Team Draw Website
+# World Cup 2026 - Team Draw Website
 
-This is the Immediate website for the 2026 World Cup games.
+This is the website for the 2026 World Cup games.
 
-Here you could register and contribute a small sum (£5) to a shared pot and get random assignment of a team out of the 32 countries participating. Whoever's team is the winner will get the whole amount.
+Here you could register and contribute a small sum (£5) to a shared pot and get random assignment of a team out of the 48 countries participating. Whoever's team is the winner will get the whole amount.
 
 The website will also provide details on the different matches in the different stages of the tournament, from the group stage all the way to the final.
 
@@ -24,7 +24,7 @@ Only after Assaf verified you paid, you'll be given permission to login.
 
 ## Login
 
-To login, you'll need to enter your registered email address in the login form. A verification email will be sent with a code (which expires after 10 minutes) to the registered email inbox with a 6 digit code. You'll need to enter it into the form and only then you will be able to login (once logged in, you won't need to login again on that browser, unless you clear your cookies).
+To login, you'll need to enter your registered email address in the login form. A verification email will be sent with a code (which expires after 10 minutes) to the registered email inbox with a 6 digit code. You'll need to enter it into the form and only then you will be able to login (once logged in, you won't need to login again on that browser).
 
 <img src="docs/images/login-email%20verification.png" alt="Login - Email Verification">
 
@@ -72,7 +72,7 @@ The tables are ordered according to the FIFA ranking when they drew it. The rank
 
 <img src="docs/images/group-stage-table.png" alt="Group Stage Table">
 
-If you hover over the official FIFA 3 letter name code, you can see the name of the country.
+If you hover over the official FIFA 3 letter name code, you can see the full name of the country.
 
 <img src="docs/images/group-stage-table-country-name.png" alt="Group Stage Table - Country Name">
 
@@ -100,7 +100,7 @@ In this stage, there can only be a winning team or a losing team and matches can
 
 ## Email Notifications
 
-When you register you gave us permission to send you emails regarding match results of your drawn team. Those emails are light in text and will have all of the information you'll need. They'll be appropriately named and be personalised to you and your team and stage in the competitions.
+When you registered, you gave permission to send you emails regarding match results of your drawn team. Those emails are light in text and will have all of the information you'll need. They'll be appropriately named and be personalised to you and your team and stage in the competitions.
 
 For example:
 

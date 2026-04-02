@@ -735,10 +735,12 @@ button.submit-button:disabled:hover {
 
 /* Make images responsive */
 img {
-    grid-column: 2 / span 4;
+    grid-column: 1 / span 6;
     height: auto;
     display: grid;
     margin: 0 auto;
+    max-width: 600px;
+    width: 100%;
 }
 
 #content-placeholder {

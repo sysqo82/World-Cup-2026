@@ -10,6 +10,19 @@ constructor(winner, loser, matchId, stage) {
   this.stage = stage;
   }
 
+  // Get the next stage based on the current stage
+  getNextStage(currentStage) {
+    const stageProgression = {
+      'Round of 32': 'Round of 16',
+      'Round of 16': 'Quarter Final',
+      'Quarter Final': 'Semi Final',
+      'Semi Final': 'Final',
+      'Final': null,
+      'Third Place Playoff': null
+    };
+    return stageProgression[currentStage] || null;
+  }
+
   // Fetch the email of the user associated with a team
   async getTeamEmailAndName(teamAbbreviation) {
     const countryMap = await fetchCountryMap();
@@ -125,10 +138,17 @@ buildEmailTemplate(
   // Build the winner's email template if the winner's email exists
   if ((winnersScore > losersScore) && winnerEmail) {
     let isFinal = stage === 'Final';
+    let isThirdPlacePlayoff = stage === 'Third Place Playoff';
     let winnerSubject;
     let winnerMessage;
+    const nextStage = this.getNextStage(stage);
+    const nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    const placementMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 3rd place in the World Cup!' : '';
+    
     if (stage === 'Final') {
       winnerSubject = `${stage}: Congratulations ${winnerOwnersName}, your team ${winningCountryFullName} are the World Cup Champions!`;
+    } else if (isThirdPlacePlayoff) {
+      winnerSubject = `Third Place: Congratulations ${winnerOwnersName}, your team ${winningCountryFullName} finished in 3rd place!`;
     } else {
       winnerSubject = `${stage}: Congratulations ${winnerOwnersName}, your team ${winningCountryFullName} won!`;
     }
@@ -138,7 +158,7 @@ buildEmailTemplate(
           `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
 Your team ${winningCountryFullName} beat ${losingCountryFullName} after extra time was added with a score of ${winnersScore}-${losersScore}.
 Celebrate the victory!
-The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.`;
+The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.${nextStageMessage}${placementMessage}`;
         break;
       case 'extraTimeWasTied':
         winnerMessage =
@@ -146,13 +166,13 @@ The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Scor
 Your team ${winningCountryFullName} beat ${losingCountryFullName} after an intense penalty shootouts with a score of ${winnersScore}-${losersScore}.
 Celebrate the victory!
 The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
-After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.`;
+After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.${nextStageMessage}${placementMessage}`;
         break;
       default:
         winnerMessage =
           `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
 Your team ${winningCountryFullName} beat ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
-Celebrate the victory!`;
+Celebrate the victory!${nextStageMessage}${placementMessage}`;
     }
 
     emailTemplates.winner = {
@@ -166,8 +186,13 @@ Celebrate the victory!`;
   if ((losersScore < winnersScore) && loserEmail) {
     let loserSubject
     let loserMessage;
+    let isThirdPlacePlayoff = stage === 'Third Place Playoff';
+    const tournamentEndMessage = stage === 'Final' ? '\nYour tournament has come to an end, but you made it all the way to the Final!' : isThirdPlacePlayoff ? '\nYour team has finished in 4th place in the World Cup.' : '\nUnfortunately, your tournament has come to an end, but there\'s always next time!';
+    
     if (stage === 'Final') {
       loserSubject = `${stage}: Commiserations ${loserOwnersName}, your team ${losingCountryFullName} lost the World Cup Final!`;
+    } else if (isThirdPlacePlayoff) {
+      loserSubject = `Fourth Place: Commiserations ${loserOwnersName}, your team ${losingCountryFullName} finished in 4th place!`;
     } else {
       loserSubject = `${stage}: Better Luck Next Time, ${loserOwnersName}, your team ${losingCountryFullName} lost!`;
     }
@@ -176,19 +201,19 @@ Celebrate the victory!`;
         loserMessage =
           `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after extra time with a score of ${losersScore}-${winnersScore}.
 Keep your spirits high!
-The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.`;
+The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.${tournamentEndMessage}`;
         break;
       case 'extraTimeWasTied':
         loserMessage =
           `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after an intense penalty shootout with the score of ${losersScore}-${winnersScore}.
 Keep your spirits high!
 The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
-After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.`;
+After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.${tournamentEndMessage}`;
         break;
       default:
         loserMessage =
           `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} with a score of ${losersScore}-${winnersScore}.
-Keep your spirits high!`;
+Keep your spirits high!${tournamentEndMessage}`;
     }
 
     emailTemplates.loser = {
@@ -200,11 +225,18 @@ Keep your spirits high!`;
 
   // Handle the case of a draw
   if (winnersScore === losersScore) {
+    const nextStage = this.getNextStage(stage);
+    const nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    let isThirdPlacePlayoff = stage === 'Third Place Playoff';
+    const thirdPlaceMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 3rd place in the World Cup!' : '';
+    const fourthPlaceMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 4th place in the World Cup.' : '';
+    const tournamentEndMessage = stage === 'Final' ? '\nYour tournament has come to an end, but you made it all the way to the Final!' : '\nUnfortunately, your tournament has come to an end, but there\'s always next time!';
+    
     if (winnerEmail) {
       const drawSubjectWinner = `${stage}: It's a Draw! ${winningCountryFullName} vs ${losingCountryFullName}`;
       const drawMessageWinner =
       `Your team ${winningCountryFullName} drew against ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
-Keep up the great effort!`;
+Keep up the great effort!${nextStageMessage}${thirdPlaceMessage}`;
 
       emailTemplates.winner = {
         email: winnerEmail,
@@ -217,7 +249,7 @@ Keep up the great effort!`;
       const drawSubjectLoser = `${stage}: It's a Draw! ${losingCountryFullName} vs ${winningCountryFullName}`;
       const drawMessageLoser =
       `Your team ${losingCountryFullName} drew against ${winningCountryFullName} with a score of ${winnersScore}-${losersScore}.
-Keep up the great effort!`;
+Keep up the great effort!${fourthPlaceMessage}`;
 
       emailTemplates.loser = {
         email: loserEmail,
