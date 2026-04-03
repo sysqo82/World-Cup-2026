@@ -63,3 +63,23 @@ export async function sendMatchEmails(
     console.error('Error sending match emails:', error);
   }
 }
+
+// Send group conclusion emails after all matches in a group are complete
+export async function sendGroupConclusionEmails(groupData, groupName) {
+  try {
+    const emailTemplate = new EmailTemplate(null, null, groupName, 'Group Stage');
+
+    // Build group conclusion emails based on final standings
+    const emails = await emailTemplate.buildGroupConclusionEmails(groupData, groupName);
+
+    // Send emails to all teams
+    for (const [teamAbbr, emailData] of Object.entries(emails)) {
+      const result = await sendEmailNotification(emailData.email, emailData.subject, emailData.message);
+      if (!result.sent) {
+        console.error(`Email not sent to ${teamAbbr}: ${result.message}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error sending group conclusion emails:', error);
+  }
+}

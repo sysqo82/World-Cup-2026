@@ -872,14 +872,29 @@ export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", asy
     usersSnapshot.forEach(userDoc => {
       const userData = userDoc.data();
       if (userData.team) {
-        assignedTeamsSet.add(userData.team);
+        try {
+          // Decrypt the team name if it's encrypted
+          const decrypted = userData.team.includes(':') ? decryptTeamName(userData.team) : userData.team;
+          console.log(`User ${userData.email} has team: ${decrypted}`);
+          assignedTeamsSet.add(decrypted);
+        } catch (error) {
+          console.warn(`Failed to decrypt team for user ${userData.email}: ${error.message}`);
+          // Fall back to using encrypted value if decryption fails
+          assignedTeamsSet.add(userData.team);
+        }
       }
     });
+    
+    console.log(`Teams assigned to users: ${Array.from(assignedTeamsSet).join(', ')}`);
     
     // Update assigned status for teams
     teamsInGroups.forEach(teamName => {
       const details = teamDetails.get(teamName);
-      details.assigned = assignedTeamsSet.has(teamName);
+      const isAssigned = assignedTeamsSet.has(teamName);
+      if (isAssigned) {
+        console.log(`Team ${teamName} is ASSIGNED`);
+      }
+      details.assigned = isAssigned;
     });
     
     // Delete teams that are no longer in groups
@@ -971,28 +986,42 @@ export const decryptTeam = onRequest(async (req, res) => {
   }
 
   try {
-    // Verify session token is valid
+    // First, try to verify as a session token
+    let isValid = false;
     const usersSnapshot = await serviceFirestore.collection("users")
       .where("sessionToken", "==", sessionToken)
       .limit(1)
       .get();
 
-    if (usersSnapshot.empty) {
-      return res.status(401).json({ error: "Unauthorized: Invalid session token" });
+    if (!usersSnapshot.empty) {
+      const userDoc = usersSnapshot.docs[0];
+      const userData = userDoc.data();
+
+      // Check session expiry
+      const now = new Date();
+      if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
+        // Clear expired session
+        await userDoc.ref.update({
+          sessionToken: null,
+          sessionExpiry: null,
+        });
+      } else {
+        isValid = true;
+      }
     }
 
-    const userDoc = usersSnapshot.docs[0];
-    const userData = userDoc.data();
+    // If not a valid session token, try to verify as Firebase ID token
+    if (!isValid) {
+      try {
+        await _auth().verifyIdToken(sessionToken);
+        isValid = true;
+      } catch (error) {
+        console.warn('Failed to verify token as Firebase ID token:', error.message);
+      }
+    }
 
-    // Check session expiry
-    const now = new Date();
-    if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
-      // Clear expired session
-      await userDoc.ref.update({
-        sessionToken: null,
-        sessionExpiry: null,
-      });
-      return res.status(401).json({ error: "Unauthorized: Session expired" });
+    if (!isValid) {
+      return res.status(401).json({ error: "Unauthorized: Invalid token" });
     }
 
     const decrypted = decryptTeamName(encryptedTeam);

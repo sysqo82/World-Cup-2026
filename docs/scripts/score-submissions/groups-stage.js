@@ -1,5 +1,6 @@
 import { db } from '../config/firebase-config.js';
 import { sendMatchEmails } from '../utils/email-notifications.js';
+import { sendGroupConclusionEmails } from '../utils/email-notifications.js';
 import { matchSchedule } from '../utils/match-schedule-constants.js';
 
 export async function handleGroupStageScoreSubmission(event, stage) {
@@ -89,8 +90,42 @@ export async function handleGroupStageScoreSubmission(event, stage) {
         leftScoreInput.value = leftScore;
         rightScoreInput.value = rightScore;
 
+        // Check if group stage is complete for this group
+        await checkAndSendGroupConclusionEmails(groupId, groupName);
+
     } catch (error) {
         console.error('Error submitting scores:', error);
         alert('An error occurred while submitting the scores.');
+    }
+}
+
+// Helper function to check if group stage is complete and send conclusion emails
+async function checkAndSendGroupConclusionEmails(groupId, groupName) {
+    try {
+        const groupDoc = await db.collection('groups').doc(groupId).get();
+        const groupData = groupDoc.data();
+        
+        // Check if all teams have played 3 matches
+        let allTeamsComplete = true;
+        for (const teamAbbr in groupData.teams) {
+            const team = groupData.teams[teamAbbr];
+            const matchesPlayed = (team.W || 0) + (team.D || 0) + (team.L || 0);
+            if (matchesPlayed !== 3) {
+                allTeamsComplete = false;
+                break;
+            }
+        }
+
+        // If all teams have completed 3 matches, send group conclusion emails
+        if (allTeamsComplete) {
+            // Check if emails have already been sent
+            if (!groupData.conclusionEmailsSent) {
+                await sendGroupConclusionEmails(groupData, groupName);
+                // Mark that conclusion emails have been sent
+                await db.collection('groups').doc(groupId).update({ conclusionEmailsSent: true });
+            }
+        }
+    } catch (error) {
+        console.error('Error checking group completion:', error);
     }
 }

@@ -1,4 +1,5 @@
 import { decryptTeamURL } from '../config/firebase-config.js';
+import { auth } from '../config/firebase-config.js';
 
 // Team encryption/decryption utilities for client-side
 
@@ -16,15 +17,24 @@ export async function decryptTeamName(encryptedTeam) {
             return encryptedTeam;
         }
         
-        // SECURITY FIX 1.8: Get session token from sessionStorage and include in Authorization header
-        const sessionToken = sessionStorage.getItem('sessionToken');
+        // SECURITY FIX 1.8: Get session token or Firebase ID token for authorization
+        let authToken = sessionStorage.getItem('sessionToken');
+        
+        // If no session token, try to get Firebase ID token (for admins/direct auth)
+        if (!authToken && auth.currentUser) {
+            try {
+                authToken = await auth.currentUser.getIdToken();
+            } catch (error) {
+                console.warn('Could not get Firebase ID token:', error);
+            }
+        }
         
         const headers = {
             'Content-Type': 'application/json',
         };
         
-        if (sessionToken) {
-            headers['Authorization'] = `Bearer ${sessionToken}`;
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
         }
         
         const response = await fetch(decryptTeamURL, {
