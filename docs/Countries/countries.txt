@@ -52,7 +52,7 @@ CUB	Cuba	cu
 CUW	Curaçao	cw
 CYP	Cyprus	cy
 CZE	Czech Republic	cz
-COD	DR Congo	cd
+COD	Democratic Republic of the Congo	cd
 DEN	Denmark	dk
 DJI	Djibouti	dj
 DMA	Dominica	dm
