@@ -142,7 +142,7 @@ buildEmailTemplate(
     let winnerSubject;
     let winnerMessage;
     const nextStage = this.getNextStage(stage);
-    const nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    const nextStageMessage = (isFinal || isThirdPlacePlayoff) ? (nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '') : '';
     const placementMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 3rd place in the World Cup!' : '';
     
     if (stage === 'Final') {
@@ -186,8 +186,9 @@ Celebrate the victory!${nextStageMessage}${placementMessage}`;
   if ((losersScore < winnersScore) && loserEmail) {
     let loserSubject
     let loserMessage;
+    let isFinal = stage === 'Final';
     let isThirdPlacePlayoff = stage === 'Third Place Playoff';
-    const tournamentEndMessage = stage === 'Final' ? '\nYour tournament has come to an end, but you made it all the way to the Final!' : isThirdPlacePlayoff ? '\nYour team has finished in 4th place in the World Cup.' : '\nUnfortunately, your tournament has come to an end, but there\'s always next time!';
+    const tournamentEndMessage = isFinal ? '\nYour tournament has come to an end, but you made it all the way to the Final!' : isThirdPlacePlayoff ? '\nYour team has finished in 4th place in the World Cup.' : '';
     
     if (stage === 'Final') {
       loserSubject = `${stage}: Commiserations ${loserOwnersName}, your team ${losingCountryFullName} lost the World Cup Final!`;
@@ -226,11 +227,11 @@ Keep your spirits high!${tournamentEndMessage}`;
   // Handle the case of a draw
   if (winnersScore === losersScore) {
     const nextStage = this.getNextStage(stage);
-    const nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
-    let isThirdPlacePlayoff = stage === 'Third Place Playoff';
+    const isFinal = stage === 'Final';
+    const isThirdPlacePlayoff = stage === 'Third Place Playoff';
+    const nextStageMessage = (isFinal || isThirdPlacePlayoff) ? (nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '') : '';
     const thirdPlaceMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 3rd place in the World Cup!' : '';
     const fourthPlaceMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 4th place in the World Cup.' : '';
-    const tournamentEndMessage = stage === 'Final' ? '\nYour tournament has come to an end, but you made it all the way to the Final!' : '\nUnfortunately, your tournament has come to an end, but there\'s always next time!';
     
     if (winnerEmail) {
       const drawSubjectWinner = `${stage}: It's a Draw! ${winningCountryFullName} vs ${losingCountryFullName}`;
@@ -260,6 +261,85 @@ Keep up the great effort!${fourthPlaceMessage}`;
   }
 
   return emailTemplates;
+}
+
+// Build group conclusion emails based on final standings (Phase 2)
+async buildGroupConclusionEmails(groupData, groupName) {
+  const emailTemplates = {};
+  const countryMap = await fetchCountryMap();
+
+  // Sort teams by standings: Points (desc), Goal Difference (desc), Goals Scored (desc)
+  const teamsArray = Object.entries(groupData.teams).map(([abbr, teamData]) => ({
+    abbr,
+    ...teamData
+  }));
+
+  teamsArray.sort((a, b) => {
+    const pointsA = (a.W || 0) * 3 + (a.D || 0);
+    const pointsB = (b.W || 0) * 3 + (b.D || 0);
+    const diffA = (a.goalsScored || 0) - (a.goalsReceived || 0);
+    const diffB = (b.goalsScored || 0) - (b.goalsReceived || 0);
+
+    if (pointsA !== pointsB) return pointsB - pointsA;
+    if (diffA !== diffB) return diffB - diffA;
+    return (b.goalsScored || 0) - (a.goalsScored || 0);
+  });
+
+  // Send emails to top 3 (advancing) and 4th place (eliminated)
+  for (let rank = 0; rank < teamsArray.length; rank++) {
+    const team = teamsArray[rank];
+    const teamFullName = countryMap[team.name]?.fullName;
+    
+    const userData = await this.getTeamEmailAndName(team.name);
+    
+    if (!userData) {
+      continue;
+    }
+
+    const { teamEmail, teamsOwnerName } = userData;
+    const placement = rank + 1;
+
+    if (placement <= 3) {
+      // Advancement email for top 3
+      const nextStage = this.getNextStage('Group Stage') || 'Knockout Stage';
+      const subject = `Group Stage Complete: Congratulations ${teamsOwnerName}, ${teamFullName} finished ${this.getOrdinalSuffix(placement)} in ${groupName}!`;
+      const message = `Your team ${teamFullName} finished in ${this.getOrdinalSuffix(placement)} place in ${groupName}.
+
+Congratulations! Your team is advancing to the ${nextStage}!
+
+Keep up the great effort and good luck in the next stage!`;
+
+      emailTemplates[team.abbr] = {
+        email: teamEmail,
+        subject,
+        message
+      };
+    } else {
+      // Elimination email for 4th place
+      const subject = `Group Stage Complete: ${teamsOwnerName}, your team ${teamFullName} finished 4th in ${groupName}`;
+      const message = `Your team ${teamFullName} finished in 4th place in ${groupName}.
+
+Unfortunately, your time in the World Cup has come to an end, but there's always next time! Better luck in the next tournament!`;
+
+      emailTemplates[team.abbr] = {
+        email: teamEmail,
+        subject,
+        message
+      };
+    }
+  }
+
+  return emailTemplates;
+}
+
+// Helper method to get ordinal suffix (1st, 2nd, 3rd, etc.)
+getOrdinalSuffix(num) {
+  const j = num % 10;
+  const k = num % 100;
+  if (j === 1 && k !== 11) return num + 'st';
+  if (j === 2 && k !== 12) return num + 'nd';
+  if (j === 3 && k !== 13) return num + 'rd';
+  return num + 'th';
 }
 
 // Static method for generating email change verification form HTML

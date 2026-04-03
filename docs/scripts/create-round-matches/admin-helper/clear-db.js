@@ -50,6 +50,10 @@ export async function clearDB() {
         console.log(`Deleted matchdays for group: ${groupId}`);
       }
 
+      // Reset the conclusionEmailsSent flag so group conclusion emails can be sent again
+      updates.conclusionEmailsSent = false;
+      console.log(`Reset conclusionEmailsSent flag for group: ${groupId}`);
+
       // Apply the updates to the group document
       await db.collection('groups').doc(groupId).update(updates);
       console.log(`Cleared data for group: ${groupId}`);
