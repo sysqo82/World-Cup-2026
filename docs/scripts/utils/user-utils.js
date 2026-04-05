@@ -23,7 +23,6 @@ function sessionHeaders() {
     return headers;
 }
 let countryMapCache = null;
-// Cache for the decrypted assigned team — undefined = not yet fetched, null = fetched/no team
 let _assignedTeamCache = undefined;
 
 // Get or fetch country map
@@ -35,22 +34,9 @@ async function getCountryMap() {
 }
 
 export function openEncryptedURL(location) {
-    let encodedURL = null;
+    if (location !== 'paymentLocation') return;
     const paymentLocation = 'aHR0cHM6Ly9tb256by5tZS9hc3NhZml0emlrc29uLzUuMDA/ZD1Xb3JsZCUyMEN1cCUyMDIwMjYmaD1UREp4ZTg=';
-    const contactLocation = 'aHR0cHM6Ly9pbW1lZGlhdGUuc2xhY2suY29tL2FyY2hpdmVzL0MwOFJEMDgyVk5Z';
-    switch (location) {
-        case 'paymentLocation':
-            encodedURL = paymentLocation;
-            break;
-        case 'contactLocation':
-            encodedURL = contactLocation;
-            break;
-        default:
-            // No default action needed
-            return;
-    }
-    const decodedURL = atob(encodedURL);
-    window.open(decodedURL, '_blank');
+    window.open(atob(paymentLocation), '_blank');
 }
 
 // Initialize homepage logic
