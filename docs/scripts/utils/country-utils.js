@@ -57,7 +57,10 @@ export function getCountryFullName(countryMap, nameOrAbbreviation) {
     );
 
     if (exactMatch) {
-        return { fullName: exactMatch[1].fullName, flagCode: exactMatch[1].flagCode };
+        return { 
+            fullName: exactMatch[1].fullName, 
+            flagCode: exactMatch[1].flagCode
+        };
     }
 
     // Check if the input matches a full name (normalized match for accented characters)
@@ -66,7 +69,10 @@ export function getCountryFullName(countryMap, nameOrAbbreviation) {
     );
 
     if (normalizedMatch) {
-        return { fullName: normalizedMatch[1].fullName, flagCode: normalizedMatch[1].flagCode };
+        return { 
+            fullName: normalizedMatch[1].fullName, 
+            flagCode: normalizedMatch[1].flagCode
+        };
     }
 
     // Check if input matches alternative names in parentheses
@@ -91,6 +97,9 @@ export function getCountryFullName(countryMap, nameOrAbbreviation) {
     );
 
     return alternativeMatch
-        ? { fullName: alternativeMatch[1].fullName, flagCode: alternativeMatch[1].flagCode }
+        ? { 
+            fullName: alternativeMatch[1].fullName, 
+            flagCode: alternativeMatch[1].flagCode
+        }
         : { fullName: "Unknown", flagCode: "unknown" };
 }

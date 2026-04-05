@@ -39,11 +39,21 @@ export async function generateRoundMatches(selector, dataBase, round) {
             return;
         }
 
-        matches.forEach(async (match, index) => {
-            // Get match date from schedule
+        // Assign dates using original positional index from Firestore, then sort by date
+        const matchesWithDates = matches.map((match, idx) => ({
+            ...match,
+            _scheduleDate: knockoutMatchSchedule[round]?.[`match${idx + 1}`] || ''
+        }));
+        matchesWithDates.sort((a, b) => {
+            if (!a._scheduleDate) return 1;
+            if (!b._scheduleDate) return -1;
+            return new Date(a._scheduleDate) - new Date(b._scheduleDate);
+        });
+
+        for (const match of matchesWithDates) {
+            // Get match date assigned from original positional schedule
             let dateDisplay = '';
-            const matchKey = `match${index + 1}`;
-            const scheduledDate = knockoutMatchSchedule[round]?.[matchKey];
+            const scheduledDate = match._scheduleDate;
             if (scheduledDate) {
                 try {
                     const date = new Date(scheduledDate);
@@ -177,7 +187,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
                     });
                 }
             }
-        });
+        }
     }
 }
 

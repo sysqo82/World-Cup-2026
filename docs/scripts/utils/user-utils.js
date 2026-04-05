@@ -135,9 +135,6 @@ export async function initializeHomepage() {
         try {
             const normalizedEmail = email.toLowerCase().trim();
 
-            // SECURITY FIX 1.6: Don't check user existence on client
-            // Server endpoint handles this securely and returns generic message
-            // Request verification code
             const result = await sendVerificationEmail(normalizedEmail);
 
             if (!result.sent) {
@@ -157,8 +154,6 @@ export async function initializeHomepage() {
         }
     });
 
-    // SECURITY FIX 1.2: Check user session server-side after event listeners are safely attached.
-    // Event listeners are set up first so forms always work, even if this fetch hangs or fails.
     try {
         const abortController = new AbortController();
         const timeoutId = setTimeout(() => abortController.abort(), 5000);
@@ -294,7 +289,7 @@ async function handleVerificationSubmission(email, verifyButton) {
         const data = await response.json();
         setSessionToken(data.sessionToken);
 
-        alert(`Welcome back ${email}! Your session has been established securely.`);
+        alert(`Welcome back ${data.firstName}! Your session has been established securely.`);
         window.location.reload();
 
     } catch (error) {
@@ -328,9 +323,6 @@ async function resendVerificationCode(email, resendButton) {
     }
 }
 
-// SECURITY FIX 1.2: Get assigned team from server-side session instead of client-side cookie
-// This ensures the server controls what team is shown to the user
-// Result is cached per page session so getUserStatus + decryptTeam are only called once.
 export async function getAssignedTeamFromServer() {
     if (_assignedTeamCache !== undefined) {
         return _assignedTeamCache;
@@ -356,14 +348,6 @@ export async function getAssignedTeamFromServer() {
         _assignedTeamCache = null;
         return null;
     }
-}
-
-// Synchronous version - use with caution, prefer async version
-export function getAssignedTeamFromCookie() {
-    // SECURITY FIX 1.2: Deprecated - do not use client-side cookies for sensitive data
-    // This is kept for backward compatibility but should be replaced with getAssignedTeamFromServer
-    console.warn("getAssignedTeamFromCookie is deprecated. Use getAssignedTeamFromServer instead.");
-    return null;
 }
 
 // Fetch and display assigned team (updates UI and returns team name)
@@ -455,7 +439,6 @@ function teamsMatchSync(team1, team2) {
 }
 
 // Helper function to check if a team should be highlighted
-// SECURITY FIX 1.2: Updated to use server-side data
 export async function shouldHighlightTeam(teamName) {
     const assignedTeam = await getAssignedTeamFromServer();
     
