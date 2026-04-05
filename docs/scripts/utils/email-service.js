@@ -1,14 +1,14 @@
 import { sendEmailURL } from '../config/firebase-config.js';
 
 // Function to send email notifications (match results)
-export async function sendEmailNotification(recipient, subject, message) {
+export async function sendEmailNotification(recipient, subject, message, html) {
   try {
     const response = await fetch(sendEmailURL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ recipient, subject, message }),
+      body: JSON.stringify({ recipient, subject, message, html }),
     });
 
     if (response.ok) {

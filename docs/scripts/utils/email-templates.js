@@ -13,10 +13,13 @@ constructor(winner, loser, matchId, stage) {
   // Get the next stage based on the current stage
   getNextStage(currentStage) {
     const stageProgression = {
+      'Group Stage': 'Round of 32',
       'Round of 32': 'Round of 16',
       'Round of 16': 'Quarter Final',
       'Quarter Final': 'Semi Final',
+      'Quarter Finals': 'Semi Final',
       'Semi Final': 'Final',
+      'Semi Finals': 'Final',
       'Final': null,
       'Third Place Playoff': null
     };
@@ -104,9 +107,222 @@ constructor(winner, loser, matchId, stage) {
   };
 }
 
+// Helper method to convert country abbreviation to flag SVG icon using flag-icons CDN
+getFlagIconUrl(abbreviation, countryMap) {
+  if (!countryMap || !abbreviation) return '';
+  const country = countryMap[abbreviation?.toUpperCase()];
+  if (!country || !country.flagCode) return '';
+  const flagCode = country.flagCode;
+  return `<img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/flags/4x3/${flagCode}.svg" alt="${abbreviation}" style="width: 20px; height: 15px; margin: 0 4px; vertical-align: middle;">`;
+}
+
+// Helper method to convert country abbreviation to flag emoji
+getCountryFlag(abbreviation, countryMap) {
+  return this.getFlagIconUrl(abbreviation, countryMap);
+}
+
+// Helper method to convert stage to URL slug
+getStageUrlSlug(stage) {
+  const slugMap = {
+    'Group Stage': 'group-stage',
+    'Round of 32': 'round-of-32',
+    'Round of 16': 'round-of-16',
+    'Quarter Final': 'quarter-final',
+    'Quarter Finals': 'quarter-final',
+    'Semi Final': 'semi-final',
+    'Semi Finals': 'semi-final',
+    'Final': 'final',
+    'Third Place Playoff': 'third-place-playoff'
+  };
+  return slugMap[stage] || 'group-stage';
+}
+
+// Helper method to generate styled HTML email
+generateStyledEmail(title, headline, teamName, message, details, isVictory, isFinal, prizePot, ctaText = 'View Tournament', countryAbbr = '', countryMap = null, opponentAbbr = '', stage = 'Group Stage') {
+  const headerColor = isVictory ? '#28a745' : '#dc3545';
+  const accentColor = isVictory ? '#d4edda' : '#f8d7da';
+  const flagIcon = this.getFlagIconUrl(countryAbbr, countryMap);
+  const opponentFlagIcon = this.getFlagIconUrl(opponentAbbr, countryMap);
+  const opponentName = opponentAbbr && countryMap ? countryMap[opponentAbbr?.toUpperCase()]?.fullName || '' : '';
+  const stageSlug = this.getStageUrlSlug(stage);
+  const ctaLink = `https://sysqo82.github.io/World-Cup-2026/pages/${stageSlug}.html`;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f9;
+          color: #333;
+          line-height: 1.6;
+        }
+        .container {
+          max-width: 600px;
+          margin: 20px auto;
+          background-color: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          overflow: hidden;
+        }
+        .header {
+          background: ${headerColor};
+          background: linear-gradient(135deg, ${headerColor} 0%, ${isVictory ? '#357ae8' : '#a71930'} 100%);
+          color: white;
+          padding: 30px 20px;
+          text-align: center;
+        }
+        .header h1 {
+          font-size: 28px;
+          margin-bottom: 8px;
+          font-weight: bold;
+        }
+        .header p {
+          font-size: 14px;
+          opacity: 0.9;
+        }
+        .content {
+          padding: 30px;
+        }
+        .headline {
+          font-size: 22px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+        .team-name {
+          font-size: 18px;
+          color: ${headerColor};
+          font-weight: bold;
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        .score-box {
+          background-color: ${accentColor};
+          border-left: 4px solid ${headerColor};
+          padding: 25px;
+          margin: 25px 0;
+          border-radius: 4px;
+          text-align: center;
+        }
+        .score-display {
+          font-size: 48px;
+          font-weight: bold;
+          color: ${headerColor};
+          margin: 10px 0;
+        }
+        .score-label {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 15px;
+        }
+        .details {
+          background-color: #f9f9f9;
+          padding: 15px;
+          border-radius: 4px;
+          margin: 15px 0;
+          font-size: 14px;
+          line-height: 1.8;
+        }
+        .detail-item {
+          margin: 8px 0;
+          padding-left: 15px;
+          border-left: 3px solid #ddd;
+        }
+        .prize-pot {
+          background-color: #fff3cd;
+          border-left: 4px solid #ffc107;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 4px;
+          font-weight: bold;
+          color: #856404;
+        }
+        .message-section {
+          margin: 20px 0;
+          padding: 15px;
+          background-color: #f9f9f9;
+          border-radius: 4px;
+        }
+        .message-section p {
+          margin: 8px 0;
+        }
+        .cta-button {
+          display: inline-block;
+          background-color: #28a745 !important;
+          color: white !important;
+          padding: 14px 32px;
+          text-decoration: none !important;
+          border-radius: 4px;
+          font-weight: bold;
+          margin: 20px 0;
+          margin-left: 50%;
+          transform: translateX(-50%);
+        }
+        .cta-button:hover {
+          background-color: #1e7e34 !important;
+        }
+        .footer {
+          background-color: #f4f4f9;
+          color: #999;
+          text-align: center;
+          padding: 20px;
+          font-size: 12px;
+          border-top: 1px solid #eee;
+        }
+        .footer p {
+          margin: 5px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${title}</h1>
+          <p>World Cup 2026</p>
+        </div>
+        
+        <div class="content">
+          <div class="headline">${headline}</div>
+          <div class="team-name">${flagIcon}${teamName}</div>
+          
+          <div class="score-box">
+            <div class="score-label">${isVictory ? 'Final Score' : 'Match Result'}</div>
+            <div class="score-display">${details.score}</div>
+            <div class="score-label">${flagIcon}${teamName} vs ${opponentName}${opponentFlagIcon}</div>
+          </div>
+          
+          ${details.timingInfo ? `<div class="details">${details.timingInfo}</div>` : ''}
+          ${prizePot ? `<div class="prize-pot">💰 You won the prize pot: £${prizePot}!</div>` : ''}
+          
+          <div class="message-section">
+            ${message.split('\n').map(p => p.trim()).filter(p => p).map(p => `<p>${p}</p>`).join('')}
+          </div>
+          
+          <center>
+            <a href="${ctaLink}" class="cta-button" style="display: inline-block; background-color: #28a745 !important; color: #ffffff !important; padding: 14px 32px; text-decoration: none !important; border-radius: 4px; font-weight: bold; margin: 20px 0;">${ctaText}</a>
+          </center>
+        </div>
+        
+        <div class="footer">
+          <p>World Cup 2026</p>
+          <p>You received this email because you are subscribed for match updates.</p>
+          <p>Manage your preferences from My Account page.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 // Build the email template for both winner and loser
 matchResult;
-buildEmailTemplate(
+async buildEmailTemplate(
     winnerEmail,
     loserEmail,
     winningCountryFullName,
@@ -120,9 +336,11 @@ buildEmailTemplate(
     regularTimeTeam2Score,
     extraTimeTeam1Score,
     extraTimeTeam2Score,
-    prizePotSum
+    prizePotSum,
+    isGroupStageComplete = false
 ) {
   const emailTemplates = {};
+  const countryMap = await fetchCountryMap();
 
   const regularTimeWasTied = (regularTimeTeam1Score != null && regularTimeTeam2Score != null);
   const extraTimeWasTied = (extraTimeTeam1Score != null && extraTimeTeam2Score != null);
@@ -140,9 +358,17 @@ buildEmailTemplate(
     let isFinal = stage === 'Final';
     let isThirdPlacePlayoff = stage === 'Third Place Playoff';
     let winnerSubject;
-    let winnerMessage;
+    let winnerMessagePlain;
     const nextStage = this.getNextStage(stage);
-    const nextStageMessage = (isFinal || isThirdPlacePlayoff) ? (nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '') : '';
+    const isGroupStage = stage === 'Group Stage';
+    let nextStageMessage = '';
+    if (isFinal || isThirdPlacePlayoff) {
+      nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    } else if (isGroupStage && isGroupStageComplete) {
+      nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    } else if (!isGroupStage) {
+      nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    }
     const placementMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 3rd place in the World Cup!' : '';
     
     if (stage === 'Final') {
@@ -152,43 +378,83 @@ buildEmailTemplate(
     } else {
       winnerSubject = `${stage}: Congratulations ${winnerOwnersName}, your team ${winningCountryFullName} won!`;
     }
+
+    let detailsInfo = {};
+    let timingInfo = '';
+    
     switch (this.matchResult) {
       case 'regularTimeWasTied':
-        winnerMessage =
-          `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
-Your team ${winningCountryFullName} beat ${losingCountryFullName} after extra time was added with a score of ${winnersScore}-${losersScore}.
-Celebrate the victory!
-The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.${nextStageMessage}${placementMessage}`;
+        detailsInfo = {
+          score: `${winnersScore}-${losersScore}`,
+          matchup: `${winningCountryFullName} vs ${losingCountryFullName}`,
+          timingInfo: `<strong>After Extra Time</strong><br/>90 minutes: ${regularTimeTeam1Score}-${regularTimeTeam2Score}`
+        };
+        winnerMessagePlain =
+          `Your team ${winningCountryFullName} beat ${losingCountryFullName} after extra time was added with a score of ${winnersScore}-${losersScore}.\n\nCelebrate the victory!\n\nThe match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.${nextStageMessage}${placementMessage}`;
         break;
       case 'extraTimeWasTied':
-        winnerMessage =
-          `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
-Your team ${winningCountryFullName} beat ${losingCountryFullName} after an intense penalty shootouts with a score of ${winnersScore}-${losersScore}.
-Celebrate the victory!
-The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
-After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.${nextStageMessage}${placementMessage}`;
+        detailsInfo = {
+          score: `${winnersScore}-${losersScore}`,
+          matchup: `${winningCountryFullName} vs ${losingCountryFullName}`,
+          timingInfo: `<strong>After Penalty Shootout</strong><br/>90 minutes: ${regularTimeTeam1Score}-${regularTimeTeam2Score}<br/>120 minutes: ${extraTimeTeam1Score}-${extraTimeTeam2Score}`
+        };
+        winnerMessagePlain =
+          `Your team ${winningCountryFullName} beat ${losingCountryFullName} after an intense penalty shootout with a score of ${winnersScore}-${losersScore}.\n\nCelebrate the victory!\n\nThe match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.\nAfter 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.${nextStageMessage}${placementMessage}`;
         break;
       default:
-        winnerMessage =
-          `${isFinal ? `You have won the prize pot, which stands at £${prizePotSum}!` : ''}
-Your team ${winningCountryFullName} beat ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
-Celebrate the victory!${nextStageMessage}${placementMessage}`;
+        detailsInfo = {
+          score: `${winnersScore}-${losersScore}`,
+          matchup: `${winningCountryFullName} vs ${losingCountryFullName}`,
+          timingInfo: ''
+        };
+        winnerMessagePlain =
+          `Your team ${winningCountryFullName} beat ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.\n\nCelebrate the victory!${nextStageMessage}${placementMessage}`;
     }
+
+    const winnerHeadline = isFinal ? '🏆 World Cup Champions!' : isThirdPlacePlayoff ? '🥉 Third Place Finish!' : '✅ Victory!';
+    const winnerTitle = stage === 'Final' ? 'FINAL: Champions!' : stage === 'Third Place Playoff' ? 'THIRD PLACE: Victory!' : `${stage}: Victory!`;
+    const winnerHTML = this.generateStyledEmail(
+      winnerTitle,
+      winnerHeadline,
+      winningCountryFullName,
+      winnerMessagePlain,
+      detailsInfo,
+      true,
+      isFinal,
+      isFinal ? prizePotSum : null,
+      'View Tournament',
+      this.winningCountryName,
+      countryMap,
+      this.losingCountryName,
+      stage
+    );
 
     emailTemplates.winner = {
       email: winnerEmail,
       subject: winnerSubject,
-      message: winnerMessage,
+      message: winnerMessagePlain,
+      html: winnerHTML
     };
   }
 
   // Build the loser's email template if the loser's email exists
   if ((losersScore < winnersScore) && loserEmail) {
-    let loserSubject
-    let loserMessage;
+    let loserSubject;
+    let loserMessagePlain;
     let isFinal = stage === 'Final';
     let isThirdPlacePlayoff = stage === 'Third Place Playoff';
-    const tournamentEndMessage = isFinal ? '\nYour tournament has come to an end, but you made it all the way to the Final!' : isThirdPlacePlayoff ? '\nYour team has finished in 4th place in the World Cup.' : '';
+    const isGroupStage = stage === 'Group Stage';
+    const isKnockout = ['Round of 32', 'Round of 16', 'Quarter Final', 'Semi Final', 'Final', 'Third Place Playoff'].includes(stage);
+    let tournamentEndMessage = '';
+    if (isFinal) {
+      tournamentEndMessage = '\n\nYour tournament has come to an end, but you made it all the way to the Final!';
+    } else if (isThirdPlacePlayoff) {
+      tournamentEndMessage = '\n\nYour team has finished in 4th place in the World Cup.';
+    } else if (isGroupStage && isGroupStageComplete) {
+      tournamentEndMessage = '\n\nYour team has been eliminated from the tournament.';
+    } else if (isKnockout) {
+      tournamentEndMessage = '\n\nYour team has been eliminated from the tournament.';
+    }
     
     if (stage === 'Final') {
       loserSubject = `${stage}: Commiserations ${loserOwnersName}, your team ${losingCountryFullName} lost the World Cup Final!`;
@@ -197,30 +463,61 @@ Celebrate the victory!${nextStageMessage}${placementMessage}`;
     } else {
       loserSubject = `${stage}: Better Luck Next Time, ${loserOwnersName}, your team ${losingCountryFullName} lost!`;
     }
+
+    let detailsInfo = {};
+    
     switch (this.matchResult) {
       case 'regularTimeWasTied':
-        loserMessage =
-          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after extra time with a score of ${losersScore}-${winnersScore}.
-Keep your spirits high!
-The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.${tournamentEndMessage}`;
+        detailsInfo = {
+          score: `${losersScore}-${winnersScore}`,
+          matchup: `${losingCountryFullName} vs ${winningCountryFullName}`,
+          timingInfo: `<strong>After Extra Time</strong><br/>90 minutes: ${regularTimeTeam1Score}-${regularTimeTeam2Score}`
+        };
+        loserMessagePlain =
+          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after extra time with a score of ${losersScore}-${winnersScore}.\n\nKeep your spirits high!\n\nThe match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.${tournamentEndMessage}`;
         break;
       case 'extraTimeWasTied':
-        loserMessage =
-          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after an intense penalty shootout with the score of ${losersScore}-${winnersScore}.
-Keep your spirits high!
-The match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.
-After 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.${tournamentEndMessage}`;
+        detailsInfo = {
+          score: `${losersScore}-${winnersScore}`,
+          matchup: `${losingCountryFullName} vs ${winningCountryFullName}`,
+          timingInfo: `<strong>After Penalty Shootout</strong><br/>90 minutes: ${regularTimeTeam1Score}-${regularTimeTeam2Score}<br/>120 minutes: ${extraTimeTeam1Score}-${extraTimeTeam2Score}`
+        };
+        loserMessagePlain =
+          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} after an intense penalty shootout with the score of ${losersScore}-${winnersScore}.\n\nKeep your spirits high!\n\nThe match ended after 90 minutes in a tie with a score of ${regularTimeTeam1Score}-${regularTimeTeam2Score}.\nAfter 120 minutes the match was still tied at ${extraTimeTeam1Score}-${extraTimeTeam2Score}.${tournamentEndMessage}`;
         break;
       default:
-        loserMessage =
-          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} with a score of ${losersScore}-${winnersScore}.
-Keep your spirits high!${tournamentEndMessage}`;
+        detailsInfo = {
+          score: `${losersScore}-${winnersScore}`,
+          matchup: `${losingCountryFullName} vs ${winningCountryFullName}`,
+          timingInfo: ''
+        };
+        loserMessagePlain =
+          `Your team ${losingCountryFullName} fought hard but lost to ${winningCountryFullName} with a score of ${losersScore}-${winnersScore}.\n\nKeep your spirits high!${tournamentEndMessage}`;
     }
+
+    const loserHeadline = isFinal ? '💔 Runner-up' : isThirdPlacePlayoff ? '📍 Fourth Place' : '❌ Defeat';
+    const loserTitle = stage === 'Final' ? 'FINAL: Runner-up' : stage === 'Third Place Playoff' ? 'THIRD PLACE: Fourth Place' : (isKnockout ? `${stage}: Unlucky` : `${stage}: Defeat`);
+    const loserHTML = this.generateStyledEmail(
+      loserTitle,
+      loserHeadline,
+      losingCountryFullName,
+      loserMessagePlain,
+      detailsInfo,
+      false,
+      false,
+      null,
+      'View Tournament',
+      this.losingCountryName,
+      countryMap,
+      this.winningCountryName,
+      stage
+    );
 
     emailTemplates.loser = {
       email: loserEmail,
       subject: loserSubject,
-      message: loserMessage,
+      message: loserMessagePlain,
+      html: loserHTML
     };
   }
 
@@ -229,33 +526,85 @@ Keep your spirits high!${tournamentEndMessage}`;
     const nextStage = this.getNextStage(stage);
     const isFinal = stage === 'Final';
     const isThirdPlacePlayoff = stage === 'Third Place Playoff';
-    const nextStageMessage = (isFinal || isThirdPlacePlayoff) ? (nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '') : '';
+    const isGroupStage = stage === 'Group Stage';
+    let nextStageMessage = '';
+    if (isFinal || isThirdPlacePlayoff) {
+      nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    } else if (isGroupStage && isGroupStageComplete) {
+      nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    } else if (!isGroupStage) {
+      nextStageMessage = nextStage ? `\n\nYour team is advancing to the ${nextStage}!` : '';
+    }
     const thirdPlaceMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 3rd place in the World Cup!' : '';
     const fourthPlaceMessage = isThirdPlacePlayoff ? '\n\nYour team has finished in 4th place in the World Cup.' : '';
     
     if (winnerEmail) {
       const drawSubjectWinner = `${stage}: It's a Draw! ${winningCountryFullName} vs ${losingCountryFullName}`;
       const drawMessageWinner =
-      `Your team ${winningCountryFullName} drew against ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.
-Keep up the great effort!${nextStageMessage}${thirdPlaceMessage}`;
+      `Your team ${winningCountryFullName} drew against ${losingCountryFullName} with a score of ${winnersScore}-${losersScore}.\n\nKeep up the great effort!${nextStageMessage}${thirdPlaceMessage}`;
+
+      const drawDetailsWinner = {
+        score: `${winnersScore}-${losersScore}`,
+        matchup: `${winningCountryFullName} vs ${losingCountryFullName}`,
+        timingInfo: ''
+      };
+
+      const drawHTMLWinner = this.generateStyledEmail(
+        `${stage}: Draw`,
+        '🤝 It\'s a Draw!',
+        winningCountryFullName,
+        drawMessageWinner,
+        drawDetailsWinner,
+        true,
+        false,
+        null,
+        'View Tournament',
+        this.winningCountryName,
+        countryMap,
+        this.losingCountryName,
+        stage
+      );
 
       emailTemplates.winner = {
         email: winnerEmail,
         subject: drawSubjectWinner,
         message: drawMessageWinner,
+        html: drawHTMLWinner
       };
     }
 
     if (loserEmail) {
       const drawSubjectLoser = `${stage}: It's a Draw! ${losingCountryFullName} vs ${winningCountryFullName}`;
       const drawMessageLoser =
-      `Your team ${losingCountryFullName} drew against ${winningCountryFullName} with a score of ${winnersScore}-${losersScore}.
-Keep up the great effort!${fourthPlaceMessage}`;
+      `Your team ${losingCountryFullName} drew against ${winningCountryFullName} with a score of ${winnersScore}-${losersScore}.\n\nKeep up the great effort!${fourthPlaceMessage}`;
+
+      const drawDetailsLoser = {
+        score: `${winnersScore}-${losersScore}`,
+        matchup: `${losingCountryFullName} vs ${winningCountryFullName}`,
+        timingInfo: ''
+      };
+
+      const drawHTMLLoser = this.generateStyledEmail(
+        `${stage}: Draw`,
+        '🤝 It\'s a Draw!',
+        losingCountryFullName,
+        drawMessageLoser,
+        drawDetailsLoser,
+        true,
+        false,
+        null,
+        'View Tournament',
+        this.losingCountryName,
+        countryMap,
+        this.winningCountryName,
+        stage
+      );
 
       emailTemplates.loser = {
         email: loserEmail,
         subject: drawSubjectLoser,
         message: drawMessageLoser,
+        html: drawHTMLLoser
       };
     }
   }
@@ -286,6 +635,7 @@ async buildGroupConclusionEmails(groupData, groupName) {
   });
 
   // Send emails to top 3 (advancing) and 4th place (eliminated)
+  // Send emails to top 3 (advancing) and 4th place (eliminated)
   for (let rank = 0; rank < teamsArray.length; rank++) {
     const team = teamsArray[rank];
     const teamFullName = countryMap[team.name]?.fullName;
@@ -309,10 +659,33 @@ Congratulations! Your team is advancing to the ${nextStage}!
 
 Keep up the great effort and good luck in the next stage!`;
 
+      const detailsInfo = {
+        score: `${this.getOrdinalSuffix(placement)} Place`,
+        matchup: `${groupName} - ${teamFullName}`,
+        timingInfo: ''
+      };
+
+      const html = this.generateStyledEmail(
+        `GROUP STAGE: ${this.getOrdinalSuffix(placement)} Place`,
+        `🎉 ${this.getOrdinalSuffix(placement)} Place Finish!`,
+        teamFullName,
+        message,
+        detailsInfo,
+        true,
+        false,
+        null,
+        'View Tournament',
+        team.name,
+        countryMap,
+        '',
+        'Group Stage'
+      );
+
       emailTemplates[team.abbr] = {
         email: teamEmail,
         subject,
-        message
+        message,
+        html
       };
     } else {
       // Elimination email for 4th place
@@ -321,10 +694,33 @@ Keep up the great effort and good luck in the next stage!`;
 
 Unfortunately, your time in the World Cup has come to an end, but there's always next time! Better luck in the next tournament!`;
 
+      const detailsInfo = {
+        score: '4th Place',
+        matchup: `${groupName} - ${teamFullName}`,
+        timingInfo: ''
+      };
+
+      const html = this.generateStyledEmail(
+        'GROUP STAGE: Eliminated',
+        '📍 Fourth Place',
+        teamFullName,
+        message,
+        detailsInfo,
+        false,
+        false,
+        null,
+        'View Tournament',
+        team.name,
+        countryMap,
+        '',
+        'Group Stage'
+      );
+
       emailTemplates[team.abbr] = {
         email: teamEmail,
         subject,
-        message
+        message,
+        html
       };
     }
   }

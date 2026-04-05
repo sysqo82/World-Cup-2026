@@ -12,7 +12,8 @@ export async function sendMatchEmails(
   regularTimeTeam2Score,
   extraTimeTeam1Score,
   extraTimeTeam2Score,
-  prizePotSum
+  prizePotSum,
+  isGroupStageComplete = false
 ) {
   try {
     const emailTemplate = new EmailTemplate(winner, loser, match, stage);
@@ -28,7 +29,7 @@ export async function sendMatchEmails(
     } = await emailTemplate.fetchEmailAndOwnersName();
 
     // Build the email templates
-    const emails = emailTemplate.buildEmailTemplate(
+    const emails = await emailTemplate.buildEmailTemplate(
       winnerEmail,
       loserEmail,
       winningCountryFullName,
@@ -42,19 +43,20 @@ export async function sendMatchEmails(
       regularTimeTeam2Score,
       extraTimeTeam1Score,
       extraTimeTeam2Score,
-      prizePotSum
+      prizePotSum,
+      isGroupStageComplete
     );
 
     // Send emails only if they exist
     if (emails.winner) {
-      const winnerResult = await sendEmailNotification(emails.winner.email, emails.winner.subject, emails.winner.message);
+      const winnerResult = await sendEmailNotification(emails.winner.email, emails.winner.subject, emails.winner.message, emails.winner.html);
       if (!winnerResult.sent) {
         console.log(`Email not sent to winner: ${winnerResult.message}`);
       }
     }
 
     if (emails.loser) {
-      const loserResult = await sendEmailNotification(emails.loser.email, emails.loser.subject, emails.loser.message);
+      const loserResult = await sendEmailNotification(emails.loser.email, emails.loser.subject, emails.loser.message, emails.loser.html);
       if (!loserResult.sent) {
         console.log(`Email not sent to loser: ${loserResult.message}`);
       }
@@ -74,7 +76,7 @@ export async function sendGroupConclusionEmails(groupData, groupName) {
 
     // Send emails to all teams
     for (const [teamAbbr, emailData] of Object.entries(emails)) {
-      const result = await sendEmailNotification(emailData.email, emailData.subject, emailData.message);
+      const result = await sendEmailNotification(emailData.email, emailData.subject, emailData.message, emailData.html);
       if (!result.sent) {
         console.error(`Email not sent to ${teamAbbr}: ${result.message}`);
       }

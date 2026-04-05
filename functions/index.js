@@ -317,7 +317,7 @@ export const sendEmail = onRequest(async (req, res) => {
     return res.status(405).send("Method Not Allowed");
   }
 
-  const { type, recipient, subject, message, email, newEmail, verificationCode, requestCode } = req.body;
+  const { type, recipient, subject, message, html, email, newEmail, verificationCode, requestCode } = req.body;
 
   try {
       if (type === "verification") {
@@ -559,6 +559,7 @@ export const sendEmail = onRequest(async (req, res) => {
           to: normalizedRecipient,
           subject: trimmedSubject,
           text: trimmedMessage,
+          html: html || undefined, // Include HTML if provided
         });
         return res.status(200).send("Email sent successfully!");
       }
