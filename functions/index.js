@@ -997,6 +997,13 @@ export const decryptTeam = onRequest(async (req, res) => {
       const userDoc = usersSnapshot.docs[0];
       const userData = userDoc.data();
 
+      // SECURITY FIX: Verify user has paid before allowing team decryption
+      if (!userData.hasPaid || (userData.hasPaid !== true && userData.hasPaid !== 'Paid')) {
+        return res.status(403).json({ 
+          error: "Forbidden: Cannot decrypt team data before payment. Please complete your payment first." 
+        });
+      }
+
       // Check session expiry
       const now = new Date();
       if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
