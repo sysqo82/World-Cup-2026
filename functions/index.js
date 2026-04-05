@@ -77,7 +77,6 @@ function handleCorsAndOptions(req, res, origin) {
   return { handled: false };
 }
 
-// SECURITY FIX 2.3: Validate email format to prevent injection attacks
 function validateEmail(email) {
   if (!email || typeof email !== 'string') {
     return { valid: false, error: 'Email is required and must be a string' };
@@ -102,7 +101,6 @@ function validateEmail(email) {
   return { valid: true, normalizedEmail: trimmedEmail };
 }
 
-// SECURITY FIX 1.5: Rate limiting configuration for authentication endpoints
 const RATE_LIMIT_CONFIG = {
   VERIFICATION_CODE: {
     maxAttempts: 5,
@@ -116,7 +114,6 @@ const RATE_LIMIT_CONFIG = {
   },
 };
 
-// SECURITY FIX 1.5: Check and enforce rate limits on sensitive operations
 async function checkRateLimit(identifier, limitType) {
   const rateLimitDoc = serviceFirestore.collection('rateLimits').doc(`${limitType}:${identifier}`);
   const doc = await rateLimitDoc.get();
@@ -180,7 +177,6 @@ async function checkRateLimit(identifier, limitType) {
   return { allowed: true };
 }
 
-// SECURITY FIX 1.5: Helper to log rate limit event for monitoring
 async function logRateLimitEvent(action, identifier, success, reason = null) {
   try {
     await serviceFirestore.collection('rateLimitEvents').add({
@@ -215,7 +211,6 @@ export const registerUser = onRequest(async (req, res) => {
     return res.status(400).send("Missing required fields");
   }
 
-  // SECURITY FIX 2.3: Validate email format
   const emailValidation = validateEmail(email);
   if (!emailValidation.valid) {
     return res.status(400).send(emailValidation.error);
@@ -241,7 +236,6 @@ export const registerUser = onRequest(async (req, res) => {
       // SECURITY/DATA INTEGRITY: Check if user already exists before registering
       const existingUserDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
       if (existingUserDoc.exists) {
-        // SECURITY FIX 1.6: Don't reveal that email is taken, use generic response
         await logRateLimitEvent('DUPLICATE_REGISTRATION_ATTEMPT', normalizedEmail, false, 'Email already registered');
         return res.status(200).json({
           message: "Thank you for registering. If you already have an account, please use the login form to access it."
@@ -326,14 +320,12 @@ export const sendEmail = onRequest(async (req, res) => {
           return res.status(400).send("Missing required field: email");
         }
         
-        // SECURITY FIX 2.3: Validate email format
         const emailValidation = validateEmail(email);
         if (!emailValidation.valid) {
           return res.status(400).send(emailValidation.error);
         }
         const normalizedEmail = emailValidation.normalizedEmail;
         
-        // SECURITY FIX 1.5: Check rate limit on verification code requests
         const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
         if (!rateLimitCheck.allowed) {
           res.set('Retry-After', rateLimitCheck.retryAfter);
@@ -341,7 +333,6 @@ export const sendEmail = onRequest(async (req, res) => {
           return res.status(429).json({ error: rateLimitCheck.error });
         }
         
-        // SECURITY FIX 1.6: Check if user exists (log but don't reveal to prevent email enumeration)
         const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
         if (!userDoc.exists) {
           await logRateLimitEvent('VERIFICATION_CODE_USER_NOT_FOUND', normalizedEmail, false, 'Email not registered');
@@ -377,7 +368,6 @@ export const sendEmail = onRequest(async (req, res) => {
           return res.status(400).send("Missing required fields");
         }
 
-        // SECURITY FIX 2.3: Validate both email addresses
         const emailValidation = validateEmail(email);
         if (!emailValidation.valid) {
           return res.status(400).send(emailValidation.error);
@@ -398,7 +388,6 @@ export const sendEmail = onRequest(async (req, res) => {
           .get();
 
         if (!newEmailSnapshot.empty) {
-          // SECURITY FIX 1.6: Don't reveal if email is already taken
           await logRateLimitEvent('EMAIL_ALREADY_EXISTS', normalizedNewEmail, false, 'Email in use');
           return res.status(200).json({
             message: "Email change request received. Please check your inbox for verification details."
@@ -408,7 +397,6 @@ export const sendEmail = onRequest(async (req, res) => {
         // Find the user with the current email
         const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
 
-        // SECURITY FIX 1.6: Don't reveal if user exists
         if (!userDoc.exists) {
           await logRateLimitEvent('EMAIL_CHANGE_USER_NOT_FOUND', normalizedEmail, false, 'Email not registered');
           return res.status(200).json({
@@ -418,7 +406,6 @@ export const sendEmail = onRequest(async (req, res) => {
 
         // If requestCode is true, generate and send verification code
         if (requestCode === true) {
-          // SECURITY FIX 1.5: Check rate limit on email change code requests
           const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
           if (!rateLimitCheck.allowed) {
             res.set('Retry-After', rateLimitCheck.retryAfter);
@@ -517,14 +504,12 @@ export const sendEmail = onRequest(async (req, res) => {
           return res.status(400).send("Missing required fields");
         }
         
-        // SECURITY FIX 2.3: Validate recipient email format
         const recipientValidation = validateEmail(recipient);
         if (!recipientValidation.valid) {
           return res.status(400).send(recipientValidation.error);
         }
         const normalizedRecipient = recipientValidation.normalizedEmail;
         
-        // SECURITY FIX 2.3: Validate subject and message to prevent email header injection
         if (typeof subject !== 'string' || typeof message !== 'string') {
           return res.status(400).send("Subject and message must be strings");
         }
@@ -568,8 +553,6 @@ export const sendEmail = onRequest(async (req, res) => {
     }
 });
 
-// SECURITY FIX 1.4: Generate cryptographically secure verification codes
-// Replaces weak Math.random() with crypto.randomBytes() per CWE-338
 function generateVerificationCode() {
   // Generate a random 32-bit unsigned integer
   const buffer = crypto.randomBytes(4);
@@ -581,7 +564,6 @@ function generateVerificationCode() {
   return code.toString().padStart(6, '0');
 }
 
-// SECURITY FIX 1.2: Generate secure session tokens for server-side session management
 function generateSessionToken() {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -607,7 +589,6 @@ export const verifyLoginCode = onRequest(async (req, res) => {
   try {
     const normalizedEmail = email.toLowerCase().trim();
 
-    // SECURITY FIX 1.5: Check rate limit on verification attempts (brute force protection)
     const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
     if (!rateLimitCheck.allowed) {
       res.set('Retry-After', rateLimitCheck.retryAfter);
@@ -618,7 +599,6 @@ export const verifyLoginCode = onRequest(async (req, res) => {
     // Get user document
     const userDoc = await serviceFirestore.collection("users").doc(normalizedEmail).get();
 
-    // SECURITY FIX 1.6: Don't reveal account existence (prevent email enumeration)
     if (!userDoc.exists) {
       await logRateLimitEvent('VERIFY_CODE_USER_NOT_FOUND', normalizedEmail, false, 'Unknown email');
       return res.status(400).json({ error: "Invalid email or verification code." });
@@ -640,7 +620,6 @@ export const verifyLoginCode = onRequest(async (req, res) => {
           verificationCode: null,
           verificationCodeExpiry: null,
         });
-        // SECURITY FIX 1.6: Use generic message (don't reveal code was sent)
         await logRateLimitEvent('VERIFY_CODE_EXPIRED', normalizedEmail, false, 'Code expired');
         return res.status(400).json({ error: "Invalid email or verification code." });
       }
@@ -651,15 +630,12 @@ export const verifyLoginCode = onRequest(async (req, res) => {
         return res.status(400).json({ error: "Invalid email or verification code." });
       }
 
-      // SECURITY FIX 1.5: Clear rate limit on successful verification
       await serviceFirestore.collection('rateLimits').doc(`VERIFICATION_CODE:${normalizedEmail}`).delete();
       await logRateLimitEvent('VERIFICATION_CODE_SUCCESS', normalizedEmail, true);
 
-      // SECURITY FIX 1.2: Generate secure session token
       const sessionToken = generateSessionToken();
       const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-      // SECURITY FIX 1.2: Store session token on server-side
       await serviceFirestore.collection("users").doc(normalizedEmail).update({
         verificationCode: null,
         verificationCodeExpiry: null,
@@ -674,14 +650,14 @@ export const verifyLoginCode = onRequest(async (req, res) => {
       // environments where cookies aren't reliably sent (e.g. local emulator)
       res.status(200).json({
         message: "Verification successful",
-        sessionToken: sessionToken
+        sessionToken: sessionToken,
+        firstName: userData.firstName
       });
     } catch (error) {
       res.status(500).send("Error verifying code: " + error.message);
     }
 });
 
-// SECURITY FIX 1.2: New endpoint to get user status from session token (server-side verification)
 export const getUserStatus = onRequest(async (req, res) => {
   const origin = req.get('origin');
   const corsResult = handleCorsAndOptions(req, res, origin);
@@ -969,7 +945,6 @@ export const decryptTeam = onRequest(async (req, res) => {
     return res.status(405).send("Method Not Allowed");
   }
 
-  // SECURITY FIX 1.8: Require authentication to decrypt team data
   let sessionToken = null;
   const authHeader = req.get('Authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -998,7 +973,6 @@ export const decryptTeam = onRequest(async (req, res) => {
       const userDoc = usersSnapshot.docs[0];
       const userData = userDoc.data();
 
-      // SECURITY FIX: Verify user has paid before allowing team decryption
       if (!userData.hasPaid || (userData.hasPaid !== true && userData.hasPaid !== 'Paid')) {
         return res.status(403).json({ 
           error: "Forbidden: Cannot decrypt team data before payment. Please complete your payment first." 

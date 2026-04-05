@@ -298,7 +298,7 @@ generateStyledEmail(title, headline, teamName, message, details, isVictory, isFi
           </div>
           
           ${details.timingInfo ? `<div class="details">${details.timingInfo}</div>` : ''}
-          ${prizePot ? `<div class="prize-pot">💰 You won the prize pot: £${prizePot}!</div>` : ''}
+          ${prizePot ? `<div class="prize-pot">💰 Prize winnings: £${prizePot}!</div>` : ''}
           
           <div class="message-section">
             ${message.split('\n').map(p => p.trim()).filter(p => p).map(p => `<p>${p}</p>`).join('')}
@@ -413,6 +413,7 @@ async buildEmailTemplate(
 
     const winnerHeadline = isFinal ? '🏆 World Cup Champions!' : isThirdPlacePlayoff ? '🥉 Third Place Finish!' : '✅ Victory!';
     const winnerTitle = stage === 'Final' ? 'FINAL: Champions!' : stage === 'Third Place Playoff' ? 'THIRD PLACE: Victory!' : `${stage}: Victory!`;
+    const winnerPrizePot = isFinal ? Math.floor(prizePotSum * 0.60) : (isThirdPlacePlayoff ? Math.floor(prizePotSum * 0.15) : null);
     const winnerHTML = this.generateStyledEmail(
       winnerTitle,
       winnerHeadline,
@@ -421,7 +422,7 @@ async buildEmailTemplate(
       detailsInfo,
       true,
       isFinal,
-      isFinal ? prizePotSum : null,
+      winnerPrizePot,
       'View Tournament',
       this.winningCountryName,
       countryMap,
@@ -444,12 +445,15 @@ async buildEmailTemplate(
     let isFinal = stage === 'Final';
     let isThirdPlacePlayoff = stage === 'Third Place Playoff';
     const isGroupStage = stage === 'Group Stage';
-    const isKnockout = ['Round of 32', 'Round of 16', 'Quarter Final', 'Semi Final', 'Final', 'Third Place Playoff'].includes(stage);
+    const isSemiFinal = stage === 'Semi Final' || stage === 'Semi Finals';
+    const isKnockout = ['Round of 32', 'Round of 16', 'Quarter Final', 'Quarter Finals', 'Semi Final', 'Semi Finals', 'Final', 'Third Place Playoff'].includes(stage);
     let tournamentEndMessage = '';
     if (isFinal) {
       tournamentEndMessage = '\n\nYour tournament has come to an end, but you made it all the way to the Final!';
     } else if (isThirdPlacePlayoff) {
       tournamentEndMessage = '\n\nYour team has finished in 4th place in the World Cup.';
+    } else if (isSemiFinal) {
+      tournamentEndMessage = '\n\nYour team did not advance to the Final, but you still have one last chance — you\'ll compete in the Third Place Playoff for 3rd place!';
     } else if (isGroupStage && isGroupStageComplete) {
       tournamentEndMessage = '\n\nYour team has been eliminated from the tournament.';
     } else if (isKnockout) {
@@ -497,6 +501,7 @@ async buildEmailTemplate(
 
     const loserHeadline = isFinal ? '💔 Runner-up' : isThirdPlacePlayoff ? '📍 Fourth Place' : '❌ Defeat';
     const loserTitle = stage === 'Final' ? 'FINAL: Runner-up' : stage === 'Third Place Playoff' ? 'THIRD PLACE: Fourth Place' : (isKnockout ? `${stage}: Unlucky` : `${stage}: Defeat`);
+    const loserPrizePot = isFinal ? Math.floor(prizePotSum * 0.25) : null;
     const loserHTML = this.generateStyledEmail(
       loserTitle,
       loserHeadline,
@@ -505,7 +510,7 @@ async buildEmailTemplate(
       detailsInfo,
       false,
       false,
-      null,
+      loserPrizePot,
       'View Tournament',
       this.losingCountryName,
       countryMap,

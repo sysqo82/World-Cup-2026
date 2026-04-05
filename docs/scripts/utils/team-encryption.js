@@ -17,7 +17,6 @@ export async function decryptTeamName(encryptedTeam) {
             return encryptedTeam;
         }
         
-        // SECURITY FIX 1.8: Get session token or Firebase ID token for authorization
         let authToken = sessionStorage.getItem('sessionToken');
         
         // If no session token, try to get Firebase ID token (for admins/direct auth)
