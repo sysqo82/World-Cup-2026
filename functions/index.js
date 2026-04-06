@@ -352,12 +352,18 @@ export const sendEmail = onRequest(async (req, res) => {
         // Generate email content for verification code
         const verificationSubject = 'Your World Cup 2026 Login Verification Code';
         const verificationMessage = `Your verification code for logging in to the World Cup 2026 website is: ${verificationCode}\n\nThis code will expire in 10 minutes. If you did not request this code, please ignore this email.`;
+        const verificationHtml = `
+          <p>Your verification code for logging in to the World Cup 2026 website is:</p>
+          <h2 style="font-size: 26px; letter-spacing: 2px; font-weight: bold;">${verificationCode}</h2>
+          <p>This code will expire in 10 minutes. If you did not request this code, please ignore this email.</p>
+        `;
         
         await transporter.sendMail({
           from: '"World Cup 2026 Verification" <' + senderEmail + '>',
           to: normalizedEmail,
           subject: verificationSubject,
           text: verificationMessage,
+          html: verificationHtml,
         });
         return res.status(200).json({
           message: "Verification code sent successfully",
@@ -429,12 +435,18 @@ export const sendEmail = onRequest(async (req, res) => {
           // Send verification email to NEW email address
           const verificationSubject = 'Your World Cup 2026 Email Change Verification Code';
           const verificationMessage = `Your verification code for changing your email address is: ${emailChangeCode}\n\nThis code will expire in 10 minutes. If you did not request this change, please ignore this email.`;
+          const verificationHtml = `
+            <p>Your verification code for changing your email address is:</p>
+            <h2 style="font-size: 26px; letter-spacing: 2px; font-weight: bold;">${emailChangeCode}</h2>
+            <p>This code will expire in 10 minutes. If you did not request this change, please ignore this email.</p>
+          `;
           
           await transporter.sendMail({
             from: '"World Cup 2026 Updates" <' + senderEmail + '>',
             to: normalizedNewEmail,
             subject: verificationSubject,
             text: verificationMessage,
+            html: verificationHtml,
           });
 
           return res.status(200).json({
@@ -498,6 +510,30 @@ export const sendEmail = onRequest(async (req, res) => {
         }
 
         return res.status(400).send("Invalid request: missing requestCode or verificationCode");
+      } else if (type === "paymentConfirmation") {
+        // Payment confirmation email
+        if (!recipient) {
+          return res.status(400).send("Missing required field: recipient");
+        }
+        
+        const recipientValidation = validateEmail(recipient);
+        if (!recipientValidation.valid) {
+          return res.status(400).send(recipientValidation.error);
+        }
+        const normalizedRecipient = recipientValidation.normalizedEmail;
+        
+        // Get user data for personalization
+        const userDoc = await serviceFirestore.collection("users").doc(normalizedRecipient).get();
+        if (!userDoc.exists) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        
+        const userData = userDoc.data();
+        await sendPaymentConfirmationEmail(normalizedRecipient, userData);
+        
+        return res.status(200).json({
+          message: "Payment confirmation email sent successfully",
+        });
       } else {
         // Default: match result or other email
         if (!recipient || !subject || !message) {
@@ -1012,3 +1048,133 @@ export const decryptTeam = onRequest(async (req, res) => {
     res.status(500).send("Error decrypting team: " + error.message);
   }
 });
+
+// ====================
+// PAYMENT APPROVAL ENDPOINT
+// ====================
+
+/**
+ * Approve a user's payment and send confirmation email
+ * Called when admin marks payment as received via Monzo transfer
+ *
+ * POST /approvePayment
+ * Headers: Authorization: Bearer <firebaseIdToken>
+ * Body: { email, adminNotes? }
+ */
+export const approvePayment = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  // Verify admin role
+  const authHeader = req.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized: Missing token' });
+  }
+
+  const token = authHeader.substring(7).trim();
+  const { email, adminNotes } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Missing email field' });
+  }
+
+  try {
+    const decodedToken = await _auth().verifyIdToken(token);
+    const adminId = decodedToken.uid;
+
+    // Check if user has admin role
+    const userRecord = await _auth().getUser(adminId);
+    if (!userRecord.customClaims || !userRecord.customClaims.admin) {
+      return res.status(403).json({ error: 'Forbidden: Admin role required' });
+    }
+
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({ error: emailValidation.error });
+    }
+
+    const normalizedEmail = emailValidation.normalizedEmail;
+
+    // Get user
+    const userDoc = await serviceFirestore.collection('users').doc(normalizedEmail).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = userDoc.data();
+    if (userData.hasPaid === true || userData.hasPaid === 'Paid') {
+      return res.status(400).json({ error: 'User has already been marked as paid' });
+    }
+
+    // Mark user as paid
+    await userDoc.ref.update({
+      hasPaid: true,
+      paidAt: pkg.firestore.FieldValue.serverTimestamp(),
+      paymentApprovedManually: true,
+      paymentApprovedBy: adminId,
+      paymentApprovedAt: pkg.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Send payment confirmation email
+    try {
+      await sendPaymentConfirmationEmail(normalizedEmail, userData);
+    } catch (error) {
+      console.error('Error sending payment confirmation email:', error);
+      // Don't throw - email failure shouldn't block payment approval
+    }
+
+    res.status(200).json({
+      message: 'Payment approved and confirmation email sent to user',
+      email: normalizedEmail,
+    });
+  } catch (error) {
+    console.error('Error approving payment:', error);
+    res.status(500).json({ error: 'Error approving payment: ' + error.message });
+  }
+});
+
+// ====================
+// HELPER FUNCTIONS
+// ====================
+
+/**
+ * Send payment confirmation email to user
+ */
+async function sendPaymentConfirmationEmail(userEmail, userData) {
+  const firstName = userData.firstName || 'User';
+  const lastName = userData.lastName || '';
+
+  const emailHtml = `
+    <h2>Payment Received - Access Granted!</h2>
+    <p>Hello ${firstName} ${lastName},</p>
+    <p>Thank you for your £5 payment. Your payment has been received and verified.</p>
+    <p><strong>You now have full access to the World Cup 2026 website!</strong></p>
+    <p><strong>Next Steps:</strong></p>
+    <ul>
+      <li>Log in to your account on the website</li>
+      <li>View your assigned team for the tournament</li>
+      <li>Follow the matches</li>
+      <li>Good luck and I hope your team wins the World Cup 2026!</li>
+    </ul>
+    <br/>
+    <p><strong>World Cup 2026</strong></p>
+  `;
+
+  await transporter.sendMail({
+    from: '"World Cup 2026 Payments" <' + senderEmail + '>',
+    to: userEmail,
+    subject: 'World Cup 2026 - Payment Confirmed',
+    html: emailHtml,
+  });
+
+  console.log('Payment confirmation email sent to:', userEmail);
+}
