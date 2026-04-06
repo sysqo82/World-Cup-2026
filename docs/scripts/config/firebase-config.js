@@ -14,6 +14,7 @@ const firebaseConfig = {
     verifyLoginCodeURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/verifyLoginCode",
     getUserStatusURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/getUserStatus",
     decryptTeamURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/decryptTeam",
+    approvePaymentURL: "https://us-central1-world-cup-2026-b1fda.cloudfunctions.net/approvePayment",
 
     // Local development URLs
     // registerUser: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/registerUser",
@@ -23,6 +24,7 @@ const firebaseConfig = {
     // verifyLoginCodeURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/verifyLoginCode",
     // getUserStatusURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/getUserStatus",
     // decryptTeamURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/decryptTeam",
+    // approvePaymentURL: "http://127.0.0.1:5001/world-cup-2026-b1fda/us-central1/approvePayment",
 };
 
 // Initialize Firebase
@@ -39,3 +41,4 @@ export const requestLoginCodeURL = firebaseConfig.requestLoginCodeURL;
 export const verifyLoginCodeURL = firebaseConfig.verifyLoginCodeURL;
 export const getUserStatusURL = firebaseConfig.getUserStatusURL;
 export const decryptTeamURL = firebaseConfig.decryptTeamURL;
+export const approvePaymentURL = firebaseConfig.approvePaymentURL;

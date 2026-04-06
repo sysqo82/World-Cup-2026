@@ -1,5 +1,5 @@
 // Import Firebase configuration and services
-import { db, auth, setAdminRoleURL } from '../scripts/config/firebase-config.js';
+import { db, auth, setAdminRoleURL, approvePaymentURL } from '../scripts/config/firebase-config.js';
 import { clearDB } from './create-round-matches/admin-helper/clear-db.js';
 import { decryptTeamName } from './utils/team-encryption.js';
 import { generateRoundOf32Matches } from './create-round-matches/admin-helper/generate-round-of-32.js';
@@ -521,36 +521,69 @@ function convertToCountryCode(input) {
             });
     };
 
-        window.updateHasPaid = (email, hasPaid) => {
-            db.collection('users')
-                .where('email', '==', email) // Query for the document with the matching email
-                .get()
-                .then(snapshot => {
-                    if (snapshot.empty) {
-                        alert(`No user found with email ${email}.`);
-                        console.error(`No user found with email ${email}.`);
-                        return;
-                    }
-
-                    snapshot.forEach(doc => {
-                        const userId = doc.id;
-
-                        // Update the hasPaid flag in the database
-                        db.collection('users').doc(userId).update({ hasPaid: hasPaid === true })
-                            .then(() => {
-                                console.log(`User with email ${email} updated successfully. hasPaid: ${hasPaid}`);
-                                alert(`Payment status updated for ${email}.`);
-                            })
-                            .catch(err => {
-                                console.error('Error updating payment status:', err);
-                                alert('Failed to update payment status. Please try again.');
-                            });
+        window.updateHasPaid = async (email, hasPaid) => {
+            // Only process if checkbox is being checked (payment approved)
+            if (!hasPaid) {
+                // If unchecking, just do local Firestore update (payment revoked)
+                db.collection('users')
+                    .where('email', '==', email)
+                    .get()
+                    .then(snapshot => {
+                        if (snapshot.empty) {
+                            alert(`No user found with email ${email}.`);
+                            return;
+                        }
+                        snapshot.forEach(doc => {
+                            db.collection('users').doc(doc.id).update({ hasPaid: false })
+                                .then(() => {
+                                    console.log(`Payment revoked for ${email}`);
+                                    alert(`Payment status revoked for ${email}.`);
+                                })
+                                .catch(err => {
+                                    console.error('Error revoking payment:', err);
+                                    alert('Failed to revoke payment. Please try again.');
+                                });
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Error querying user:', err);
+                        alert('Failed to revoke payment. Please try again.');
                     });
-                })
-                .catch(err => {
-                    console.error('Error querying user by email:', err);
-                    alert('Failed to update payment status. Please try again.');
+                return;
+            }
+
+            // Payment being approved - call Cloud Function to send confirmation email
+            try {
+                const idToken = await auth.currentUser.getIdToken();
+                const response = await fetch(approvePaymentURL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`,
+                    },
+                    body: JSON.stringify({ 
+                        email: email,
+                        adminNotes: 'Approved via admin panel'
+                    }),
                 });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`Payment approved for ${email}:`, result);
+                    alert(`Payment approved and confirmation email sent to ${email}.`);
+                } else {
+                    const error = await response.json();
+                    console.error('Error approving payment:', error);
+                    alert(`Failed to approve payment: ${error.error || 'Unknown error'}`);
+                    // Uncheck the checkbox on error
+                    document.getElementById(`user-${email}`).checked = false;
+                }
+            } catch (err) {
+                console.error('Error calling approvePayment endpoint:', err);
+                alert('Failed to approve payment. Please try again.');
+                // Uncheck the checkbox on error
+                document.getElementById(`user-${email}`).checked = false;
+            }
         };
 
     // Initial load
