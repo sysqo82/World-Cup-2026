@@ -44,6 +44,14 @@
 
         <!-- Main Content -->
         <div class="main-container">
+            <!-- Loading Spinner (shown by default until page loads) -->
+            <div id="loading-spinner" class="loading-spinner">
+                <div class="spinner-content">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+
             <!-- Placeholder for dynamic content -->
             <img src="./images/logo.png" alt="World Cup 2026 Logo">
             <div id="content-placeholder" class="content-placeholder">
@@ -52,7 +60,7 @@
                     <p>To access the latest updates, please make a payment.</p>
                     <button id="payment" class="submit-button">Make Payment</button>
                 </div>
-                <div id="prize-pot-container" class="prize-pot-container"></div>
+                <div id="prize-pot-container" class="prize-pot-container hidden"></div>
                 <!-- Registration Form Container -->
                 <div id="registration-form-container" class="registration-form-container">
                     <h2>Register for Updates</h2>
@@ -77,10 +85,11 @@
                         </div>
                         <button type="submit" class="submit-button" id="register-button">Register</button>
                     </form>
+                    <p class="form-toggle-link">Already registered? <a href="#" id="toggle-to-login">Sign in here</a></p>
                 </div>
 
                 <!-- Login Form Container -->
-                <div id="login-form-container" class="login-form-container">
+                <div id="login-form-container" class="login-form-container hidden">
                     <h2>Login</h2>
                     <p>If you've already registered, sign in below.</p>
                     <form id="login-form">
@@ -90,6 +99,7 @@
                         </div>
                         <button type="submit" class="submit-button" id="login-button">Login</button>
                     </form>
+                    <p class="form-toggle-link">Need to register? <a href="#" id="toggle-to-register">Go back</a></p>
                 </div>
             </div>
         </div>
