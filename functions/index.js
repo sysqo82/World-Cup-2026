@@ -5,7 +5,7 @@ import { readFileSync } from "fs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 
-const { firestore: firestoreAdmin, auth: _auth } = pkg;
+const { auth: _auth } = pkg;
 
 const credentials = JSON.parse(readFileSync("./credentials.json"));
 const allowedOrigins = credentials.allowedOrigins.origin;
@@ -291,8 +291,17 @@ export const registerUser = onRequest(async (req, res) => {
       });
 
       res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Strict`);
+      
+      // Send welcome email after successful registration
+      try {
+        await sendWelcomeEmail(normalizedEmail, firstName);
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't fail registration if email sending fails, just log it
+      }
+      
       res.status(200).json({
-        message: "User registered successfully.",
+        message: "Registration successful, continue to payment screen or check your email if you wish to pay at a later time.",
         sessionToken: sessionToken,
       });
     } catch (error) {
@@ -301,8 +310,8 @@ export const registerUser = onRequest(async (req, res) => {
 });
 
 // Load credentials and create email transporter with Gmail App Password
-const senderEmail = 'slowest.captain@gmail.com';
-const appPassword = 'omws mqhp smmy nqwx'; // Gmail app-specific password (2FA enabled account)
+const senderEmail = credentials.email.senderEmail;
+const appPassword = credentials.email.appPassword;
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -851,7 +860,7 @@ export const setAdminRole = onRequest(async (req, res) => {
 });
 
 // Firestore trigger to sync teams table when groups collection changes
-export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", async (event) => {
+export const syncTeamsOnGroupsUpdate = onDocumentWritten("groups/{groupId}", async () => {
   try {
     console.log('Groups collection changed, syncing teams table...');
     
@@ -1124,7 +1133,7 @@ export const approvePayment = onRequest(async (req, res) => {
   }
 
   const token = authHeader.substring(7).trim();
-  const { email, adminNotes } = req.body;
+  const { email } = req.body;
 
   if (!email) {
     return res.status(400).json({ error: 'Missing email field' });
@@ -1188,6 +1197,74 @@ export const approvePayment = onRequest(async (req, res) => {
 // ====================
 // HELPER FUNCTIONS
 // ====================
+
+/**
+ * Send welcome email to new users after registration
+ */
+async function sendWelcomeEmail(userEmail, firstName) {
+  const paymentUrl = atob('aHR0cHM6Ly9tb256by5tZS9hc3NhZml0emlrc29uLzUuMDA/ZD1Xb3JsZCUyMEN1cCUyMDIwMjYmaD1UREp4ZTg=');
+  const homepageUrl = 'https://sysqo82.github.io/World-Cup-2026/';
+  
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 20px auto; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #0066cc 0%, #004499 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; font-weight: bold; }
+        .content { padding: 30px; }
+        .headline { font-size: 22px; font-weight: bold; color: #0066cc; margin-bottom: 20px; text-align: center; }
+        .message-section { margin: 20px 0; padding: 15px; background-color: #f9f9f9; border-radius: 4px; line-height: 1.8; }
+        .cta-buttons { display: flex; gap: 15px; justify-content: center; margin: 25px 0; flex-wrap: wrap; }
+        .cta-button { display: inline-block; padding: 14px 32px; text-decoration: none !important; border-radius: 4px; font-weight: bold; color: white !important; font-size: 14px; }
+        .cta-button.primary { background-color: #0066cc !important; }
+        .cta-button.secondary { background-color: #6c757d !important; }
+        .draw-info { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+        .footer { background-color: #f4f4f9; color: #999; text-align: center; padding: 20px; font-size: 12px; border-top: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Welcome to World Cup 2026! ⚽</h1>
+        </div>
+        <div class="content">
+          <div class="headline">Welcome, ${firstName}!</div>
+          <div class="message-section">
+            <p>Thank you for registering for the World Cup 2026! We're excited to have you on board.</p>
+            <p>To complete your registration and unlock your team, you need to make a payment. Once your payment is confirmed, your team draw will be revealed!</p>
+          </div>
+          <div class="draw-info">
+            <strong>🎁 Your team assignment is ready and waiting! Complete your payment now to discover which team you'll be managing.</strong>
+          </div>
+          <div class="cta-buttons">
+            <a href="${paymentUrl}" class="cta-button primary">Complete Payment</a>
+            <a href="${homepageUrl}" class="cta-button secondary">Visit Homepage</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p>World Cup 2026</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await transporter.sendMail({
+    from: '"World Cup 2026" <' + senderEmail + '>',
+    to: userEmail,
+    subject: `Welcome to World Cup 2026, ${firstName}! ⚽`,
+    html: emailHtml,
+    text: `Welcome to World Cup 2026! Thank you for registering. Please complete your payment to reveal your team. Good luck!`
+  });
+
+  console.log('Welcome email sent to:', userEmail);
+}
 
 /**
  * Send payment confirmation email to user
