@@ -101,6 +101,14 @@ function validateEmail(email) {
   return { valid: true, normalizedEmail: trimmedEmail };
 }
 
+// Check if email is from a blocked domain (e.g., work emails)
+const BLOCKED_EMAIL_DOMAINS = ['immediate.co.uk'];
+
+function isBlockedEmailDomain(email) {
+  const normalizedEmail = email.toLowerCase().trim();
+  return BLOCKED_EMAIL_DOMAINS.some(domain => normalizedEmail.endsWith(`@${domain}`));
+}
+
 const RATE_LIMIT_CONFIG = {
   VERIFICATION_CODE: {
     maxAttempts: 5,
@@ -216,6 +224,12 @@ export const registerUser = onRequest(async (req, res) => {
     return res.status(400).send(emailValidation.error);
   }
 
+  // Check if email is from a blocked domain
+  if (isBlockedEmailDomain(email)) {
+    await logRateLimitEvent('BLOCKED_DOMAIN_REGISTRATION_ATTEMPT', email, false, 'Work email domain not allowed');
+    return res.status(400).send("You are not allowed to register with a work email address from that domain. Please use a personal email address instead.");
+  }
+
   try {
     const teamsRef = serviceFirestore.collection("teams");
       const availableTeamsSnapshot = await teamsRef.where("assigned", "==", false).get();
@@ -325,6 +339,12 @@ export const sendEmail = onRequest(async (req, res) => {
           return res.status(400).send(emailValidation.error);
         }
         const normalizedEmail = emailValidation.normalizedEmail;
+
+        // Check if email is from a blocked domain
+        if (isBlockedEmailDomain(email)) {
+          await logRateLimitEvent('BLOCKED_DOMAIN_LOGIN_ATTEMPT', email, false, 'Work email domain not allowed');
+          return res.status(400).send("You are not allowed to use a work email address from that domain. Please use your personal email address instead.");
+        }
         
         const rateLimitCheck = await checkRateLimit(normalizedEmail, 'VERIFICATION_CODE');
         if (!rateLimitCheck.allowed) {
@@ -340,6 +360,28 @@ export const sendEmail = onRequest(async (req, res) => {
             message: "If this email is registered, a verification code has been sent. Please check your inbox."
           });
         }
+
+        // Check if user has paid
+        const userData = userDoc.data();
+        if (userData.hasPaid !== true) {
+          await logRateLimitEvent('VERIFICATION_CODE_NOT_PAID', normalizedEmail, false, 'User has not paid');
+          
+          // Create a session token for the user so they can access the payment screen
+          const sessionToken = generateSessionToken();
+          const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+          
+          await userDoc.ref.update({
+            sessionToken: sessionToken,
+            sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
+          });
+          
+          return res.status(400).json({
+            error: "You need to settle your payment before you can log in. Please visit the payment page to complete your registration.",
+            sessionToken: sessionToken,
+            needsPayment: true
+          });
+        }
+
         // Generate a 6-digit verification code using cryptographically secure method
         const verificationCode = generateVerificationCode();
         // Set expiry time to 10 minutes from now
@@ -677,6 +719,7 @@ export const verifyLoginCode = onRequest(async (req, res) => {
         verificationCodeExpiry: null,
         sessionToken: sessionToken,
         sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
+        authenticatedAt: pkg.firestore.FieldValue.serverTimestamp(),
       });
 
       // Set HttpOnly cookie for production (HTTPS) environments
@@ -750,7 +793,7 @@ export const getUserStatus = onRequest(async (req, res) => {
 
       // Return user status from server (server decides what user can access)
       res.status(200).json({
-        authenticated: true,
+        authenticated: userData.authenticatedAt ? true : false,
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,

@@ -39,6 +39,23 @@ export function openEncryptedURL(location) {
     window.open(atob(paymentLocation), '_blank');
 }
 
+// Blocked email domains for work emails
+const BLOCKED_EMAIL_DOMAINS = ['immediate.co.uk'];
+
+// Check if email is from a blocked domain
+function isBlockedEmailDomain(email) {
+    const normalizedEmail = email.toLowerCase().trim();
+    return BLOCKED_EMAIL_DOMAINS.some(domain => normalizedEmail.endsWith(`@${domain}`));
+}
+
+// Hide loading spinner
+function hideLoadingSpinner() {
+    const spinner = document.getElementById("loading-spinner");
+    if (spinner) {
+        spinner.classList.add("hidden");
+    }
+}
+
 // Initialize homepage logic
 export async function initializeHomepage() {
     const registrationForm = document.getElementById("registration-form");
@@ -53,6 +70,26 @@ export async function initializeHomepage() {
 
     // Hide the navigation dropdown initially
     navigationDropdown.classList.add("hidden");
+
+    // Add toggle functionality between registration and login forms
+    const toggleToLogin = document.getElementById("toggle-to-login");
+    const toggleToRegister = document.getElementById("toggle-to-register");
+
+    if (toggleToLogin) {
+        toggleToLogin.addEventListener("click", (event) => {
+            event.preventDefault();
+            registrationFormContainer.classList.add("hidden");
+            loginFormContainer.classList.remove("hidden");
+        });
+    }
+
+    if (toggleToRegister) {
+        toggleToRegister.addEventListener("click", (event) => {
+            event.preventDefault();
+            loginFormContainer.classList.add("hidden");
+            registrationFormContainer.classList.remove("hidden");
+        });
+    }
 
     // Attach event listeners immediately (before any async calls) so forms never
     // fall back to native GET submission if the server check hangs or fails.
@@ -70,6 +107,15 @@ export async function initializeHomepage() {
             alert("Please fill out all fields.");
             registerSubmitButton.disabled = false;
             registerSubmitButton.innerHTML = 'Submit';
+            return;
+        }
+
+        // Check if email is from a blocked domain
+        if (isBlockedEmailDomain(email)) {
+            alert("You are not allowed to register with a work email address from that domain. Please use a personal email address instead.");
+            registerSubmitButton.disabled = false;
+            registerSubmitButton.innerHTML = 'Register';
+            document.getElementById("email").focus();
             return;
         }
 
@@ -124,7 +170,16 @@ export async function initializeHomepage() {
             const result = await sendVerificationEmail(normalizedEmail);
 
             if (!result.sent) {
-                throw new Error(result.message || "Failed to send verification code");
+                // Check if this is a payment error with a session token
+                if (result.needsPayment && result.sessionToken) {
+                    // User is registered but not paid — set their session token and redirect to payment screen
+                    setSessionToken(result.sessionToken);
+                    alert(result.message);
+                    window.location.reload();
+                } else {
+                    throw new Error(result.message || "Failed to send verification code");
+                }
+                return;
             }
 
             // Show verification form
@@ -134,12 +189,27 @@ export async function initializeHomepage() {
             loginSubmitButton.innerHTML = 'Login';
         } catch (error) {
             console.error("Error requesting verification code:", error);
-            alert("Failed to send verification code. Please try again.");
+            alert(error.message || "Failed to send verification code. Please try again.");
             loginSubmitButton.disabled = false;
             loginSubmitButton.innerHTML = 'Login';
         }
     });
 
+    // Check session token to determine user state
+    const hasSessionToken = getSessionToken() !== null;
+
+    // If no session token, user is anonymous — show registration form only
+    if (!hasSessionToken) {
+        registrationFormContainer.classList.remove("hidden");
+        loginFormContainer.classList.add("hidden");
+        paymentContainer.classList.add("hidden");
+        navigationDropdown.classList.add("hidden");
+        contentPlaceholder.classList.remove("hidden");
+        hideLoadingSpinner();
+        return;
+    }
+
+    // User has session token (is registered) — fetch their status
     try {
         const abortController = new AbortController();
         const timeoutId = setTimeout(() => abortController.abort(), 5000);
@@ -153,36 +223,46 @@ export async function initializeHomepage() {
 
         clearTimeout(timeoutId);
 
-        const userStatus = await statusResponse.json().catch(() => ({ authenticated: false }));
+        const userStatus = await statusResponse.json().catch(() => ({ authenticated: false, hasPaid: false }));
 
-        if (!userStatus.authenticated) {
-            // User is not authenticated — forms are already set up, nothing more to do
-            return;
-        }
+        // Determine which user state we're in based on hasPaid and authenticated flags
+        const isPaid = userStatus.hasPaid === true;
+        const isAuthenticated = userStatus.authenticated === true;
 
-            if (userStatus.hasPaid === "Pending" || userStatus.hasPaid === false) {
-                // Hide registration form and show payment button
-                registrationFormContainer.classList.add("hidden");
-                paymentContainer.classList.remove("hidden");
-                contentPlaceholder.classList.remove("hidden");
-                loginForm.classList.remove("hidden");
+        if (!isPaid) {
+            // State 2: Registered but not paid — show payment/Monzo link only
+            registrationFormContainer.classList.add("hidden");
+            loginFormContainer.classList.add("hidden");
+            paymentContainer.classList.remove("hidden");
+            navigationDropdown.classList.add("hidden");
+            contentPlaceholder.classList.remove("hidden");
 
-                const paymentButton = document.getElementById("payment");
-                if (paymentButton) {
-                    paymentButton.addEventListener("click", () => {
-                        openEncryptedURL("paymentLocation");
-                    });
-                }
-            } else if (userStatus.hasPaid === true) {
-                // User has paid — show nav, hide forms
-                navigationDropdown.classList.remove("hidden");
-                paymentContainer.classList.add("hidden");
-                registrationFormContainer.classList.add("hidden");
-                contentPlaceholder.classList.remove("hidden");
+            const paymentButton = document.getElementById("payment");
+            if (paymentButton) {
+                paymentButton.addEventListener("click", () => {
+                    openEncryptedURL("paymentLocation");
+                });
+            }
+            hideLoadingSpinner();
+        } else if (isPaid && !isAuthenticated) {
+            // State 3: Registered, paid, but logged out — show login form only
+            registrationFormContainer.classList.add("hidden");
+            loginFormContainer.classList.remove("hidden");
+            paymentContainer.classList.add("hidden");
+            navigationDropdown.classList.add("hidden");
+            contentPlaceholder.classList.remove("hidden");
+            hideLoadingSpinner();
+        } else if (isPaid && isAuthenticated) {
+            // State 4: Logged in — show default homepage with navigation
+            registrationFormContainer.classList.add("hidden");
+            loginFormContainer.classList.add("hidden");
+            paymentContainer.classList.add("hidden");
+            navigationDropdown.classList.remove("hidden");
+            contentPlaceholder.classList.remove("hidden");
 
-                const decryptedTeam = await decryptTeamName(userStatus.team);
+            const decryptedTeam = await decryptTeamName(userStatus.team);
 
-                contentPlaceholder.innerHTML = `
+            contentPlaceholder.innerHTML = `
                 <div id="prize-pot-container">
                     <h3>The prize pot stands on:</h3>
                     <div id="prize-pot-amount">Loading...</div>
@@ -192,10 +272,18 @@ export async function initializeHomepage() {
                 <p>Please use the navigation menu to access different sections of the site.</p>
                 `;
 
-                updatePrizePotCounter();
-            }
+            updatePrizePotCounter();
+            hideLoadingSpinner();
+        }
     } catch (error) {
-        console.log("User not authenticated or session expired, showing login forms");
+        console.log("Error fetching user status, showing login form as fallback");
+        // Fallback: show login form since we have a session token but can't fetch status
+        registrationFormContainer.classList.add("hidden");
+        loginFormContainer.classList.remove("hidden");
+        paymentContainer.classList.add("hidden");
+        navigationDropdown.classList.add("hidden");
+        contentPlaceholder.classList.remove("hidden");
+        hideLoadingSpinner();
     }
 }
 

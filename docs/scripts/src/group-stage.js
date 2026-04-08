@@ -5,6 +5,14 @@ import { generateFixtures } from '../create-round-matches/group-stage-fixtures.j
 import { getAssignedTeam, logoutUser, highlightIfAssignedTeam, shouldHighlightTeamAsync } from '../utils/user-utils.js';
 import { isAllowed, isRegistered } from "../navigation/navigation.js";
 
+// Function to hide loading spinner
+function hidePageLoadingSpinner() {
+    const spinner = document.getElementById('page-loading-spinner');
+    if (spinner) {
+        spinner.classList.add('hidden');
+    }
+}
+
 // Check if the user is allowed in the site
 await isRegistered();
 await isAllowed();
@@ -27,8 +35,12 @@ db.collection('groups').onSnapshot(async snapshot => {
     await populateTables(groups, countryMap);
     await updateThirdPlaceStandings(groups, countryMap);
     await generateFixtures(groups, countryMap);
+
+    // Hide loading spinner once all content is loaded
+    hidePageLoadingSpinner();
 }, err => {
     console.error('Error fetching groups:', err);
+    hidePageLoadingSpinner(); // Hide spinner even on error
 });
 
 function createTables(groups) {

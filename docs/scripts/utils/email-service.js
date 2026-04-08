@@ -48,9 +48,24 @@ export async function sendVerificationEmail(email) {
       console.log('Verification email sent successfully!');
       return { sent: true, message: result.message || 'Verification code sent successfully' };
     } else {
-      const errorText = await response.text();
-      console.error('Failed to send verification email:', errorText);
-      return { sent: false, message: errorText || 'Failed to send verification email' };
+      // Try to parse response as JSON (for structured error responses)
+      let errorResponse;
+      try {
+        errorResponse = await response.json();
+      } catch (e) {
+        // Fall back to text if JSON parsing fails
+        const errorText = await response.text();
+        console.error('Failed to send verification email:', errorText);
+        return { sent: false, message: errorText || 'Failed to send verification email' };
+      }
+      
+      console.error('Failed to send verification email:', errorResponse);
+      return { 
+        sent: false, 
+        message: errorResponse.error || 'Failed to send verification email',
+        sessionToken: errorResponse.sessionToken,
+        needsPayment: errorResponse.needsPayment
+      };
     }
   } catch (error) {
     console.error('Error sending verification email:', error);
