@@ -25,7 +25,9 @@ async function fetchUserStatus() {
 const pageMap = {
     '': 'index.html',
     'home': 'index.html',
+    'demo': 'pages/demo.html',
     'index.html': 'home',
+    'pages/demo.html': 'demo',
     'my-account': 'pages/my-account.html',
     'group-stage': 'pages/group-stage.html',
     'round-of-32': 'pages/round-of-32.html',
