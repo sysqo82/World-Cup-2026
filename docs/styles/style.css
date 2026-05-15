@@ -2035,29 +2035,44 @@ img {
 
 .demo-hero-content {
     display: grid;
-    grid-template-columns: minmax(180px, 220px) 1fr;
-    gap: 28px;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 40px;
     align-items: center;
 }
 
 .demo-logo {
+    display: block;
+    grid-column: auto;
+    justify-self: center;
+    align-self: center;
+    margin: 0;
     max-width: 220px;
-    width: 100%;
+    width: min(100%, 220px);
     filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.24));
+}
+
+.demo-hero-copy {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
 }
 
 .demo-hero-copy h1 {
     margin: 0 0 16px;
     color: #ffffff;
     text-align: left;
-    font-size: clamp(2rem, 4vw, 3.3rem);
+    font-size: clamp(2.6rem, 4.2vw, 4.4rem);
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    max-width: none;
+    width: 100%;
 }
 
 .demo-hero-copy p {
     margin: 0;
     font-size: 18px;
     line-height: 1.65;
-    max-width: 760px;
+    max-width: 48rem;
 }
 
 .demo-main-content {
@@ -2190,6 +2205,10 @@ img {
     padding: 24px;
 }
 
+.demo-lightbox.hidden {
+    display: none !important;
+}
+
 .demo-lightbox-backdrop {
     position: absolute;
     inset: 0;
@@ -2203,6 +2222,8 @@ img {
     width: min(1100px, 100%);
     max-height: calc(100vh - 48px);
     overflow: auto;
+    display: grid;
+    gap: 14px;
     padding: 18px 18px 14px;
     border-radius: 22px;
     background-color: #ffffff;
@@ -2211,17 +2232,25 @@ img {
 
 .demo-lightbox-dialog img {
     display: block;
+    grid-column: auto;
     width: 100%;
     max-width: none;
+    min-height: 120px;
     max-height: 75vh;
     object-fit: contain;
     border-radius: 14px;
+    margin: 0;
+    background-color: #f4f7fb;
 }
 
 .demo-lightbox-dialog p {
-    margin: 14px 6px 0;
+    margin: 0 6px;
     color: #475a70;
     line-height: 1.6;
+}
+
+.demo-lightbox-image-error {
+    object-fit: none !important;
 }
 
 .demo-lightbox-close {
@@ -2254,6 +2283,7 @@ body.demo-lightbox-open {
 
     .demo-hero-content {
         grid-template-columns: 1fr;
+        gap: 24px;
     }
 
     .demo-logo {
@@ -2262,6 +2292,7 @@ body.demo-lightbox-open {
 
     .demo-hero-copy h1 {
         text-align: left;
+        max-width: none;
     }
 }
 
