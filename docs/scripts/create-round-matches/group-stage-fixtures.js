@@ -6,7 +6,7 @@ import { auth } from '../config/firebase-config.js';
 import { matchSchedule } from '../utils/match-schedule-constants.js';
 
 let authListenerSetup = false;
-let isLoggedIn = false;
+let isAdmin = false;
 
 export async function generateFixtures(groups, countryMap) {
     const stage = 'Group Stage';
@@ -23,8 +23,13 @@ export async function generateFixtures(groups, countryMap) {
     // Set up auth listener only once
     if (!authListenerSetup) {
         authListenerSetup = true;
-        auth.onAuthStateChanged(user => {
-            isLoggedIn = !!user;
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                const tokenResult = await user.getIdTokenResult();
+                isAdmin = tokenResult.claims.admin === true;
+            } else {
+                isAdmin = false;
+            }
         });
     }
 
@@ -45,7 +50,7 @@ export async function generateFixtures(groups, countryMap) {
                     <th>Result</th>
                     <th></th>
                     <th>Date</th>
-                    ${isLoggedIn ? '<th></th>' : ''}
+                    ${isAdmin ? '<th></th>' : ''}
                 </tr>
             `;
 
@@ -108,16 +113,16 @@ export async function generateFixtures(groups, countryMap) {
                                 </td>
                                 <td>
                                     <div class="score-container">
-                                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined ? 'disabled' : ''}>
+                                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
                                         -
-                                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team2.id}" data-team-right="${match.team1.id}" data-matchday="${matchday}" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined ? 'disabled' : ''}>
+                                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team2.id}" data-team-right="${match.team1.id}" data-matchday="${matchday}" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
                                     </div>
                                 </td>
                                 <td class="team2" title="${team2FullName}">
                                    ${match.team2.name} <span class="fi fi-${team2FlagCode}"></span>
                                 </td>
                                 <td title="${dateTitle}">${dateDisplay}</td>
-                                ${isLoggedIn ? `
+                                ${isAdmin ? `
                                     <td><button class="submit-button" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
                                 ` : ''}
                             `;
@@ -140,8 +145,8 @@ export async function generateFixtures(groups, countryMap) {
                                 }
                             }
 
-                            // Add event listener for the submit button if the user is logged in
-                            if (isLoggedIn) {
+                            // Add event listener for the submit button if the user is an admin
+                            if (isAdmin) {
                                 const submitButton = row.querySelector('.submit-button');
                                 submitButton.addEventListener('click', (event) => {
                                     const leftScoreInput = row.querySelector(`input[data-group="${group.id}"][data-team-left="${match.team1.id}"]`);
