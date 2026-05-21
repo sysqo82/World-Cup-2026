@@ -20,12 +20,17 @@ export async function generateRoundMatches(selector, dataBase, round) {
     // Fetch the country map
     const countryMap = await fetchCountryMap();
 
-    // Track the user's authentication state
-    let isLoggedIn = false;
+    // Track the user's admin state
+    let isAdmin = false;
 
     // Listen for authentication state changes
-    auth.onAuthStateChanged(user => {
-        isLoggedIn = !!user;
+    auth.onAuthStateChanged(async user => {
+        if (user) {
+            const tokenResult = await user.getIdTokenResult();
+            isAdmin = tokenResult.claims.admin === true;
+        } else {
+            isAdmin = false;
+        }
         renderMatches(); // Re-render matches when the auth state changes
     });
 
@@ -79,7 +84,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 table.classList.add('assigned-team-highlight');
             }
             table.innerHTML = `
-            ${dateDisplay ? `<tr class="date-row"><td colspan="${isLoggedIn ? 4 : 3}" style="text-align: center; font-weight: bold; background-color: #f0f0f0; padding: 8px;">${dateDisplay}</td></tr>` : ''}
+            ${dateDisplay ? `<tr class="date-row"><td colspan="${isAdmin ? 4 : 3}" style="text-align: center; font-weight: bold; background-color: #f0f0f0; padding: 8px;">${dateDisplay}</td></tr>` : ''}
             <tr>
                 <td class="team-name" data-team="team1" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team1).fullName}">
                     <span class="country-container">
@@ -90,9 +95,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
                     </span>
                 </td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                 </td>
                 <td class="team-name" data-team="team2" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team2).fullName}">
                     <span class="country-container">
@@ -102,7 +107,7 @@ export async function generateRoundMatches(selector, dataBase, round) {
                         }
                     </span>
                 </td>
-                ${isLoggedIn ? `
+                ${isAdmin ? `
                     <td>
                         <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="regular" ${match.winner ? 'disabled' : ''}>Submit</button>
                     </td>
@@ -111,11 +116,11 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr class="extra-time-row ${match.displayExtraTime ? '' : 'hidden'}" data-match="${match.match}">
                 <td class="extra-time-label">Extra Time</td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                 </td>
-                ${isLoggedIn ? `
+                ${isAdmin ? `
                     <td>
                         <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="extra" ${match.winner ? 'disabled' : ''}>Submit</button>
                     </td>
@@ -124,11 +129,11 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr class="penalty-row ${match.displayPenaltyShootouts ? '' : 'hidden'}" data-match="${match.match}">
                 <td>Penalties</td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score ?? ''}" ${match.winner ? 'disabled' : ''}>
+                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                 </td>
-                ${isLoggedIn ? `
+                ${isAdmin ? `
                     <td>
                         <button class="submit-button" data-match="${match.match}" data-team1="${match.team1}" data-team2="${match.team2}" data-type="penalty" ${match.winner ? 'disabled' : ''}>Submit</button>
                     </td>
@@ -161,8 +166,8 @@ export async function generateRoundMatches(selector, dataBase, round) {
                 });
             }
 
-            // Add event listeners for submit buttons if the user is logged in
-            if (isLoggedIn) {
+            // Add event listeners for submit buttons if the user is an admin
+            if (isAdmin) {
                 const regularTimeButton = table.querySelector('.submit-button[data-type="regular"]');
                 if (regularTimeButton) {
                     regularTimeButton.addEventListener('click', async (event) => {
