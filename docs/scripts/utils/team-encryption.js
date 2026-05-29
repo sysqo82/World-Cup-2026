@@ -1,5 +1,6 @@
 import { decryptTeamURL } from '../config/firebase-config.js';
 import { auth } from '../config/firebase-config.js';
+import { getSessionToken, withSessionCredentials } from './session-auth.js';
 
 // Team encryption/decryption utilities for client-side
 
@@ -17,7 +18,7 @@ export async function decryptTeamName(encryptedTeam) {
             return encryptedTeam;
         }
         
-        let authToken = sessionStorage.getItem('sessionToken');
+        let authToken = getSessionToken();
         
         // If no session token, try to get Firebase ID token (for admins/direct auth)
         if (!authToken && auth.currentUser) {
@@ -28,19 +29,18 @@ export async function decryptTeamName(encryptedTeam) {
             }
         }
         
-        const headers = {
-            'Content-Type': 'application/json',
-        };
-        
+        const headers = { 'Content-Type': 'application/json' };
         if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
+            headers.Authorization = `Bearer ${authToken}`;
         }
-        
-        const response = await fetch(decryptTeamURL, {
+
+        const requestInit = withSessionCredentials({
             method: 'POST',
-            headers: headers,
+            headers,
             body: JSON.stringify({ encryptedTeam }),
         });
+
+        const response = await fetch(decryptTeamURL, requestInit);
 
         if (!response.ok) {
             throw new Error('Failed to decrypt team name');

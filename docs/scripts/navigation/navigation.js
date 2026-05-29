@@ -1,21 +1,14 @@
 import { db, getUserStatusURL } from "../config/firebase-config.js"
 import { basePath, isLocal } from "../config/path-config.js";
-
-// Read the session token stored in sessionStorage by user-utils.js
-function getSessionToken() {
-    return sessionStorage.getItem('sessionToken');
-}
+import { withSessionCredentials } from "../utils/session-auth.js";
 
 async function fetchUserStatus() {
-    const token = getSessionToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
     try {
-        const res = await fetch(getUserStatusURL, {
+        const res = await fetch(getUserStatusURL, withSessionCredentials({
             method: 'POST',
-            headers,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
-        });
+        }));
         return await res.json();
     } catch {
         return { authenticated: false };

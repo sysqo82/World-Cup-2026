@@ -77,6 +77,32 @@ function handleCorsAndOptions(req, res, origin) {
   return { handled: false };
 }
 
+function getSessionCookieValue(origin, sessionToken, maxAgeSeconds = 30 * 24 * 60 * 60) {
+  const isLocalOrigin = origin && (origin.includes('127.0.0.1') || origin.includes('localhost'));
+  const sameSite = isLocalOrigin ? 'Lax' : 'None';
+  const secure = isLocalOrigin ? '' : '; Secure';
+  return `sessionId=${sessionToken}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; SameSite=${sameSite}${secure}`;
+}
+
+function setSessionCookie(res, origin, sessionToken, maxAgeSeconds = 30 * 24 * 60 * 60) {
+  res.set('Set-Cookie', getSessionCookieValue(origin, sessionToken, maxAgeSeconds));
+}
+
+function clearSessionCookie(res, origin) {
+  res.set('Set-Cookie', getSessionCookieValue(origin, '', 0));
+}
+
+function getRequestSessionToken(req) {
+  const authHeader = req.get('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7).trim();
+  }
+
+  const cookies = req.get('cookie') || '';
+  const sessionIdMatch = cookies.match(/sessionId=([^;]+)/);
+  return sessionIdMatch ? sessionIdMatch[1] : null;
+}
+
 function validateEmail(email) {
   if (!email || typeof email !== 'string') {
     return { valid: false, error: 'Email is required and must be a string' };
@@ -290,7 +316,7 @@ export const registerUser = onRequest(async (req, res) => {
         sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
       });
 
-      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Strict`);
+      setSessionCookie(res, origin, sessionToken);
       
       // Send welcome email after successful registration
       try {
@@ -384,6 +410,8 @@ export const sendEmail = onRequest(async (req, res) => {
             sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
           });
           
+          setSessionCookie(res, origin, sessionToken);
+
           return res.status(400).json({
             error: "You need to settle your payment before you can log in. Please visit the payment page to complete your registration.",
             sessionToken: sessionToken,
@@ -732,7 +760,7 @@ export const verifyLoginCode = onRequest(async (req, res) => {
       });
 
       // Set HttpOnly cookie for production (HTTPS) environments
-      res.set('Set-Cookie', `sessionId=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Strict`);
+      setSessionCookie(res, origin, sessionToken);
 
       // Also return the token in the body so the client can store it for
       // environments where cookies aren't reliably sent (e.g. local emulator)
@@ -761,16 +789,7 @@ export const getUserStatus = onRequest(async (req, res) => {
     try {
       // Accept session token from Authorization: Bearer header (SPA/local dev)
       // or fall back to the HttpOnly cookie (production)
-      let sessionToken = null;
-      const authHeader = req.get('Authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        sessionToken = authHeader.substring(7).trim();
-      }
-      if (!sessionToken) {
-        const cookies = req.get('cookie') || '';
-        const sessionIdMatch = cookies.match(/sessionId=([^;]+)/);
-        sessionToken = sessionIdMatch ? sessionIdMatch[1] : null;
-      }
+      const sessionToken = getRequestSessionToken(req);
 
       if (!sessionToken) {
         return res.status(200).json({ authenticated: false, message: "No session token" });
@@ -797,6 +816,7 @@ export const getUserStatus = onRequest(async (req, res) => {
           sessionToken: null,
           sessionExpiry: null,
         });
+        clearSessionCookie(res, origin);
         return res.status(200).json({ authenticated: false, message: "Session expired" });
       }
 
@@ -1033,11 +1053,7 @@ export const decryptTeam = onRequest(async (req, res) => {
     return res.status(405).send("Method Not Allowed");
   }
 
-  let sessionToken = null;
-  const authHeader = req.get('Authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    sessionToken = authHeader.substring(7).trim();
-  }
+  const sessionToken = getRequestSessionToken(req);
 
   if (!sessionToken) {
     return res.status(401).json({ error: "Unauthorized: No session token provided" });
@@ -1075,6 +1091,7 @@ export const decryptTeam = onRequest(async (req, res) => {
           sessionToken: null,
           sessionExpiry: null,
         });
+        clearSessionCookie(res, origin);
       } else {
         isValid = true;
       }
@@ -1098,6 +1115,43 @@ export const decryptTeam = onRequest(async (req, res) => {
     res.status(200).json({ teamName: decrypted });
   } catch (error) {
     res.status(500).send("Error decrypting team: " + error.message);
+  }
+});
+
+export const logoutUser = onRequest(async (req, res) => {
+  const origin = req.get('origin');
+  const corsResult = handleCorsAndOptions(req, res, origin);
+  if (corsResult.handled) return;
+
+  if (!isOriginAllowed(origin)) {
+    return res.status(403).send('Forbidden: Invalid request');
+  }
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
+
+  const sessionToken = getRequestSessionToken(req);
+
+  try {
+    if (sessionToken) {
+      const usersSnapshot = await serviceFirestore.collection("users")
+        .where("sessionToken", "==", sessionToken)
+        .limit(1)
+        .get();
+
+      if (!usersSnapshot.empty) {
+        await usersSnapshot.docs[0].ref.update({
+          sessionToken: null,
+          sessionExpiry: null,
+        });
+      }
+    }
+
+    clearSessionCookie(res, origin);
+    return res.status(200).json({ message: "Logged out" });
+  } catch (error) {
+    clearSessionCookie(res, origin);
+    return res.status(500).send("Error logging out: " + error.message);
   }
 });
 

@@ -7,16 +7,18 @@ import { getMatchdayMatches } from '../utils/match-scheduling.js';
 import { EmailTemplate } from '../utils/email-templates.js';
 import { matchSchedule, knockoutMatchSchedule } from '../utils/match-schedule-constants.js';
 import { decryptTeamName } from '../utils/team-encryption.js';
+import { withSessionCredentials } from '../utils/session-auth.js';
 
 // Cache the server-side user status so we don't re-fetch on every function call
 let _cachedUserStatus = null;
 async function getMyUserStatus() {
     if (_cachedUserStatus) return _cachedUserStatus;
-    const token = sessionStorage.getItem('sessionToken');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
     try {
-        const res = await fetch(getUserStatusURL, { method: 'POST', headers, body: JSON.stringify({}) });
+        const res = await fetch(getUserStatusURL, withSessionCredentials({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        }));
         _cachedUserStatus = await res.json();
     } catch {
         _cachedUserStatus = { authenticated: false };
@@ -1255,8 +1257,7 @@ async function handleEmailVerificationSubmit(currentEmail, newEmail, verifyButto
 
         // Clear the session and redirect after 2 seconds
         setTimeout(() => {
-            sessionStorage.removeItem('sessionToken');
-            window.location.href = `${basePath}index.html`;
+            logoutUser();
         }, 2000);
 
     } catch (error) {
