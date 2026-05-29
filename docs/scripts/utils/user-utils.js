@@ -1,26 +1,19 @@
-import { db, registerUser, verifyLoginCodeURL, getUserStatusURL } from "../config/firebase-config.js";
+import { db, registerUser, verifyLoginCodeURL, getUserStatusURL, logoutUserURL } from "../config/firebase-config.js";
 import { sendVerificationEmail } from "./email-service.js";
 import { updatePrizePotCounter } from "./prize-pot-counter.js";
 import { basePath } from "../config/path-config.js";
 import { fetchCountryMap } from "./country-utils.js";
 import { decryptTeamName } from "./team-encryption.js";
+import {
+    getSessionToken,
+    setSessionToken,
+    clearSessionToken as clearStoredSessionToken,
+    withSessionCredentials
+} from "./session-auth.js";
 
-// Session token helpers — avoids cookies/credentials:include so CORS works everywhere
-function getSessionToken() {
-    return sessionStorage.getItem('sessionToken');
-}
-function setSessionToken(token) {
-    if (token) sessionStorage.setItem('sessionToken', token);
-}
 function clearSessionToken() {
-    sessionStorage.removeItem('sessionToken');
+    clearStoredSessionToken();
     _assignedTeamCache = undefined;
-}
-function sessionHeaders() {
-    const headers = { 'Content-Type': 'application/json' };
-    const token = getSessionToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return headers;
 }
 let countryMapCache = null;
 let _assignedTeamCache = undefined;
@@ -126,6 +119,7 @@ export async function initializeHomepage() {
             const response = await fetch(registerUser, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ firstName, lastName, email }),
             });
 
@@ -195,35 +189,35 @@ export async function initializeHomepage() {
         }
     });
 
-    // Check session token to determine user state
-    const hasSessionToken = getSessionToken() !== null;
+    const hasStoredSessionToken = getSessionToken() !== null;
 
-    // If no session token, user is anonymous — show registration form only
-    if (!hasSessionToken) {
-        registrationFormContainer.classList.remove("hidden");
-        loginFormContainer.classList.add("hidden");
-        paymentContainer.classList.add("hidden");
-        navigationDropdown.classList.add("hidden");
-        contentPlaceholder.classList.remove("hidden");
-        hideLoadingSpinner();
-        return;
-    }
-
-    // User has session token (is registered) — fetch their status
+    // Always ask the backend for the current session state. This keeps users
+    // signed in when the server still has a valid HttpOnly session cookie.
     try {
         const abortController = new AbortController();
         const timeoutId = setTimeout(() => abortController.abort(), 5000);
 
-        const statusResponse = await fetch(getUserStatusURL, {
+        const statusResponse = await fetch(getUserStatusURL, withSessionCredentials({
             method: "POST",
-            headers: { ...sessionHeaders() },
             body: JSON.stringify({}),
             signal: abortController.signal
-        });
+        }));
 
         clearTimeout(timeoutId);
 
         const userStatus = await statusResponse.json().catch(() => ({ authenticated: false, hasPaid: false }));
+        const hasActiveSession = Object.prototype.hasOwnProperty.call(userStatus, "hasPaid");
+
+        if (!hasActiveSession) {
+            clearSessionToken();
+            registrationFormContainer.classList.toggle("hidden", hasStoredSessionToken);
+            loginFormContainer.classList.toggle("hidden", !hasStoredSessionToken);
+            paymentContainer.classList.add("hidden");
+            navigationDropdown.classList.add("hidden");
+            contentPlaceholder.classList.remove("hidden");
+            hideLoadingSpinner();
+            return;
+        }
 
         // Determine which user state we're in based on hasPaid and authenticated flags
         const isPaid = userStatus.hasPaid === true;
@@ -348,6 +342,7 @@ async function handleVerificationSubmission(email, verifyButton) {
         const response = await fetch(verifyLoginCodeURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ 
                 email: email, 
                 verificationCode: verificationCode 
@@ -402,11 +397,11 @@ export async function getAssignedTeamFromServer() {
         return _assignedTeamCache;
     }
     try {
-        const response = await fetch(getUserStatusURL, {
+        const response = await fetch(getUserStatusURL, withSessionCredentials({
             method: "POST",
-            headers: sessionHeaders(),
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
-        });
+        }));
 
         if (response.ok) {
             const userStatus = await response.json();
@@ -550,6 +545,16 @@ export async function matchInvolvesAssignedTeam(team1Name, team2Name) {
 }
 
 export async function logoutUser() {
-    clearSessionToken();
+    try {
+        await fetch(logoutUserURL, withSessionCredentials({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({})
+        }));
+    } catch (error) {
+        console.warn("Error clearing server session during logout:", error);
+    } finally {
+        clearSessionToken();
+    }
     window.location.href = `${basePath}index.html`;
 }

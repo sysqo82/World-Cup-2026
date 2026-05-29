@@ -1,15 +1,16 @@
 import { sendEmailURL } from '../config/firebase-config.js';
+import { withSessionCredentials } from './session-auth.js';
 
 // Function to send email notifications (match results)
 export async function sendEmailNotification(recipient, subject, message, html) {
   try {
-    const response = await fetch(sendEmailURL, {
+    const response = await fetch(sendEmailURL, withSessionCredentials({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ recipient, subject, message, html }),
-    });
+    }));
 
     if (response.ok) {
       const responseText = await response.text();
@@ -35,13 +36,13 @@ export async function sendEmailNotification(recipient, subject, message, html) {
 // Function to send verification code email
 export async function sendVerificationEmail(email) {
   try {
-    const response = await fetch(sendEmailURL, {
+    const response = await fetch(sendEmailURL, withSessionCredentials({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ type: 'verification', email }),
-    });
+    }));
 
     if (response.ok) {
       const result = await response.json();
