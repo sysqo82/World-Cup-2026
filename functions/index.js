@@ -103,6 +103,164 @@ function getRequestSessionToken(req) {
   return sessionIdMatch ? sessionIdMatch[1] : null;
 }
 
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+
+function createSessionExpiryDate() {
+  return new Date(Date.now() + SESSION_MAX_AGE_MS);
+}
+
+async function createUserSession(email, { authenticated = false } = {}) {
+  const sessionToken = generateSessionToken();
+  const sessionExpiry = createSessionExpiryDate();
+
+  await serviceFirestore.collection("sessions").doc(sessionToken).set({
+    email,
+    authenticated,
+    authenticatedAt: authenticated ? pkg.firestore.FieldValue.serverTimestamp() : null,
+    expiresAt: pkg.firestore.Timestamp.fromDate(sessionExpiry),
+    createdAt: pkg.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { sessionToken, sessionExpiry };
+}
+
+async function clearLegacySessionByToken(sessionToken) {
+  const usersSnapshot = await serviceFirestore.collection("users")
+    .where("sessionToken", "==", sessionToken)
+    .limit(1)
+    .get();
+
+  if (!usersSnapshot.empty) {
+    await usersSnapshot.docs[0].ref.update({
+      sessionToken: null,
+      sessionExpiry: null,
+    });
+  }
+}
+
+async function deleteSessionByToken(sessionToken) {
+  const sessionRef = serviceFirestore.collection("sessions").doc(sessionToken);
+  const sessionDoc = await sessionRef.get();
+
+  if (sessionDoc.exists) {
+    await sessionRef.delete();
+    return true;
+  }
+
+  return false;
+}
+
+async function resolveSession(sessionToken) {
+  if (!sessionToken) {
+    return { status: "missing" };
+  }
+
+  const sessionRef = serviceFirestore.collection("sessions").doc(sessionToken);
+  const sessionDoc = await sessionRef.get();
+
+  if (sessionDoc.exists) {
+    const sessionData = sessionDoc.data();
+    const userRef = serviceFirestore.collection("users").doc(sessionData.email);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      await sessionRef.delete();
+      return { status: "invalid" };
+    }
+
+    const expiresAt = sessionData.expiresAt?.toDate?.();
+    if (expiresAt && expiresAt < new Date()) {
+      await sessionRef.delete();
+      return { status: "expired" };
+    }
+
+    return {
+      status: "valid",
+      userRef,
+      userDoc,
+      userData: userDoc.data(),
+      sessionRef,
+      sessionData,
+      isLegacy: false,
+    };
+  }
+
+  const usersSnapshot = await serviceFirestore.collection("users")
+    .where("sessionToken", "==", sessionToken)
+    .limit(1)
+    .get();
+
+  if (usersSnapshot.empty) {
+    return { status: "invalid" };
+  }
+
+  const userDoc = usersSnapshot.docs[0];
+  const userData = userDoc.data();
+  const expiresAt = userData.sessionExpiry?.toDate?.();
+
+  if (expiresAt && expiresAt < new Date()) {
+    await userDoc.ref.update({
+      sessionToken: null,
+      sessionExpiry: null,
+    });
+    return { status: "expired" };
+  }
+
+  return {
+    status: "valid",
+    userRef: userDoc.ref,
+    userDoc,
+    userData,
+    sessionRef: null,
+    sessionData: {
+      email: userData.email,
+      expiresAt: userData.sessionExpiry || null,
+    },
+    isLegacy: true,
+  };
+}
+
+async function updateSessionsEmail(oldEmail, newEmail) {
+  const sessionsSnapshot = await serviceFirestore.collection("sessions")
+    .where("email", "==", oldEmail)
+    .get();
+
+  if (sessionsSnapshot.empty) {
+    return;
+  }
+
+  let batch = serviceFirestore.batch();
+  let batchCount = 0;
+
+  for (const sessionDoc of sessionsSnapshot.docs) {
+    batch.update(sessionDoc.ref, { email: newEmail });
+    batchCount += 1;
+
+    if (batchCount === 500) {
+      await batch.commit();
+      batch = serviceFirestore.batch();
+      batchCount = 0;
+    }
+  }
+
+  if (batchCount > 0) {
+    await batch.commit();
+  }
+}
+
+function isAuthenticatedSession(session) {
+  if (!session || session.status !== "valid") {
+    return false;
+  }
+
+  if (session.isLegacy) {
+    return Boolean(session.userData?.authenticatedAt);
+  }
+
+  return session.sessionData?.authenticated === true;
+}
+
 function validateEmail(email) {
   if (!email || typeof email !== 'string') {
     return { valid: false, error: 'Email is required and must be a string' };
@@ -309,14 +467,9 @@ export const registerUser = onRequest(async (req, res) => {
       await teamsRef.doc(selectedTeam.id).update({ assigned: true });
 
       // Create a session immediately so the client can go straight to the payment screen
-      const sessionToken = generateSessionToken();
-      const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      await serviceFirestore.collection("users").doc(normalizedEmail).update({
-        sessionToken: sessionToken,
-        sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
-      });
+      const { sessionToken } = await createUserSession(normalizedEmail);
 
-      setSessionCookie(res, origin, sessionToken);
+      setSessionCookie(res, origin, sessionToken, SESSION_MAX_AGE_SECONDS);
       
       // Send welcome email after successful registration
       try {
@@ -402,15 +555,9 @@ export const sendEmail = onRequest(async (req, res) => {
           await logRateLimitEvent('VERIFICATION_CODE_NOT_PAID', normalizedEmail, false, 'User has not paid');
           
           // Create a session token for the user so they can access the payment screen
-          const sessionToken = generateSessionToken();
-          const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+          const { sessionToken } = await createUserSession(normalizedEmail);
           
-          await userDoc.ref.update({
-            sessionToken: sessionToken,
-            sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
-          });
-          
-          setSessionCookie(res, origin, sessionToken);
+          setSessionCookie(res, origin, sessionToken, SESSION_MAX_AGE_SECONDS);
 
           return res.status(400).json({
             error: "You need to settle your payment before you can log in. Please visit the payment page to complete your registration.",
@@ -580,6 +727,8 @@ export const sendEmail = onRequest(async (req, res) => {
           // Create new document with new email as ID
           await serviceFirestore.collection("users").doc(normalizedNewEmail).set(userDataToTransfer);
 
+          await updateSessionsEmail(normalizedEmail, normalizedNewEmail);
+
           // Delete old document
           await serviceFirestore.collection("users").doc(normalizedEmail).delete();
 
@@ -748,19 +897,16 @@ export const verifyLoginCode = onRequest(async (req, res) => {
       await serviceFirestore.collection('rateLimits').doc(`VERIFICATION_CODE:${normalizedEmail}`).delete();
       await logRateLimitEvent('VERIFICATION_CODE_SUCCESS', normalizedEmail, true);
 
-      const sessionToken = generateSessionToken();
-      const sessionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      const { sessionToken } = await createUserSession(normalizedEmail, { authenticated: true });
 
       await serviceFirestore.collection("users").doc(normalizedEmail).update({
         verificationCode: null,
         verificationCodeExpiry: null,
-        sessionToken: sessionToken,
-        sessionExpiry: pkg.firestore.Timestamp.fromDate(sessionExpiry),
         authenticatedAt: pkg.firestore.FieldValue.serverTimestamp(),
       });
 
       // Set HttpOnly cookie for production (HTTPS) environments
-      setSessionCookie(res, origin, sessionToken);
+      setSessionCookie(res, origin, sessionToken, SESSION_MAX_AGE_SECONDS);
 
       // Also return the token in the body so the client can store it for
       // environments where cookies aren't reliably sent (e.g. local emulator)
@@ -796,33 +942,22 @@ export const getUserStatus = onRequest(async (req, res) => {
       }
 
       // Find user by session token
-      const usersSnapshot = await serviceFirestore.collection("users")
-        .where("sessionToken", "==", sessionToken)
-        .limit(1)
-        .get();
+      const session = await resolveSession(sessionToken);
 
-      if (usersSnapshot.empty) {
+      if (session.status === "invalid") {
         return res.status(200).json({ authenticated: false, message: "Invalid session token" });
       }
 
-      const userDoc = usersSnapshot.docs[0];
-      const userData = userDoc.data();
-
-      // Check session expiry
-      const now = new Date();
-      if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
-        // Clear expired session
-        await userDoc.ref.update({
-          sessionToken: null,
-          sessionExpiry: null,
-        });
+      if (session.status === "expired") {
         clearSessionCookie(res, origin);
         return res.status(200).json({ authenticated: false, message: "Session expired" });
       }
 
+      const { userData } = session;
+
       // Return user status from server (server decides what user can access)
       res.status(200).json({
-        authenticated: userData.authenticatedAt ? true : false,
+        authenticated: isAuthenticatedSession(session),
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
@@ -1068,14 +1203,10 @@ export const decryptTeam = onRequest(async (req, res) => {
   try {
     // First, try to verify as a session token
     let isValid = false;
-    const usersSnapshot = await serviceFirestore.collection("users")
-      .where("sessionToken", "==", sessionToken)
-      .limit(1)
-      .get();
+    const session = await resolveSession(sessionToken);
 
-    if (!usersSnapshot.empty) {
-      const userDoc = usersSnapshot.docs[0];
-      const userData = userDoc.data();
+    if (session.status === "valid") {
+      const { userData } = session;
 
       if (!userData.hasPaid || (userData.hasPaid !== true && userData.hasPaid !== 'Paid')) {
         return res.status(403).json({ 
@@ -1083,18 +1214,11 @@ export const decryptTeam = onRequest(async (req, res) => {
         });
       }
 
-      // Check session expiry
-      const now = new Date();
-      if (userData.sessionExpiry && userData.sessionExpiry.toDate() < now) {
-        // Clear expired session
-        await userDoc.ref.update({
-          sessionToken: null,
-          sessionExpiry: null,
-        });
-        clearSessionCookie(res, origin);
-      } else {
+      if (isAuthenticatedSession(session)) {
         isValid = true;
       }
+    } else if (session.status === "expired") {
+        clearSessionCookie(res, origin);
     }
 
     // If not a valid session token, try to verify as Firebase ID token
@@ -1134,16 +1258,9 @@ export const logoutUser = onRequest(async (req, res) => {
 
   try {
     if (sessionToken) {
-      const usersSnapshot = await serviceFirestore.collection("users")
-        .where("sessionToken", "==", sessionToken)
-        .limit(1)
-        .get();
-
-      if (!usersSnapshot.empty) {
-        await usersSnapshot.docs[0].ref.update({
-          sessionToken: null,
-          sessionExpiry: null,
-        });
+      const deletedSession = await deleteSessionByToken(sessionToken);
+      if (!deletedSession) {
+        await clearLegacySessionByToken(sessionToken);
       }
     }
 
