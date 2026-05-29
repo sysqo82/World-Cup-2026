@@ -751,6 +751,47 @@ img {
     text-align: center;
 }
 
+.account-team-hero {
+    grid-column: 1 / span 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.account-team-hero__flag-shell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 600px);
+    min-height: 240px;
+    padding: 24px;
+    border-radius: 12px;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+.account-team-hero__flag {
+    font-size: clamp(120px, 24vw, 220px);
+    line-height: 1;
+}
+
+.account-team-hero__flag-placeholder,
+.account-team-hero__fallback {
+    color: #003366;
+    font-size: clamp(20px, 3vw, 32px);
+    font-weight: bold;
+}
+
+.account-team-hero__team-name {
+    margin: 0;
+    color: #003366;
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: bold;
+}
+
 .footer {
     position: fixed; /* Stick to the bottom of the viewport */
     bottom: 0;
@@ -1307,6 +1348,21 @@ img {
 
 /* Responsive design for my-account fixtures */
 @media (max-width: 768px) {
+    .account-team-hero {
+        gap: 12px;
+    }
+
+    .account-team-hero__flag-shell {
+        min-height: 180px;
+        padding: 18px;
+        width: calc(100% - 24px);
+    }
+
+    .account-team-hero__team-name {
+        padding: 0 16px;
+        text-align: center;
+    }
+
     .team-fixtures-container {
         margin: 0;
         padding: 0;

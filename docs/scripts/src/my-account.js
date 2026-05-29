@@ -33,7 +33,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('logout').addEventListener('click', logoutUser);
 
-    await getAssignedTeam();
+    const assignedTeam = await getAssignedTeam();
+    await loadAssignedTeamHero(assignedTeam);
     await loadTeamFixtures();
     await loadEmailPreferences();
     await loadCurrentEmail();
@@ -44,6 +45,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Set up change email form
     document.getElementById('change-email-form').addEventListener('submit', handleChangeEmailSubmit);
 });
+
+async function loadAssignedTeamHero(assignedTeam) {
+    const heroContainer = document.getElementById('account-team-hero');
+    if (!heroContainer) return;
+
+    const resolvedTeam = assignedTeam?.trim();
+    if (!resolvedTeam || resolvedTeam === 'Pending' || resolvedTeam === 'No team assigned yet') {
+        renderAssignedTeamHero(heroContainer, null, null, 'No team assigned yet');
+        return;
+    }
+
+    try {
+        const countryMap = await fetchCountryMap();
+        const { fullName, flagCode } = getCountryFullName(countryMap, resolvedTeam);
+        const teamLabel = fullName !== 'Unknown' ? fullName : resolvedTeam;
+        renderAssignedTeamHero(heroContainer, teamLabel, flagCode !== 'unknown' ? flagCode : null, teamLabel);
+    } catch (error) {
+        console.error('Error loading assigned team hero:', error);
+        renderAssignedTeamHero(heroContainer, resolvedTeam, null, resolvedTeam);
+    }
+}
+
+function renderAssignedTeamHero(container, teamLabel, flagCode, accessibleLabel) {
+    container.textContent = '';
+    container.setAttribute('aria-label', accessibleLabel || 'Assigned team');
+
+    const flagShell = document.createElement('div');
+    flagShell.className = 'account-team-hero__flag-shell';
+
+    if (flagCode) {
+        const flagIcon = document.createElement('span');
+        flagIcon.className = `fi fi-${flagCode} account-team-hero__flag`;
+        flagIcon.setAttribute('aria-hidden', 'true');
+        flagShell.appendChild(flagIcon);
+    } else {
+        const fallback = document.createElement('span');
+        fallback.className = 'account-team-hero__fallback';
+        fallback.textContent = teamLabel || 'World Cup 2026';
+        flagShell.appendChild(fallback);
+    }
+
+    container.appendChild(flagShell);
+
+    if (teamLabel) {
+        const teamName = document.createElement('p');
+        teamName.className = 'account-team-hero__team-name';
+        teamName.textContent = teamLabel;
+        container.appendChild(teamName);
+    }
+}
 
 async function loadTeamFixtures() {
     const userStatus = await getMyUserStatus();
