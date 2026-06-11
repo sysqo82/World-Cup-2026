@@ -3,7 +3,7 @@ import { handleGroupStageScoreSubmission } from '../score-submissions/groups-sta
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { matchInvolvesAssignedTeam } from '../utils/user-utils.js';
 import { auth } from '../config/firebase-config.js';
-import { matchSchedule } from '../utils/match-schedule-constants.js';
+import { matchSchedule, matchTimes, getDisplayDate } from '../utils/match-schedule-constants.js';
 
 let authListenerSetup = false;
 let isAdmin = false;
@@ -56,6 +56,8 @@ export async function generateFixtures(groups, countryMap) {
 
             let matchNumber = (index * 24) + 1; // Start at 1, 25, 49 for each matchday
 
+            // Collect all matches with their metadata
+            const allMatches = [];
             for (const group of groups) {
                 if (group.teams && typeof group.teams === 'object') {
                     const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
@@ -66,123 +68,148 @@ export async function generateFixtures(groups, countryMap) {
 
                     if (sortedTeams.length >= 4) {
                         const matches = getMatchdayMatches(matchday, sortedTeams);
-
-                        for (const match of matches) {
+                        const groupTimes = matchTimes[group.id]?.[matchday] || ['14:00', '20:00'];
+                        
+                        matches.forEach((match, matchIndex) => {
                             const existingMatch = group.matchdays?.[matchday]?.[`${match.team1.id}_${match.team2.id}`] || {};
-                            const row = document.createElement('tr');
-                            
-                            // Highlight row if assigned team is playing
-                            if (await matchInvolvesAssignedTeam(match.team1.name, match.team2.name)) {
-                                row.classList.add('assigned-team-highlight');
-                            }
-                            
-                            const { fullName: team1FullName } = getCountryFullName(countryMap, match.team1.name);
-                            const { fullName: team2FullName } = getCountryFullName(countryMap, match.team2.name);
-                            const team1FlagCode = countryMap[match.team1.name]?.flagCode || 'unknown';
-                            const team2FlagCode = countryMap[match.team2.name]?.flagCode || 'unknown';
-
-                            // Get date from existing match or from schedule
-                            let dateDisplay = 'TBD';
-                            let dateTitle = '';
                             const matchDate = existingMatch.date || matchSchedule[group.id]?.[matchday];
-                            if (matchDate) {
-                                try {
-                                    const date = new Date(matchDate);
-                                    dateDisplay = date.toLocaleDateString('en-UK', { 
-                                        month: 'short', 
-                                        day: 'numeric', 
-                                        year: 'numeric' 
-                                    });
-                                    dateTitle = date.toLocaleDateString('en-UK', { 
-                                        weekday: 'long', 
-                                        month: 'long', 
-                                        day: 'numeric', 
-                                        year: 'numeric' 
-                                    });
-                                } catch (e) {
-                                    dateDisplay = matchDate;
-                                    dateTitle = matchDate;
-                                }
-                            }
-
-                            row.innerHTML = `
-                                <td>${matchNumber++}</td>
-                                <td>${group.name}</td>
-                                <td class="team1" title="${team1FullName}">
-                                    <span class="fi fi-${team1FlagCode}"></span> ${match.team1.name}
-                                </td>
-                                <td>
-                                    <div class="score-container">
-                                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
-                                        -
-                                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team2.id}" data-team-right="${match.team1.id}" data-matchday="${matchday}" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
-                                    </div>
-                                </td>
-                                <td class="team2" title="${team2FullName}">
-                                   ${match.team2.name} <span class="fi fi-${team2FlagCode}"></span>
-                                </td>
-                                <td title="${dateTitle}">${dateDisplay}</td>
-                                ${isAdmin ? `
-                                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
-                                ` : ''}
-                            `;
-                            matchdayTable.appendChild(row);
-
-                            // Apply highlighting based on existing match results
-                            const team1Cell = row.querySelector('.team1');
-                            const team2Cell = row.querySelector('.team2');
-
-                            if (existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined) {
-                                if (existingMatch.leftScore > existingMatch.rightScore) {
-                                    team1Cell.classList.add('winner');
-                                    team2Cell.classList.add('loser');
-                                } else if (existingMatch.leftScore < existingMatch.rightScore) {
-                                    team2Cell.classList.add('winner');
-                                    team1Cell.classList.add('loser');
-                                } else {
-                                    team1Cell.classList.add('draw');
-                                    team2Cell.classList.add('draw');
-                                }
-                            }
-
-                            // Add event listener for the submit button if the user is an admin
-                            if (isAdmin) {
-                                const submitButton = row.querySelector('.submit-button');
-                                submitButton.addEventListener('click', (event) => {
-                                    const leftScoreInput = row.querySelector(`input[data-group="${group.id}"][data-team-left="${match.team1.id}"]`);
-                                    const rightScoreInput = row.querySelector(`input[data-group="${group.id}"][data-team-left="${match.team2.id}"]`);
-
-                                    const leftScore = parseInt(leftScoreInput.value, 10);
-                                    const rightScore = parseInt(rightScoreInput.value, 10);
-
-                                    if (!isNaN(leftScore) && !isNaN(rightScore)) {
-                                        // Highlight winner, loser, or draw
-                                        team1Cell.classList.remove('winner', 'loser', 'draw');
-                                        team2Cell.classList.remove('winner', 'loser', 'draw');
-
-                                        if (leftScore > rightScore) {
-                                            team1Cell.classList.add('winner');
-                                            team2Cell.classList.add('loser');
-                                        } else if (leftScore < rightScore) {
-                                            team2Cell.classList.add('winner');
-                                            team1Cell.classList.add('loser');
-                                        } else {
-                                            team1Cell.classList.add('draw');
-                                            team2Cell.classList.add('draw');
-                                        }
-
-                                        // Lock the input fields and disable the submit button
-                                        leftScoreInput.disabled = true;
-                                        rightScoreInput.disabled = true;
-                                        submitButton.disabled = true;
-
-                                        // Submit the scores to the database
-                                        handleGroupStageScoreSubmission(event, stage);
-                                    }
-                                });
-                            }
-                        }
+                            const matchTime = groupTimes[matchIndex] || groupTimes[0];
+                            const displayDate = getDisplayDate(matchDate, matchTime);
+                            
+                            allMatches.push({
+                                match,
+                                group,
+                                existingMatch,
+                                matchIndex,
+                                matchDate,
+                                matchTime,
+                                displayDate,
+                                sortKey: `${displayDate.toISOString().split('T')[0]}_${matchTime}`
+                            });
+                        });
                     }
+                }
+            }
+
+            // Sort all matches by display date and time
+            allMatches.sort((a, b) => {
+                const dateCompare = a.displayDate.getTime() - b.displayDate.getTime();
+                if (dateCompare !== 0) return dateCompare;
+                return a.matchTime.localeCompare(b.matchTime);
+            });
+
+            // Render sorted matches
+            for (const matchData of allMatches) {
+                const { match, group, existingMatch, matchIndex, matchDate, matchTime, displayDate } = matchData;
+                const row = document.createElement('tr');
+                
+                // Highlight row if assigned team is playing
+                if (await matchInvolvesAssignedTeam(match.team1.name, match.team2.name)) {
+                    row.classList.add('assigned-team-highlight');
+                }
+                
+                const { fullName: team1FullName } = getCountryFullName(countryMap, match.team1.name);
+                const { fullName: team2FullName } = getCountryFullName(countryMap, match.team2.name);
+                const team1FlagCode = countryMap[match.team1.name]?.flagCode || 'unknown';
+                const team2FlagCode = countryMap[match.team2.name]?.flagCode || 'unknown';
+
+                // Format date display
+                let dateDisplay = 'TBD';
+                let dateTitle = '';
+                if (matchDate) {
+                    try {
+                        dateDisplay = displayDate.toLocaleDateString('en-UK', { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                        });
+                        dateTitle = displayDate.toLocaleDateString('en-UK', { 
+                            weekday: 'long', 
+                            month: 'long', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                        });
+                    } catch (e) {
+                        dateDisplay = matchDate;
+                        dateTitle = matchDate;
+                    }
+                }
+
+                row.innerHTML = `
+                    <td>${matchNumber++}</td>
+                    <td>${group.name}</td>
+                    <td class="team1" title="${team1FullName}">
+                        <span class="fi fi-${team1FlagCode}"></span> ${match.team1.name}
+                    </td>
+                    <td>
+                        <div class="score-container">
+                            <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                            -
+                            <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team2.id}" data-team-right="${match.team1.id}" data-matchday="${matchday}" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                        </div>
+                    </td>
+                    <td class="team2" title="${team2FullName}">
+                       ${match.team2.name} <span class="fi fi-${team2FlagCode}"></span>
+                    </td>
+                    <td title="${dateTitle}">${dateDisplay}</td>
+                    ${isAdmin ? `
+                        <td><button class="submit-button" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
+                    ` : ''}
+                `;
+                matchdayTable.appendChild(row);
+
+                // Apply highlighting based on existing match results
+                const team1Cell = row.querySelector('.team1');
+                const team2Cell = row.querySelector('.team2');
+
+                if (existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined) {
+                    if (existingMatch.leftScore > existingMatch.rightScore) {
+                        team1Cell.classList.add('winner');
+                        team2Cell.classList.add('loser');
+                    } else if (existingMatch.leftScore < existingMatch.rightScore) {
+                        team2Cell.classList.add('winner');
+                        team1Cell.classList.add('loser');
+                    } else {
+                        team1Cell.classList.add('draw');
+                        team2Cell.classList.add('draw');
+                    }
+                }
+
+                // Add event listener for the submit button if the user is an admin
+                if (isAdmin) {
+                    const submitButton = row.querySelector('.submit-button');
+                    submitButton.addEventListener('click', (event) => {
+                        const leftScoreInput = row.querySelector(`input[data-group="${group.id}"][data-team-left="${match.team1.id}"]`);
+                        const rightScoreInput = row.querySelector(`input[data-group="${group.id}"][data-team-left="${match.team2.id}"]`);
+
+                        const leftScore = parseInt(leftScoreInput.value, 10);
+                        const rightScore = parseInt(rightScoreInput.value, 10);
+
+                        if (!isNaN(leftScore) && !isNaN(rightScore)) {
+                            // Highlight winner, loser, or draw
+                            team1Cell.classList.remove('winner', 'loser', 'draw');
+                            team2Cell.classList.remove('winner', 'loser', 'draw');
+
+                            if (leftScore > rightScore) {
+                                team1Cell.classList.add('winner');
+                                team2Cell.classList.add('loser');
+                            } else if (leftScore < rightScore) {
+                                team2Cell.classList.add('winner');
+                                team1Cell.classList.add('loser');
+                            } else {
+                                team1Cell.classList.add('draw');
+                                team2Cell.classList.add('draw');
+                            }
+
+                            // Lock the input fields and disable the submit button
+                            leftScoreInput.disabled = true;
+                            rightScoreInput.disabled = true;
+                            submitButton.disabled = true;
+
+                            // Submit the scores to the database
+                            handleGroupStageScoreSubmission(event, stage);
+                        }
+                    });
                 }
             }
 
