@@ -397,6 +397,9 @@ export const registerUser = onRequest(async (req, res) => {
     return res.status(405).send("Method Not Allowed");
   }
 
+  // Registration is now closed
+  return res.status(403).send("Registration is now closed. If you have already registered, please use the login form to access your account.");
+
   const { firstName, lastName, email } = req.body;
 
   if (!firstName || !lastName || !email) {

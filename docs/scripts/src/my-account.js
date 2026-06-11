@@ -5,7 +5,7 @@ import { db, sendEmailURL, getUserStatusURL } from '../config/firebase-config.js
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { getMatchdayMatches } from '../utils/match-scheduling.js';
 import { EmailTemplate } from '../utils/email-templates.js';
-import { matchSchedule, knockoutMatchSchedule } from '../utils/match-schedule-constants.js';
+import { matchSchedule, knockoutMatchSchedule, matchTimes, getDisplayDate } from '../utils/match-schedule-constants.js';
 import { decryptTeamName } from '../utils/team-encryption.js';
 import { withSessionCredentials } from '../utils/session-auth.js';
 
@@ -170,10 +170,20 @@ async function loadGroupStageFixtures(teamName, countryMap) {
         // Process each matchday using the predetermined fixture schedule
         matchdays.forEach((matchday, matchdayIndex) => {
             // Get the predetermined matches for this matchday
-            const matchdayFixtures = getMatchdayMatches(matchday, groupTeams);
+            let matchdayFixtures = getMatchdayMatches(matchday, groupTeams);
+            
+            // Sort matches by their kick-off time (earliest first)
+            const groupTimes = matchTimes[teamGroup.id]?.[matchday] || ['14:00', '20:00'];
+            matchdayFixtures.sort((a, b) => {
+                const indexA = matchdayFixtures.indexOf(a);
+                const indexB = matchdayFixtures.indexOf(b);
+                const timeA = groupTimes[indexA] || groupTimes[0];
+                const timeB = groupTimes[indexB] || groupTimes[0];
+                return timeA.localeCompare(timeB);
+            });
             
             // Find matches involving our team
-            matchdayFixtures.forEach(fixture => {
+            matchdayFixtures.forEach((fixture, fixtureIndex) => {
                 if (fixture.team1.name === teamShortName || fixture.team2.name === teamShortName) {
                     hasMatches = true;
                     
@@ -209,7 +219,8 @@ async function loadGroupStageFixtures(teamName, countryMap) {
                         countryMap,
                         myTeamIsLeft,
                         teamGroup.id,
-                        matchday
+                        matchday,
+                        fixtureIndex
                     );
                     groupStageBody.appendChild(row);
                 }
@@ -221,10 +232,11 @@ async function loadGroupStageFixtures(teamName, countryMap) {
             const matchdayString = `matchday${matchdayNumber}`;
             const matchdayMatches = getMatchdayMatches(groupTeams, matchdayString);
             
-            // Check if our team plays in this matchday
-            const ourMatch = matchdayMatches.find(match => 
+            // Check if our team plays in this matchday and get its index
+            const ourMatchIndex = matchdayMatches.findIndex(match => 
                 match.team1Name === teamShortName || match.team2Name === teamShortName
             );
+            const ourMatch = ourMatchIndex >= 0 ? matchdayMatches[ourMatchIndex] : null;
             
             if (ourMatch) {
                 hasMatches = true;
@@ -268,7 +280,8 @@ async function loadGroupStageFixtures(teamName, countryMap) {
                     countryMap,
                     myTeamIsLeft,
                     teamGroup.id,
-                    matchdayString
+                    matchdayString,
+                    ourMatchIndex
                 );
                 groupStageBody.appendChild(row);
             }
@@ -472,7 +485,7 @@ function addQualificationStatus(groupStageSection, teamGroup, teamShortName, tea
     groupStageSection.appendChild(qualificationDiv);
 }
 
-function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey, team1Id, team2Id, myTeam, countryMap, myTeamIsLeft = null, groupId = null, matchday = null) {
+function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey, team1Id, team2Id, myTeam, countryMap, myTeamIsLeft = null, groupId = null, matchday = null, matchIndex = 0) {
     const row = document.createElement('tr');
     
     // Get full team names and flag codes
@@ -538,7 +551,12 @@ function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey
     const matchDate = matchData?.date || (groupId && matchday ? matchSchedule[groupId]?.[matchday] : null);
     if (matchDate) {
         try {
-            const date = new Date(matchDate);
+            // Get match time for this specific match in the matchday
+            const groupTimes = matchTimes[groupId]?.[matchday] || ['14:00', '20:00'];
+            const matchTime = groupTimes[matchIndex] || groupTimes[0];
+            
+            // Create date with time consideration
+            const date = getDisplayDate(matchDate, matchTime);
             dateDisplay = date.toLocaleDateString('en-UK', { 
                 month: 'short', 
                 day: 'numeric', 

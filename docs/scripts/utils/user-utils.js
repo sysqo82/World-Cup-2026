@@ -86,12 +86,13 @@ export async function initializeHomepage() {
 
     // Attach event listeners immediately (before any async calls) so forms never
     // fall back to native GET submission if the server check hangs or fails.
-    registrationForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
+    if (registrationForm) {
+        registrationForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
 
-        const firstName = document.getElementById("first-name").value.trim();
-        const lastName = document.getElementById("last-name").value.trim();
-        const email = document.getElementById("email").value.trim();
+            // Registration is now closed
+            alert("Registration is now closed. If you have already registered, please use the login form to access your account.");
+            return;
 
         registerSubmitButton.disabled = true;
         registerSubmitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
@@ -141,7 +142,8 @@ export async function initializeHomepage() {
             console.error("Error registering user:", error);
             alert("Failed to register. Please try again.");
         }
-    });
+        });
+    }
 
     // Handle login form submission (with email verification)
     loginForm.addEventListener("submit", async (event) => {
