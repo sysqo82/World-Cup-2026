@@ -3,7 +3,7 @@ import { handleGroupStageScoreSubmission } from '../score-submissions/groups-sta
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { matchInvolvesAssignedTeam } from '../utils/user-utils.js';
 import { auth } from '../config/firebase-config.js';
-import { matchSchedule, matchTimes, getDisplayDate } from '../utils/match-schedule-constants.js';
+import { chronologicalMatches, getDisplayDate } from '../utils/match-schedule-constants.js';
 
 let authListenerSetup = false;
 let isAdmin = false;
@@ -12,8 +12,6 @@ export async function generateFixtures(groups, countryMap) {
     const stage = 'Group Stage';
     const fixturesContainer = document.getElementById('fixtures-container');
     fixturesContainer.innerHTML = ''; // Clear any existing fixtures
-
-    const matchdays = ['matchday1', 'matchday2', 'matchday3'];
 
     // Fetch the country map if not provided
     if (!countryMap) {
@@ -34,189 +32,198 @@ export async function generateFixtures(groups, countryMap) {
     }
 
     async function renderFixtures() {
-        fixturesContainer.innerHTML = ''; // Clear the container before re-rendering
+        fixturesContainer.innerHTML = '';
 
-        for (const [index, matchday] of matchdays.entries()) {
-            const matchdayHeader = document.createElement('h2');
-            matchdayHeader.textContent = `Matchday ${index + 1}`;
-            fixturesContainer.appendChild(matchdayHeader);
+        // Create one table for all chronologically sorted matches
+        const matchTable = document.createElement('table');
+        matchTable.className = 'group-stage-table';
+        matchTable.innerHTML = `
+            <tr>
+                <th>Match</th>
+                <th>Group</th>
+                <th></th>
+                <th>Result</th>
+                <th></th>
+                <th>Date</th>
+                <th>Time</th>
+                ${isAdmin ? '<th></th>' : ''}
+            </tr>
+        `;
 
-            const matchdayTable = document.createElement('table');
-            matchdayTable.innerHTML = `
-                <tr>
-                    <th>Match</th>
-                    <th>Group</th>
-                    <th></th>
-                    <th>Result</th>
-                    <th></th>
-                    <th>Date</th>
-                    ${isAdmin ? '<th></th>' : ''}
-                </tr>
-            `;
-
-            let matchNumber = (index * 24) + 1; // Start at 1, 25, 49 for each matchday
-
-            // Collect all matches with their metadata
-            const allMatches = [];
-            for (const group of groups) {
-                if (group.teams && typeof group.teams === 'object') {
-                    const sortedTeams = Object.entries(group.teams).map(([id, team]) => ({
-                        id,
-                        name: team.name || team.Name || 'Unknown',
-                        initialRank: parseInt(id.replace('team', ''), 10) || 0
-                    })).sort((a, b) => a.initialRank - b.initialRank);
-
-                    if (sortedTeams.length >= 4) {
-                        const matches = getMatchdayMatches(matchday, sortedTeams);
-                        const groupTimes = matchTimes[group.id]?.[matchday] || ['14:00', '20:00'];
-                        
-                        matches.forEach((match, matchIndex) => {
-                            const existingMatch = group.matchdays?.[matchday]?.[`${match.team1.id}_${match.team2.id}`] || {};
-                            const matchDate = existingMatch.date || matchSchedule[group.id]?.[matchday];
-                            const matchTime = groupTimes[matchIndex] || groupTimes[0];
-                            const displayDate = getDisplayDate(matchDate, matchTime);
-                            
-                            allMatches.push({
-                                match,
-                                group,
-                                existingMatch,
-                                matchIndex,
-                                matchDate,
-                                matchTime,
-                                displayDate,
-                                sortKey: `${displayDate.toISOString().split('T')[0]}_${matchTime}`
-                            });
-                        });
-                    }
-                }
+        // Build a mapping from country codes to full names
+        const codeToCountry = {};
+        for (const [name, data] of Object.entries(countryMap)) {
+            if (data.code) {
+                codeToCountry[data.code.toUpperCase()] = name;
             }
-
-            // Sort all matches by display date and time
-            allMatches.sort((a, b) => {
-                const dateCompare = a.displayDate.getTime() - b.displayDate.getTime();
-                if (dateCompare !== 0) return dateCompare;
-                return a.matchTime.localeCompare(b.matchTime);
-            });
-
-            // Render sorted matches
-            for (const matchData of allMatches) {
-                const { match, group, existingMatch, matchIndex, matchDate, matchTime, displayDate } = matchData;
-                const row = document.createElement('tr');
-                
-                // Highlight row if assigned team is playing
-                if (await matchInvolvesAssignedTeam(match.team1.name, match.team2.name)) {
-                    row.classList.add('assigned-team-highlight');
-                }
-                
-                const { fullName: team1FullName } = getCountryFullName(countryMap, match.team1.name);
-                const { fullName: team2FullName } = getCountryFullName(countryMap, match.team2.name);
-                const team1FlagCode = countryMap[match.team1.name]?.flagCode || 'unknown';
-                const team2FlagCode = countryMap[match.team2.name]?.flagCode || 'unknown';
-
-                // Format date display
-                let dateDisplay = 'TBD';
-                let dateTitle = '';
-                if (matchDate) {
-                    try {
-                        dateDisplay = displayDate.toLocaleDateString('en-UK', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            year: 'numeric' 
-                        });
-                        dateTitle = displayDate.toLocaleDateString('en-UK', { 
-                            weekday: 'long', 
-                            month: 'long', 
-                            day: 'numeric', 
-                            year: 'numeric' 
-                        });
-                    } catch (e) {
-                        dateDisplay = matchDate;
-                        dateTitle = matchDate;
-                    }
-                }
-
-                row.innerHTML = `
-                    <td>${matchNumber++}</td>
-                    <td>${group.name}</td>
-                    <td class="team1" title="${team1FullName}">
-                        <span class="fi fi-${team1FlagCode}"></span> ${match.team1.name}
-                    </td>
-                    <td>
-                        <div class="score-container">
-                            <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
-                            -
-                            <input type="number" class="score-input" data-group="${group.id}" data-team-left="${match.team2.id}" data-team-right="${match.team1.id}" data-matchday="${matchday}" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
-                        </div>
-                    </td>
-                    <td class="team2" title="${team2FullName}">
-                       ${match.team2.name} <span class="fi fi-${team2FlagCode}"></span>
-                    </td>
-                    <td title="${dateTitle}">${dateDisplay}</td>
-                    ${isAdmin ? `
-                        <td><button class="submit-button" data-group="${group.id}" data-team-left="${match.team1.id}" data-team-right="${match.team2.id}" data-matchday="${matchday}" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
-                    ` : ''}
-                `;
-                matchdayTable.appendChild(row);
-
-                // Apply highlighting based on existing match results
-                const team1Cell = row.querySelector('.team1');
-                const team2Cell = row.querySelector('.team2');
-
-                if (existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined) {
-                    if (existingMatch.leftScore > existingMatch.rightScore) {
-                        team1Cell.classList.add('winner');
-                        team2Cell.classList.add('loser');
-                    } else if (existingMatch.leftScore < existingMatch.rightScore) {
-                        team2Cell.classList.add('winner');
-                        team1Cell.classList.add('loser');
-                    } else {
-                        team1Cell.classList.add('draw');
-                        team2Cell.classList.add('draw');
-                    }
-                }
-
-                // Add event listener for the submit button if the user is an admin
-                if (isAdmin) {
-                    const submitButton = row.querySelector('.submit-button');
-                    submitButton.addEventListener('click', (event) => {
-                        const leftScoreInput = row.querySelector(`input[data-group="${group.id}"][data-team-left="${match.team1.id}"]`);
-                        const rightScoreInput = row.querySelector(`input[data-group="${group.id}"][data-team-left="${match.team2.id}"]`);
-
-                        const leftScore = parseInt(leftScoreInput.value, 10);
-                        const rightScore = parseInt(rightScoreInput.value, 10);
-
-                        if (!isNaN(leftScore) && !isNaN(rightScore)) {
-                            // Highlight winner, loser, or draw
-                            team1Cell.classList.remove('winner', 'loser', 'draw');
-                            team2Cell.classList.remove('winner', 'loser', 'draw');
-
-                            if (leftScore > rightScore) {
-                                team1Cell.classList.add('winner');
-                                team2Cell.classList.add('loser');
-                            } else if (leftScore < rightScore) {
-                                team2Cell.classList.add('winner');
-                                team1Cell.classList.add('loser');
-                            } else {
-                                team1Cell.classList.add('draw');
-                                team2Cell.classList.add('draw');
-                            }
-
-                            // Lock the input fields and disable the submit button
-                            leftScoreInput.disabled = true;
-                            rightScoreInput.disabled = true;
-                            submitButton.disabled = true;
-
-                            // Submit the scores to the database
-                            handleGroupStageScoreSubmission(event, stage);
-                        }
-                    });
-                }
-            }
-
-            fixturesContainer.appendChild(matchdayTable);
         }
+
+        let matchNumber = 1;
+        
+        // Sort by actual kick-off date and time (matches the CSV dates exactly)
+        const sortedMatches = [...chronologicalMatches].sort((a, b) => {
+            const da = new Date(a.date + 'T' + a.time + ':00');
+            const db = new Date(b.date + 'T' + b.time + ':00');
+            return da - db;
+        });
+
+        for (const matchData of sortedMatches) {
+            const { date, time, group: groupId, team1: team1Code, team2: team2Code } = matchData;
+            
+            // Find the group
+            const group = groups.find(g => g.id === groupId);
+            if (!group) continue;
+            
+            // Get the match key from group.matchdays - we need to find where this match is stored
+            let existingMatch = {};
+            let team1Name = '', team2Name = '', team1Id = '', team2Id = '';
+            
+            if (group.teams && typeof group.teams === 'object') {
+                // Get team IDs and names by matching the codes stored in team.name
+                const team1Entry = Object.entries(group.teams).find(([_, t]) => t.name === team1Code);
+                const team2Entry = Object.entries(group.teams).find(([_, t]) => t.name === team2Code);
+                
+                if (team1Entry && team2Entry) {
+                    [team1Id, { name: team1Name }] = [team1Entry[0], team1Entry[1]];
+                    [team2Id, { name: team2Name }] = [team2Entry[0], team2Entry[1]];
+                    
+                    // Look for existing match data in any matchday
+                    for (const matchday of ['matchday1', 'matchday2', 'matchday3']) {
+                        if (group.matchdays?.[matchday]) {
+                            // The match key is team1Id_team2Id
+                            const matchKey1 = `${team1Id}_${team2Id}`;
+                            const matchKey2 = `${team2Id}_${team1Id}`;
+                            
+                            if (group.matchdays[matchday][matchKey1]) {
+                                existingMatch = group.matchdays[matchday][matchKey1];
+                                break;
+                            } else if (group.matchdays[matchday][matchKey2]) {
+                                existingMatch = group.matchdays[matchday][matchKey2];
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    continue; // Skip if teams not found
+                }
+            } else {
+                continue; // Skip if no teams in group
+            }
+
+            const row = document.createElement('tr');
+
+            // Highlight row if assigned team is playing
+            if (await matchInvolvesAssignedTeam(team1Name, team2Name)) {
+                row.classList.add('assigned-team-highlight');
+            }
+
+            const { fullName: team1FullName } = getCountryFullName(countryMap, team1Name);
+            const { fullName: team2FullName } = getCountryFullName(countryMap, team2Name);
+            const team1FlagCode = countryMap[team1Name]?.flagCode || 'unknown';
+            const team2FlagCode = countryMap[team2Name]?.flagCode || 'unknown';
+
+            // Format date display - use actual kick-off date from CSV
+            let dateDisplay = 'TBD';
+            let dateTitle = '';
+            if (date) {
+                try {
+                    const actualDate = new Date(date + 'T12:00:00');
+                    dateDisplay = actualDate.toLocaleDateString('en-UK', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                    });
+                    dateTitle = actualDate.toLocaleDateString('en-UK', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                    });
+                } catch (e) {
+                    dateDisplay = date;
+                    dateTitle = date;
+                }
+            }
+
+            row.innerHTML = `
+                <td>${matchNumber++}</td>
+                <td>${group.name}</td>
+                <td class="team1" title="${team1FullName}">
+                    <span class="fi fi-${team1FlagCode}"></span> ${team1Name}
+                </td>
+                <td>
+                    <div class="score-container">
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" data-matchday="matchday1" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                        -
+                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${team2Id}" data-team-right="${team1Id}" data-matchday="matchday1" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                    </div>
+                </td>
+                <td class="team2" title="${team2FullName}">
+                   ${team2Name} <span class="fi fi-${team2FlagCode}"></span>
+                </td>
+                <td title="${dateTitle}">${dateDisplay}</td>
+                <td>${time}</td>
+                ${isAdmin ? `
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" data-matchday="matchday1" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
+                ` : ''}
+            `;
+            matchTable.appendChild(row);
+
+            // Apply highlighting based on results
+            const team1Cell = row.querySelector('.team1');
+            const team2Cell = row.querySelector('.team2');
+
+            if (existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined) {
+                if (existingMatch.leftScore > existingMatch.rightScore) {
+                    team1Cell.classList.add('winner');
+                    team2Cell.classList.add('loser');
+                } else if (existingMatch.leftScore < existingMatch.rightScore) {
+                    team2Cell.classList.add('winner');
+                    team1Cell.classList.add('loser');
+                } else {
+                    team1Cell.classList.add('draw');
+                    team2Cell.classList.add('draw');
+                }
+            }
+
+            // Add submit button listener
+            if (isAdmin) {
+                const submitButton = row.querySelector('.submit-button');
+                submitButton.addEventListener('click', (event) => {
+                    const leftScoreInput = row.querySelector(`input[data-team-left="${team1Id}"]`);
+                    const rightScoreInput = row.querySelector(`input[data-team-left="${team2Id}"]`);
+
+                    const leftScore = parseInt(leftScoreInput.value, 10);
+                    const rightScore = parseInt(rightScoreInput.value, 10);
+
+                    if (!isNaN(leftScore) && !isNaN(rightScore)) {
+                        team1Cell.classList.remove('winner', 'loser', 'draw');
+                        team2Cell.classList.remove('winner', 'loser', 'draw');
+
+                        if (leftScore > rightScore) {
+                            team1Cell.classList.add('winner');
+                            team2Cell.classList.add('loser');
+                        } else if (leftScore < rightScore) {
+                            team2Cell.classList.add('winner');
+                            team1Cell.classList.add('loser');
+                        } else {
+                            team1Cell.classList.add('draw');
+                            team2Cell.classList.add('draw');
+                        }
+
+                        leftScoreInput.disabled = true;
+                        rightScoreInput.disabled = true;
+                        submitButton.disabled = true;
+
+                        handleGroupStageScoreSubmission(event, stage);
+                    }
+                });
+            }
+        }
+
+        fixturesContainer.appendChild(matchTable);
     }
 
-    // Call renderFixtures directly instead of through auth listener
+    // Call renderFixtures
     renderFixtures();
 }
