@@ -95,9 +95,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
                     </span>
                 </td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
+                    <input class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="regular" value="${match.regularTimeTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
+                    <input class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="regular" value="${match.regularTimeTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                 </td>
                 <td class="team-name" data-team="team2" data-type="regular" data-match="${match.match}" title="${getCountryFullName(countryMap, match.team2).fullName}">
                     <span class="country-container">
@@ -116,9 +116,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr class="extra-time-row ${match.displayExtraTime ? '' : 'hidden'}" data-match="${match.match}">
                 <td class="extra-time-label">Extra Time</td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
+                    <input class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="extra" value="${match.extraTimeTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
+                    <input class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="extra" value="${match.extraTimeTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                 </td>
                 ${isAdmin ? `
                     <td>
@@ -129,9 +129,9 @@ export async function generateRoundMatches(selector, dataBase, round) {
             <tr class="penalty-row ${match.displayPenaltyShootouts ? '' : 'hidden'}" data-match="${match.match}">
                 <td>Penalties</td>
                 <td class="score-section">
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
+                    <input class="score-input" placeholder="Score" data-match="${match.match}" data-team="team1" data-type="penalty" value="${match.penaltyShootoutsTeam1Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                     <span class="score-divider">-</span>
-                    <input type="number" class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
+                    <input class="score-input" placeholder="Score" data-match="${match.match}" data-team="team2" data-type="penalty" value="${match.penaltyShootoutsTeam2Score ?? ''}" ${match.winner || !isAdmin ? 'disabled' : ''}>
                 </td>
                 ${isAdmin ? `
                     <td>
