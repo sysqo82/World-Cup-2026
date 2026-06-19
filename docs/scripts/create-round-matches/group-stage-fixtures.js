@@ -1,9 +1,8 @@
-import { getMatchdayMatches } from '../src/group-stage.js';
 import { handleGroupStageScoreSubmission } from '../score-submissions/groups-stage.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { matchInvolvesAssignedTeam } from '../utils/user-utils.js';
 import { auth } from '../config/firebase-config.js';
-import { chronologicalMatches, getDisplayDate } from '../utils/match-schedule-constants.js';
+import { chronologicalMatches } from '../utils/match-schedule-constants.js';
 
 let authListenerSetup = false;
 let isAdmin = false;
@@ -153,9 +152,9 @@ export async function generateFixtures(groups, countryMap) {
                 </td>
                 <td>
                     <div class="score-container">
-                        <input class="score-input" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" data-matchday="matchday1" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                        <input class="score-input" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
                         -
-                        <input class="score-input" data-group="${group.id}" data-team-left="${team2Id}" data-team-right="${team1Id}" data-matchday="matchday1" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                        <input class="score-input" data-group="${group.id}" data-team-left="${team2Id}" data-team-right="${team1Id}" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
                     </div>
                 </td>
                 <td class="team2" title="${team2FullName}">
@@ -164,7 +163,7 @@ export async function generateFixtures(groups, countryMap) {
                 <td title="${dateTitle}">${dateDisplay}</td>
                 <td>${time}</td>
                 ${isAdmin ? `
-                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" data-matchday="matchday1" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
+                    <td><button class="submit-button" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" ${existingMatch.leftScore !== undefined && existingMatch.rightScore !== undefined ? 'disabled' : ''}>Submit</button></td>
                 ` : ''}
             `;
             matchTable.appendChild(row);
@@ -189,7 +188,7 @@ export async function generateFixtures(groups, countryMap) {
             // Add submit button listener
             if (isAdmin) {
                 const submitButton = row.querySelector('.submit-button');
-                submitButton.addEventListener('click', (event) => {
+                submitButton.addEventListener('click', async () => {
                     const leftScoreInput = row.querySelector(`input[data-team-left="${team1Id}"]`);
                     const rightScoreInput = row.querySelector(`input[data-team-left="${team2Id}"]`);
 
@@ -211,11 +210,20 @@ export async function generateFixtures(groups, countryMap) {
                             team2Cell.classList.add('draw');
                         }
 
-                        leftScoreInput.disabled = true;
-                        rightScoreInput.disabled = true;
-                        submitButton.disabled = true;
+                        const wasSaved = await handleGroupStageScoreSubmission({
+                            groupId: group.id,
+                            teamLeftId: team1Id,
+                            teamRightId: team2Id,
+                            leftScore,
+                            rightScore,
+                            matchDate: date,
+                        }, stage);
 
-                        handleGroupStageScoreSubmission(event, stage);
+                        if (wasSaved) {
+                            leftScoreInput.disabled = true;
+                            rightScoreInput.disabled = true;
+                            submitButton.disabled = true;
+                        }
                     }
                 });
             }

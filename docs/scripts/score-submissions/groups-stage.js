@@ -3,40 +3,62 @@ import { sendMatchEmails } from '../utils/email-notifications.js';
 import { sendGroupConclusionEmails } from '../utils/email-notifications.js';
 import { matchSchedule } from '../utils/match-schedule-constants.js';
 
-export async function handleGroupStageScoreSubmission(event, stage) {
-    const button = event.target;
-    const groupId = button.dataset.group;
-    const teamLeftId = button.dataset.teamLeft;
-    const teamRightId = button.dataset.teamRight;
-    const matchday = button.dataset.matchday;
+function findStoredMatch(matchdays = {}, teamLeftId, teamRightId) {
+    const directMatchKey = `${teamLeftId}_${teamRightId}`;
+    const reverseMatchKey = `${teamRightId}_${teamLeftId}`;
 
-    const leftScoreInput = document.querySelector(`input[data-group="${groupId}"][data-team-left="${teamLeftId}"][data-matchday="${matchday}"]`);
-    const rightScoreInput = document.querySelector(`input[data-group="${groupId}"][data-team-left="${teamRightId}"][data-matchday="${matchday}"]`);
+    for (const [matchday, matches] of Object.entries(matchdays)) {
+        if (matches?.[directMatchKey]) {
+            return { matchday, matchKey: directMatchKey, match: matches[directMatchKey] };
+        }
 
-    if (!leftScoreInput || !rightScoreInput) {
-        alert('Error: Match inputs not found. Please ensure the match exists.');
-        return;
+        if (matches?.[reverseMatchKey]) {
+            return { matchday, matchKey: reverseMatchKey, match: matches[reverseMatchKey] };
+        }
     }
 
-    const leftScore = parseInt(leftScoreInput.value, 10);
-    const rightScore = parseInt(rightScoreInput.value, 10);
+    return null;
+}
+
+function getMatchdayForDate(groupId, matchDate) {
+    const groupSchedule = matchSchedule[groupId];
+    if (!groupSchedule || !matchDate) {
+        return null;
+    }
+
+    return Object.entries(groupSchedule).find(([, scheduledDate]) => scheduledDate === matchDate)?.[0] || null;
+}
+
+export async function handleGroupStageScoreSubmission(matchDetails, stage) {
+    const {
+        groupId,
+        teamLeftId,
+        teamRightId,
+        leftScore,
+        rightScore,
+        matchDate,
+    } = matchDetails;
 
     if (isNaN(leftScore) || isNaN(rightScore)) {
         alert('Both scores must be entered before submitting.');
-        return;
+        return false;
     }
 
     try {
         const groupDoc = await db.collection('groups').doc(groupId).get();
         const groupData = groupDoc.data();
-        const existingMatch = groupData.matchdays?.[matchday]?.[`${teamLeftId}_${teamRightId}`];
+        const storedMatch = findStoredMatch(groupData.matchdays, teamLeftId, teamRightId);
+        const matchday = storedMatch?.matchday || getMatchdayForDate(groupId, matchDate);
+        const matchKey = storedMatch?.matchKey || `${teamLeftId}_${teamRightId}`;
+        const existingMatch = storedMatch?.match;
         const groupName = groupData['name'];
 
-        // Get the match date from schedule
-        const matchDate = matchSchedule[groupId]?.[matchday] || null;
+        if (!matchday) {
+            throw new Error(`Could not determine matchday for ${groupId} ${teamLeftId}_${teamRightId}`);
+        }
 
         const updates = {
-            [`matchdays.${matchday}.${teamLeftId}_${teamRightId}`]: { 
+            [`matchdays.${matchday}.${matchKey}`]: {
                 leftScore, 
                 rightScore,
                 ...(matchDate && { date: matchDate })
@@ -87,15 +109,14 @@ export async function handleGroupStageScoreSubmission(event, stage) {
 
         await db.collection('groups').doc(groupId).update(updates);
 
-        leftScoreInput.value = leftScore;
-        rightScoreInput.value = rightScore;
-
         // Check if group stage is complete for this group
         await checkAndSendGroupConclusionEmails(groupId, groupName);
+        return true;
 
     } catch (error) {
         console.error('Error submitting scores:', error);
         alert('An error occurred while submitting the scores.');
+        return false;
     }
 }
 
