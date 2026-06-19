@@ -153,9 +153,9 @@ export async function generateFixtures(groups, countryMap) {
                 </td>
                 <td>
                     <div class="score-container">
-                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" data-matchday="matchday1" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                        <input class="score-input" data-group="${group.id}" data-team-left="${team1Id}" data-team-right="${team2Id}" data-matchday="matchday1" value="${existingMatch.leftScore ?? ''}" ${existingMatch.leftScore !== undefined || !isAdmin ? 'disabled' : ''}>
                         -
-                        <input type="number" class="score-input" data-group="${group.id}" data-team-left="${team2Id}" data-team-right="${team1Id}" data-matchday="matchday1" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
+                        <input class="score-input" data-group="${group.id}" data-team-left="${team2Id}" data-team-right="${team1Id}" data-matchday="matchday1" value="${existingMatch.rightScore ?? ''}" ${existingMatch.rightScore !== undefined || !isAdmin ? 'disabled' : ''}>
                     </div>
                 </td>
                 <td class="team2" title="${team2FullName}">
