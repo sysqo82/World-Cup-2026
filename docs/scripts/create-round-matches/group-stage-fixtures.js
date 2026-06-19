@@ -2,10 +2,38 @@ import { handleGroupStageScoreSubmission } from '../score-submissions/groups-sta
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { matchInvolvesAssignedTeam } from '../utils/user-utils.js';
 import { auth } from '../config/firebase-config.js';
-import { chronologicalMatches } from '../utils/match-schedule-constants.js';
+import { chronologicalMatches, matchSchedule, matchTimes, getDisplayDate } from '../utils/match-schedule-constants.js';
 
 let authListenerSetup = false;
 let isAdmin = false;
+
+function toIsoDate(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+function resolveMatchdayForFixture(groupId, date, time) {
+    const schedule = matchSchedule[groupId];
+    const timesForGroup = matchTimes[groupId];
+
+    if (!schedule || !timesForGroup || !date || !time) {
+        return null;
+    }
+
+    for (const matchday of ['matchday1', 'matchday2', 'matchday3']) {
+        const baseDate = schedule[matchday];
+        const scheduledTimes = timesForGroup[matchday] || [];
+
+        const matchesThisSlot = scheduledTimes.some((scheduledTime) => {
+            return scheduledTime === time && toIsoDate(getDisplayDate(baseDate, scheduledTime)) === date;
+        });
+
+        if (matchesThisSlot) {
+            return matchday;
+        }
+    }
+
+    return null;
+}
 
 export async function generateFixtures(groups, countryMap) {
     const stage = 'Group Stage';
@@ -75,6 +103,7 @@ export async function generateFixtures(groups, countryMap) {
             
             // Get the match key from group.matchdays - we need to find where this match is stored
             let existingMatch = {};
+            let existingMatchday = null;
             let team1Name = '', team2Name = '', team1Id = '', team2Id = '';
             
             if (group.teams && typeof group.teams === 'object') {
@@ -95,9 +124,11 @@ export async function generateFixtures(groups, countryMap) {
                             
                             if (group.matchdays[matchday][matchKey1]) {
                                 existingMatch = group.matchdays[matchday][matchKey1];
+                                existingMatchday = matchday;
                                 break;
                             } else if (group.matchdays[matchday][matchKey2]) {
                                 existingMatch = group.matchdays[matchday][matchKey2];
+                                existingMatchday = matchday;
                                 break;
                             }
                         }
@@ -110,6 +141,7 @@ export async function generateFixtures(groups, countryMap) {
             }
 
             const row = document.createElement('tr');
+            const resolvedMatchday = existingMatchday || resolveMatchdayForFixture(groupId, date, time);
 
             // Highlight row if assigned team is playing
             if (await matchInvolvesAssignedTeam(team1Name, team2Name)) {
@@ -216,6 +248,7 @@ export async function generateFixtures(groups, countryMap) {
                             teamRightId: team2Id,
                             leftScore,
                             rightScore,
+                            matchday: resolvedMatchday,
                             matchDate: date,
                         }, stage);
 

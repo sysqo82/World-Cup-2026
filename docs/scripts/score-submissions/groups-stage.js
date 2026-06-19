@@ -36,6 +36,7 @@ export async function handleGroupStageScoreSubmission(matchDetails, stage) {
         teamRightId,
         leftScore,
         rightScore,
+        matchday: providedMatchday,
         matchDate,
     } = matchDetails;
 
@@ -48,7 +49,7 @@ export async function handleGroupStageScoreSubmission(matchDetails, stage) {
         const groupDoc = await db.collection('groups').doc(groupId).get();
         const groupData = groupDoc.data();
         const storedMatch = findStoredMatch(groupData.matchdays, teamLeftId, teamRightId);
-        const matchday = storedMatch?.matchday || getMatchdayForDate(groupId, matchDate);
+        const matchday = providedMatchday || storedMatch?.matchday || getMatchdayForDate(groupId, matchDate);
         const matchKey = storedMatch?.matchKey || `${teamLeftId}_${teamRightId}`;
         const existingMatch = storedMatch?.match;
         const groupName = groupData['name'];
