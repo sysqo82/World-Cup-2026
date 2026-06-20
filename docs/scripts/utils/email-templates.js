@@ -1,6 +1,7 @@
 import { db } from '../config/firebase-config.js';
 import { fetchCountryMap } from './country-utils.js';
 import { decryptTeamName } from './team-encryption.js';
+import { buildRoundOf32Projection, parseGroupLetter } from './round-of-32-projection.js';
 
 export class EmailTemplate {
 constructor(winner, loser, matchId, stage) {
@@ -621,6 +622,16 @@ async buildEmailTemplate(
 async buildGroupConclusionEmails(groupData, groupName) {
   const emailTemplates = {};
   const countryMap = await fetchCountryMap();
+  const groupsSnapshot = await db.collection('groups').get();
+  const allGroups = groupsSnapshot.docs.reduce((acc, doc) => {
+    acc[doc.id] = doc.data();
+    return acc;
+  }, {});
+  const { qualifiedThirdPlaceTeams, opponentsByTeam } = buildRoundOf32Projection(allGroups);
+  const qualifiedThirdPlaceGroupLetters = new Set(
+    qualifiedThirdPlaceTeams.map(team => team.groupLetter)
+  );
+  const currentGroupLetter = parseGroupLetter(groupName);
 
   // Sort teams by standings: Points (desc), Goal Difference (desc), Goals Scored (desc)
   const teamsArray = Object.entries(groupData.teams).map(([abbr, teamData]) => ({
@@ -653,20 +664,30 @@ async buildGroupConclusionEmails(groupData, groupName) {
 
     const { teamEmail, teamsOwnerName } = userData;
     const placement = rank + 1;
+    const teamOpponent = opponentsByTeam[team.name]?.opponent;
+    const opponentFullName = teamOpponent ? countryMap[teamOpponent]?.fullName || teamOpponent : null;
 
-    if (placement <= 3) {
-      // Advancement email for top 3
+    if (placement <= 2 || (placement === 3 && qualifiedThirdPlaceGroupLetters.has(currentGroupLetter))) {
+      // Advancement email for automatic qualifiers and qualified third-place teams
       const nextStage = this.getNextStage('Group Stage') || 'Knockout Stage';
-      const subject = `Group Stage Complete: Congratulations ${teamsOwnerName}, ${teamFullName} finished ${this.getOrdinalSuffix(placement)} in ${groupName}!`;
+      const finishedMessage = placement === 3
+        ? `finished 3rd in ${groupName} and qualified as one of the best third-place teams`
+        : `finished ${this.getOrdinalSuffix(placement)} in ${groupName}`;
+      const subject = `Group Stage Complete: Congratulations ${teamsOwnerName}, ${teamFullName} ${finishedMessage}!`;
+      const opponentMessage = opponentFullName
+        ? `\n\nIn the ${nextStage}, your team will face ${opponentFullName}.`
+        : '';
       const message = `Your team ${teamFullName} finished in ${this.getOrdinalSuffix(placement)} place in ${groupName}.
 
-Congratulations! Your team is advancing to the ${nextStage}!
+Congratulations! Your team is advancing to the ${nextStage}!${opponentMessage}
 
 Keep up the great effort and good luck in the next stage!`;
 
       const detailsInfo = {
         score: `${this.getOrdinalSuffix(placement)} Place`,
-        matchup: `${groupName} - ${teamFullName}`,
+        matchup: opponentFullName
+          ? `${teamFullName} vs ${opponentFullName}`
+          : `${groupName} - ${teamFullName}`,
         timingInfo: ''
       };
 
@@ -677,6 +698,41 @@ Keep up the great effort and good luck in the next stage!`;
         message,
         detailsInfo,
         true,
+        false,
+        null,
+        'View Tournament',
+        team.name,
+        countryMap,
+        '',
+        'Round of 32'
+      );
+
+      emailTemplates[team.abbr] = {
+        email: teamEmail,
+        subject,
+        message,
+        html
+      };
+    } else if (placement === 3) {
+      // Elimination email for non-qualifying third-place team
+      const subject = `Group Stage Complete: ${teamsOwnerName}, your team ${teamFullName} finished 3rd in ${groupName}`;
+      const message = `Your team ${teamFullName} finished in 3rd place in ${groupName}.
+
+Unfortunately, it did not finish inside the top 8 third-place table, so it will not advance to the Round of 32.`;
+
+      const detailsInfo = {
+        score: '3rd Place',
+        matchup: `${groupName} - ${teamFullName}`,
+        timingInfo: ''
+      };
+
+      const html = this.generateStyledEmail(
+        'GROUP STAGE: Eliminated',
+        '📍 Third Place',
+        teamFullName,
+        message,
+        detailsInfo,
+        false,
         false,
         null,
         'View Tournament',
