@@ -17,7 +17,7 @@ export const chronologicalMatches = [
     { date: '2026-06-15', time: '03:00', group: 'group06', team1: 'SWE', team2: 'TUN' },
     { date: '2026-06-15', time: '17:00', group: 'group08', team1: 'ESP', team2: 'CPV' },
     { date: '2026-06-15', time: '20:00', group: 'group07', team1: 'BEL', team2: 'EGY' },
-    { date: '2026-06-15', time: '23:00', group: 'group08', team1: 'KSA', team2: 'URY' },
+    { date: '2026-06-15', time: '23:00', group: 'group08', team1: 'KSA', team2: 'URU' },
     { date: '2026-06-16', time: '02:00', group: 'group07', team1: 'IRN', team2: 'NZL' },
     { date: '2026-06-16', time: '20:00', group: 'group09', team1: 'FRA', team2: 'SEN' },
     { date: '2026-06-16', time: '23:00', group: 'group09', team1: 'IRQ', team2: 'NOR' },
@@ -41,7 +41,7 @@ export const chronologicalMatches = [
     { date: '2026-06-21', time: '05:00', group: 'group06', team1: 'TUN', team2: 'JPN' },
     { date: '2026-06-21', time: '17:00', group: 'group08', team1: 'ESP', team2: 'KSA' },
     { date: '2026-06-21', time: '20:00', group: 'group07', team1: 'BEL', team2: 'IRN' },
-    { date: '2026-06-21', time: '23:00', group: 'group08', team1: 'URY', team2: 'CPV' },
+    { date: '2026-06-21', time: '23:00', group: 'group08', team1: 'URU', team2: 'CPV' },
     { date: '2026-06-22', time: '02:00', group: 'group07', team1: 'NZL', team2: 'EGY' },
     { date: '2026-06-22', time: '18:00', group: 'group10', team1: 'ARG', team2: 'AUT' },
     { date: '2026-06-22', time: '22:00', group: 'group09', team1: 'FRA', team2: 'IRQ' },
@@ -66,7 +66,7 @@ export const chronologicalMatches = [
     { date: '2026-06-26', time: '20:00', group: 'group09', team1: 'NOR', team2: 'FRA' },
     { date: '2026-06-26', time: '20:00', group: 'group09', team1: 'SEN', team2: 'IRQ' },
     { date: '2026-06-27', time: '01:00', group: 'group08', team1: 'CPV', team2: 'KSA' },
-    { date: '2026-06-27', time: '01:00', group: 'group08', team1: 'URY', team2: 'ESP' },
+    { date: '2026-06-27', time: '01:00', group: 'group08', team1: 'URU', team2: 'ESP' },
     { date: '2026-06-27', time: '04:00', group: 'group07', team1: 'EGY', team2: 'IRN' },
     { date: '2026-06-27', time: '04:00', group: 'group07', team1: 'NZL', team2: 'BEL' },
     { date: '2026-06-27', time: '22:00', group: 'group12', team1: 'PAN', team2: 'ENG' },
@@ -155,10 +155,10 @@ export function getDisplayDate(dateString, timeString) {
     if (!dateString) {
         return new Date();
     }
-    
+
     // Create date in UTC
     let date = new Date(dateString + 'T00:00:00Z');
-    
+
     // If match time is early morning (00:00-11:59), it's on the next calendar day
     if (timeString) {
         const [hours] = timeString.split(':').map(Number);
@@ -166,6 +166,6 @@ export function getDisplayDate(dateString, timeString) {
             date.setUTCDate(date.getUTCDate() + 1);
         }
     }
-    
+
     return date;
 }
