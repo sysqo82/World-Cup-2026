@@ -110,8 +110,8 @@ export async function handleGroupStageScoreSubmission(matchDetails, stage) {
 
         await db.collection('groups').doc(groupId).update(updates);
 
-        // Check if group stage is complete for this group
-        await checkAndSendGroupConclusionEmails(groupId, groupName);
+        // Check if the full group stage is complete before sending conclusion emails
+        await checkAndSendGroupConclusionEmails();
         return true;
 
     } catch (error) {
@@ -122,29 +122,31 @@ export async function handleGroupStageScoreSubmission(matchDetails, stage) {
 }
 
 // Helper function to check if group stage is complete and send conclusion emails
-async function checkAndSendGroupConclusionEmails(groupId, groupName) {
+function isGroupComplete(groupData) {
+    return Object.values(groupData?.teams || {}).every(team => {
+        const matchesPlayed = (team.W || 0) + (team.D || 0) + (team.L || 0);
+        return matchesPlayed === 3;
+    });
+}
+
+async function checkAndSendGroupConclusionEmails() {
     try {
-        const groupDoc = await db.collection('groups').doc(groupId).get();
-        const groupData = groupDoc.data();
-        
-        // Check if all teams have played 3 matches
-        let allTeamsComplete = true;
-        for (const teamAbbr in groupData.teams) {
-            const team = groupData.teams[teamAbbr];
-            const matchesPlayed = (team.W || 0) + (team.D || 0) + (team.L || 0);
-            if (matchesPlayed !== 3) {
-                allTeamsComplete = false;
-                break;
-            }
+        const groupsSnapshot = await db.collection('groups').get();
+        const groups = groupsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        const allGroupsComplete = groups.every(group => isGroupComplete(group));
+
+        if (!allGroupsComplete) {
+            return;
         }
 
-        // If all teams have completed 3 matches, send group conclusion emails
-        if (allTeamsComplete) {
-            // Check if emails have already been sent
-            if (!groupData.conclusionEmailsSent) {
-                await sendGroupConclusionEmails(groupData, groupName);
-                // Mark that conclusion emails have been sent
-                await db.collection('groups').doc(groupId).update({ conclusionEmailsSent: true });
+        for (const group of groups) {
+            if (!group.conclusionEmailsSent) {
+                await sendGroupConclusionEmails(group, group.name);
+                await db.collection('groups').doc(group.id).update({ conclusionEmailsSent: true });
             }
         }
     } catch (error) {
