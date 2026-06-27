@@ -2065,6 +2065,180 @@ img {
     background-color: #0b5ab9;
 }
 
+.public-callout-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ranking-page-subtitle {
+    margin: 8px 0 0;
+    color: #5c6570;
+}
+
+.ranking-page-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding-top: 0;
+}
+
+.ranking-summary-panel,
+.ranking-table-panel {
+    grid-column: 1 / -1;
+}
+
+.ranking-summary-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.ranking-summary-card,
+.ranking-table-frame {
+    background-color: #fff;
+    border: 1px solid #d9e0e8;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(25, 39, 52, 0.06);
+}
+
+.ranking-summary-card {
+    padding: 20px;
+    text-align: left;
+}
+
+.ranking-summary-card h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: #24313f;
+}
+
+.ranking-summary-card p {
+    margin: 0;
+    line-height: 1.5;
+    color: #506070;
+}
+
+.ranking-table-frame {
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.overall-ranking-table {
+    min-width: 980px;
+}
+
+.overall-ranking-table thead th {
+    background-color: #0f6ad7;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.overall-ranking-table tbody tr:nth-child(even) {
+    background-color: #f8fbff;
+}
+
+.overall-ranking-table tbody tr:hover {
+    background-color: #eef5ff;
+}
+
+.ranking-team-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-start;
+    white-space: nowrap;
+}
+
+.ranking-team-cell .fi {
+    border: 1px solid #d1d7de;
+    border-radius: 4px;
+}
+
+.ranking-status-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    background-color: #edf2f7;
+    color: #334155;
+}
+
+.ranking-status-chip--champion,
+.ranking-status-chip--final,
+.ranking-status-chip--runnerUp,
+.ranking-status-chip--thirdPlace,
+.ranking-status-chip--thirdPlacePlayoff,
+.ranking-status-chip--fourthPlace {
+    background-color: #fff3cd;
+    color: #7a5a00;
+}
+
+.ranking-status-chip--semiFinal,
+.ranking-status-chip--quarterFinal,
+.ranking-status-chip--roundOf16,
+.ranking-status-chip--roundOf32 {
+    background-color: #e8f5e9;
+    color: #1c6b2f;
+}
+
+.ranking-status-chip--semiFinalExit,
+.ranking-status-chip--quarterFinalExit,
+.ranking-status-chip--roundOf16Exit,
+.ranking-status-chip--roundOf32Exit {
+    background-color: #e8f0fe;
+    color: #1f4f9a;
+}
+
+.ranking-status-chip--groupStage,
+.ranking-status-chip--groupStageExit {
+    background-color: #f3f4f6;
+    color: #4b5563;
+}
+
+.ranking-empty-state {
+    margin: 12px 0 0;
+    color: #5c6570;
+}
+
+.ranking-prize-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+}
+
+.ranking-prize-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ranking-prize-label {
+    font-weight: 700;
+    color: #334155;
+    white-space: nowrap;
+}
+
+.ranking-prize-team {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    text-align: right;
+}
+
+.ranking-prize-team .fi {
+    border: 1px solid #d1d7de;
+    border-radius: 4px;
+}
+
 .demo-page-shell {
     max-width: 1240px;
     margin: 0 auto;
@@ -2393,6 +2567,14 @@ body.demo-lightbox-open {
 @media (max-width: 768px) {
     .public-demo-callout {
         padding: 18px;
+    }
+
+    .ranking-summary-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .ranking-table-frame {
+        padding: 12px;
     }
 
     .demo-page-shell {
