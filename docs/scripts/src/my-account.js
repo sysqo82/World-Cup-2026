@@ -3,7 +3,7 @@ import { isAllowed, isRegistered } from "../navigation/navigation.js";
 import { basePath } from "../config/path-config.js";
 import { db, sendEmailURL, getUserStatusURL } from '../config/firebase-config.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
-import { getMatchdayMatches } from '../utils/match-scheduling.js';
+import { getScheduledMatchdayMatches } from '../utils/match-scheduling.js';
 import { EmailTemplate } from '../utils/email-templates.js';
 import { matchSchedule, knockoutMatchSchedule, matchTimes, getDisplayDate, getKnockoutScheduleDate } from '../utils/match-schedule-constants.js';
 import { decryptTeamName } from '../utils/team-encryption.js';
@@ -152,8 +152,9 @@ async function loadGroupStageFixtures(teamName, countryMap) {
 
         const groupStageSection = document.getElementById('group-stage-section');
         const groupStageBody = document.getElementById('group-stage-table').querySelector('tbody');
+        groupStageBody.innerHTML = '';
         
-        // Generate all possible matches for the team in their group using the same logic as group-stage page
+        // Build the team's group-stage fixtures from the authoritative chronological schedule.
         const groupTeams = Object.entries(teamGroup.teams).map(([id, team]) => ({
             id,
             name: team.name || team.Name || 'Unknown',
@@ -165,109 +166,37 @@ async function loadGroupStageFixtures(teamName, countryMap) {
         if (!myTeamData || groupTeams.length < 4) return;
         
         let hasMatches = false;
-        const matchdays = ['matchday1', 'matchday2', 'matchday3'];
-        
-        // Process each matchday using the predetermined fixture schedule
-        matchdays.forEach((matchday, matchdayIndex) => {
-            // Get the predetermined matches for this matchday
-            let matchdayFixtures = getMatchdayMatches(matchday, groupTeams);
-            
-            // Sort matches by their kick-off time (earliest first)
-            const groupTimes = matchTimes[teamGroup.id]?.[matchday] || ['14:00', '20:00'];
-            matchdayFixtures.sort((a, b) => {
-                const indexA = matchdayFixtures.indexOf(a);
-                const indexB = matchdayFixtures.indexOf(b);
-                const timeA = groupTimes[indexA] || groupTimes[0];
-                const timeB = groupTimes[indexB] || groupTimes[0];
-                return timeA.localeCompare(timeB);
-            });
-            
-            // Find matches involving our team
-            matchdayFixtures.forEach((fixture, fixtureIndex) => {
-                if (fixture.team1.name === teamShortName || fixture.team2.name === teamShortName) {
-                    hasMatches = true;
-                    
-                    // Check if this match exists in the database with scores
-                    let matchData = null;
-                    let matchKey = null;
-                    
-                    if (teamGroup.matchdays && teamGroup.matchdays[matchday]) {
-                        const matches = teamGroup.matchdays[matchday];
-                        
-                        // Look for this specific match in the database
-                        Object.entries(matches).forEach(([key, data]) => {
-                            const [leftTeamId, rightTeamId] = key.split('_');
-                            if ((leftTeamId === fixture.team1.id && rightTeamId === fixture.team2.id) ||
-                                (leftTeamId === fixture.team2.id && rightTeamId === fixture.team1.id)) {
-                                matchData = data;
-                                matchKey = key;
-                            }
-                        });
-                    }
-                    
-                    const myTeamIsLeft = fixture.team1.name === teamShortName;
-                    
-                    const row = createGroupStageFixtureRow(
-                        `Matchday ${matchdayIndex + 1}`,
-                        fixture.team1.name,
-                        fixture.team2.name,
-                        matchData,
-                        matchKey,
-                        fixture.team1.id,
-                        fixture.team2.id,
-                        teamShortName,
-                        countryMap,
-                        myTeamIsLeft,
-                        teamGroup.id,
-                        matchday,
-                        fixtureIndex
-                    );
-                    groupStageBody.appendChild(row);
-                }
-            });
-        });
 
-        // Process each matchday using the same logic as group-stage page
         for (let matchdayNumber = 1; matchdayNumber <= 3; matchdayNumber++) {
             const matchdayString = `matchday${matchdayNumber}`;
-            const matchdayMatches = getMatchdayMatches(groupTeams, matchdayString);
-            
-            // Check if our team plays in this matchday and get its index
-            const ourMatchIndex = matchdayMatches.findIndex(match => 
+            const matchdayMatches = getScheduledMatchdayMatches(teamGroup.id, groupTeams, matchdayString);
+
+            const ourMatchIndex = matchdayMatches.findIndex(match =>
                 match.team1Name === teamShortName || match.team2Name === teamShortName
             );
             const ourMatch = ourMatchIndex >= 0 ? matchdayMatches[ourMatchIndex] : null;
-            
+
             if (ourMatch) {
                 hasMatches = true;
-                
-                // Check if this match exists in database
+
                 let matchData = null;
                 let matchKey = null;
-                
+
                 if (teamGroup.matchdays && teamGroup.matchdays[matchdayString]) {
                     const matches = teamGroup.matchdays[matchdayString];
-                    // Find the match key for our teams
-                    Object.entries(matches).forEach(([key, data]) => {
+
+                    for (const [key, data] of Object.entries(matches)) {
                         const [leftTeamId, rightTeamId] = key.split('_');
-                        const leftTeam = teamGroup.teams[leftTeamId];
-                        const rightTeam = teamGroup.teams[rightTeamId];
-                        
-                        if (leftTeam && rightTeam) {
-                            const leftTeamName = leftTeam.name || leftTeam.Name;
-                            const rightTeamName = rightTeam.name || rightTeam.Name;
-                            
-                            if ((leftTeamName === ourMatch.team1Name && rightTeamName === ourMatch.team2Name) ||
-                                (leftTeamName === ourMatch.team2Name && rightTeamName === ourMatch.team1Name)) {
-                                matchData = data;
-                                matchKey = key;
-                            }
+
+                        if ((leftTeamId === ourMatch.team1Id && rightTeamId === ourMatch.team2Id) ||
+                            (leftTeamId === ourMatch.team2Id && rightTeamId === ourMatch.team1Id)) {
+                            matchData = data;
+                            matchKey = key;
+                            break;
                         }
-                    });
+                    }
                 }
-                
-                const myTeamIsLeft = ourMatch.team1Name === teamShortName;
-                
+
                 const row = createGroupStageFixtureRow(
                     `Matchday ${matchdayNumber}`,
                     ourMatch.team1Name,
@@ -278,10 +207,9 @@ async function loadGroupStageFixtures(teamName, countryMap) {
                     ourMatch.team2Id,
                     teamShortName,
                     countryMap,
-                    myTeamIsLeft,
                     teamGroup.id,
                     matchdayString,
-                    ourMatchIndex
+                    ourMatch.date
                 );
                 groupStageBody.appendChild(row);
             }
@@ -485,7 +413,41 @@ function addQualificationStatus(groupStageSection, teamGroup, teamShortName, tea
     groupStageSection.appendChild(qualificationDiv);
 }
 
-function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey, team1Id, team2Id, myTeam, countryMap, myTeamIsLeft = null, groupId = null, matchday = null, matchIndex = 0) {
+function getDisplayedGroupStageScores(matchData, matchKey, team1Id, team2Id) {
+    if (!matchData || matchData.leftScore === undefined || matchData.rightScore === undefined) {
+        return null;
+    }
+
+    if (!matchKey) {
+        return {
+            team1Score: matchData.leftScore,
+            team2Score: matchData.rightScore
+        };
+    }
+
+    const [storedLeftTeamId, storedRightTeamId] = matchKey.split('_');
+
+    if (storedLeftTeamId === team1Id && storedRightTeamId === team2Id) {
+        return {
+            team1Score: matchData.leftScore,
+            team2Score: matchData.rightScore
+        };
+    }
+
+    if (storedLeftTeamId === team2Id && storedRightTeamId === team1Id) {
+        return {
+            team1Score: matchData.rightScore,
+            team2Score: matchData.leftScore
+        };
+    }
+
+    return {
+        team1Score: matchData.leftScore,
+        team2Score: matchData.rightScore
+    };
+}
+
+function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey, team1Id, team2Id, myTeam, countryMap, groupId = null, matchday = null, scheduledDate = null) {
     const row = document.createElement('tr');
     
     // Get full team names and flag codes
@@ -500,37 +462,14 @@ function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey
     
     if (matchData && matchData.leftScore !== undefined && matchData.rightScore !== undefined && 
         matchData.leftScore !== null && matchData.rightScore !== null) {
-        // Match has been played - show actual scores
-        let myTeamScore, opponentScore;
-        
-        if (myTeamIsLeft !== null) {
-            // We know which position our team is in
-            if (myTeamIsLeft) {
-                myTeamScore = matchData.leftScore;
-                opponentScore = matchData.rightScore;
-            } else {
-                myTeamScore = matchData.rightScore;
-                opponentScore = matchData.leftScore;
-            }
-        } else if (matchKey) {
-            // Fall back to match key analysis
-            const [leftTeamId, rightTeamId] = matchKey.split('_');
-            if (leftTeamId === team1Id) {
-                myTeamScore = team1 === myTeam ? matchData.leftScore : matchData.rightScore;
-                opponentScore = team1 === myTeam ? matchData.rightScore : matchData.leftScore;
-            } else {
-                myTeamScore = team2 === myTeam ? matchData.leftScore : matchData.rightScore;
-                opponentScore = team2 === myTeam ? matchData.rightScore : matchData.leftScore;
-            }
-        } else {
-            // Default fallback
-            myTeamScore = team1 === myTeam ? matchData.leftScore : matchData.rightScore;
-            opponentScore = team1 === myTeam ? matchData.rightScore : matchData.leftScore;
-        }
-        
-        resultDisplay = `${matchData.leftScore} - ${matchData.rightScore}`;
-        
-        // Determine win/loss/draw for our team
+        const displayedScores = getDisplayedGroupStageScores(matchData, matchKey, team1Id, team2Id);
+        const team1Score = displayedScores?.team1Score ?? matchData.leftScore;
+        const team2Score = displayedScores?.team2Score ?? matchData.rightScore;
+        const myTeamScore = team1 === myTeam ? team1Score : team2Score;
+        const opponentScore = team1 === myTeam ? team2Score : team1Score;
+
+        resultDisplay = `${team1Score} - ${team2Score}`;
+
         if (myTeamScore > opponentScore) {
             resultClass = 'win';
         } else if (myTeamScore < opponentScore) {
@@ -548,15 +487,12 @@ function createGroupStageFixtureRow(matchInfo, team1, team2, matchData, matchKey
     // Get date from existing match or from schedule
     let dateDisplay = 'TBD';
     let dateTitle = '';
-    const matchDate = matchData?.date || (groupId && matchday ? matchSchedule[groupId]?.[matchday] : null);
+    const matchDate = matchData?.date || scheduledDate || (groupId && matchday ? matchSchedule[groupId]?.[matchday] : null);
     if (matchDate) {
         try {
-            // Get match time for this specific match in the matchday
-            const groupTimes = matchTimes[groupId]?.[matchday] || ['14:00', '20:00'];
-            const matchTime = groupTimes[matchIndex] || groupTimes[0];
-            
-            // Create date with time consideration
-            const date = getDisplayDate(matchDate, matchTime);
+            const date = (scheduledDate || matchData?.date)
+                ? new Date(`${matchDate}T12:00:00`)
+                : getDisplayDate(matchDate, (matchTimes[groupId]?.[matchday] || ['14:00'])[0]);
             dateDisplay = date.toLocaleDateString('en-UK', { 
                 month: 'short', 
                 day: 'numeric', 
@@ -641,11 +577,11 @@ async function hasCompletedAllGroupStageMatches(teamName, countryMap) {
         
         // Check each matchday
         for (const matchday of matchdays) {
-            const matchdayFixtures = getMatchdayMatches(matchday, groupTeams);
+            const matchdayFixtures = getScheduledMatchdayMatches(teamGroup.id, groupTeams, matchday);
             
             // Find our team's match in this matchday
             const ourFixture = matchdayFixtures.find(fixture => 
-                fixture.team1.name === teamShortName || fixture.team2.name === teamShortName
+                fixture.team1Name === teamShortName || fixture.team2Name === teamShortName
             );
             
             if (ourFixture && teamGroup.matchdays && teamGroup.matchdays[matchday]) {
@@ -654,10 +590,10 @@ async function hasCompletedAllGroupStageMatches(teamName, countryMap) {
                 // Check if this match has been played (has scores)
                 const matchFound = Object.entries(matches).some(([key, data]) => {
                     const [leftTeamId, rightTeamId] = key.split('_');
-                    if ((leftTeamId === ourFixture.team1.id && rightTeamId === ourFixture.team2.id) ||
-                        (leftTeamId === ourFixture.team2.id && rightTeamId === ourFixture.team1.id)) {
+                    if ((leftTeamId === ourFixture.team1Id && rightTeamId === ourFixture.team2Id) ||
+                        (leftTeamId === ourFixture.team2Id && rightTeamId === ourFixture.team1Id)) {
                         // Match is complete if it has scores
-                        return data && (data.team1Score !== undefined || data.team2Score !== undefined);
+                        return data && data.leftScore !== undefined && data.rightScore !== undefined;
                     }
                     return false;
                 });
