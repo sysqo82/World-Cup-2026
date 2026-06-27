@@ -3,7 +3,7 @@ import { handleRegularTimeSubmission } from '../score-submissions/regular-time.j
 import { handleExtraTimeSubmission } from '../score-submissions/extra-time.js';
 import { handlePenaltyShootoutsSubmission } from '../score-submissions/penalty-shootouts.js';
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
-import { knockoutMatchSchedule } from '../utils/match-schedule-constants.js';
+import { getKnockoutScheduleDate, getKnockoutScheduleTime } from '../utils/match-schedule-constants.js';
 import { shouldHighlightTeamAsync } from '../utils/user-utils.js';
 
 export async function generateRoundMatches(selector, dataBase, round) {
@@ -47,12 +47,15 @@ export async function generateRoundMatches(selector, dataBase, round) {
         // Assign dates using original positional index from Firestore, then sort by date
         const matchesWithDates = matches.map((match, idx) => ({
             ...match,
-            _scheduleDate: knockoutMatchSchedule[round]?.[`match${idx + 1}`] || ''
+            _scheduleDate: getKnockoutScheduleDate(round, `match${idx + 1}`) || '',
+            _scheduleTime: getKnockoutScheduleTime(round, `match${idx + 1}`) || ''
         }));
         matchesWithDates.sort((a, b) => {
             if (!a._scheduleDate) return 1;
             if (!b._scheduleDate) return -1;
-            return new Date(a._scheduleDate) - new Date(b._scheduleDate);
+            const aDateTime = `${a._scheduleDate}T${a._scheduleTime || '00:00'}:00`;
+            const bDateTime = `${b._scheduleDate}T${b._scheduleTime || '00:00'}:00`;
+            return new Date(aDateTime) - new Date(bDateTime);
         });
 
         for (const match of matchesWithDates) {

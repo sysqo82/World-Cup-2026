@@ -5,7 +5,7 @@ import { db, sendEmailURL, getUserStatusURL } from '../config/firebase-config.js
 import { fetchCountryMap, getCountryFullName } from '../utils/country-utils.js';
 import { getMatchdayMatches } from '../utils/match-scheduling.js';
 import { EmailTemplate } from '../utils/email-templates.js';
-import { matchSchedule, knockoutMatchSchedule, matchTimes, getDisplayDate } from '../utils/match-schedule-constants.js';
+import { matchSchedule, knockoutMatchSchedule, matchTimes, getDisplayDate, getKnockoutScheduleDate } from '../utils/match-schedule-constants.js';
 import { decryptTeamName } from '../utils/team-encryption.js';
 import { withSessionCredentials } from '../utils/session-auth.js';
 
@@ -380,7 +380,7 @@ async function addKnockoutProgressionStatus(stageSection, matchData, teamShortNa
                             let matchDateFull = '';
                             if (knockoutMatchSchedule[nextStage]) {
                                 const matchKey = `match${matchIndex + 1}`;
-                                const scheduledDate = knockoutMatchSchedule[nextStage][matchKey];
+                                const scheduledDate = getKnockoutScheduleDate(nextStage, matchKey);
                                 if (scheduledDate) {
                                     try {
                                         const date = new Date(scheduledDate);
@@ -723,7 +723,7 @@ async function loadKnockoutFixtures(teamName, countryMap) {
                         let scheduledDate = null;
                         if (knockoutMatchSchedule[stage.stageName]) {
                             const matchKey = `match${index + 1}`;
-                            scheduledDate = knockoutMatchSchedule[stage.stageName][matchKey];
+                            scheduledDate = getKnockoutScheduleDate(stage.stageName, matchKey);
                         }
                         
                         const row = createKnockoutFixtureRow(

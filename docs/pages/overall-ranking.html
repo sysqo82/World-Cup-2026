@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Cup 2026 - Overall Ranking</title>
+
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+
+    <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+    <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+    <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
+
+    <link rel="stylesheet" href="../styles/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css"></noscript>
+</head>
+<body class="bg-light">
+    <div class="container text-center mt-5">
+        <div class="header-container">
+            <h1>World Cup 2026 - Overall Ranking</h1>
+            <p class="ranking-page-subtitle">A public live table derived from the current tournament state.</p>
+        </div>
+
+        <div class="navigation-dropdown ranking-public-nav">
+            <select id="navigation-select" onchange="navigateToPage()">
+                <option value="home">Homepage</option>
+                <option value="overall-ranking" selected>Overall Ranking</option>
+                <option value="demo">Demo Page</option>
+            </select>
+        </div>
+
+        <div id="page-loading-spinner" class="page-loading-spinner">
+            <div class="spinner-content">
+                <div class="spinner"></div>
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <div class="main-container ranking-page-layout">
+            <section class="ranking-summary-panel">
+                <div class="ranking-summary-card">
+                    <h2>Current Leader</h2>
+                    <p id="overall-ranking-leader">Loading...</p>
+                </div>
+                <div class="ranking-summary-card">
+                    <h2>Rules</h2>
+                    <p id="ranking-rules"></p>
+                </div>
+                <div class="ranking-summary-card">
+                    <h2>Prize Winners</h2>
+                    <div id="ranking-prize-winners"></div>
+                </div>
+            </section>
+
+            <section class="ranking-table-panel">
+                <div class="ranking-table-frame">
+                    <table id="overall-ranking-table" class="overall-ranking-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Team</th>
+                                <th>Status</th>
+                                <th>Group</th>
+                                <th>P</th>
+                                <th>Pts</th>
+                                <th>GD</th>
+                                <th>GF</th>
+                                <th>GA</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <p id="overall-ranking-empty-state" class="ranking-empty-state hidden">No ranking data is available yet.</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script type="module" src="../scripts/navigation/navigation.js"></script>
+    <script type="module" src="../scripts/config/firebase-config.js"></script>
+    <script type="module" src="../scripts/src/overall-ranking.js"></script>
+    <script type="module" src="../scripts/src/footer.js" defer></script>
+</body>
+</html>

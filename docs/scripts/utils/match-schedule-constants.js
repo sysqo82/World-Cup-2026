@@ -115,34 +115,78 @@ export const matchTimes = {
 // Knockout Stage Match Schedule
 export const knockoutMatchSchedule = {
     'Round of 32': {
-        // June 28-July 3, 2026 (16 matches over 6 days)
-        'match1': '2026-06-28', 'match2': '2026-06-28', 'match3': '2026-06-29', 'match4': '2026-06-29',
-        'match5': '2026-06-30', 'match6': '2026-06-30', 'match7': '2026-06-30', 'match8': '2026-07-01',
-        'match9': '2026-07-01', 'match10': '2026-07-01', 'match11': '2026-07-02', 'match12': '2026-07-02',
-        'match13': '2026-07-02', 'match14': '2026-07-03', 'match15': '2026-07-03', 'match16': '2026-07-03'
+        // June 28-July 4, 2026 (ordered by TV airtime)
+        'match1': { date: '2026-06-28', time: '20:00' },
+        'match2': { date: '2026-06-29', time: '18:00' },
+        'match3': { date: '2026-06-29', time: '21:30' },
+        'match4': { date: '2026-06-30', time: '02:00' },
+        'match5': { date: '2026-06-30', time: '18:00' },
+        'match6': { date: '2026-06-30', time: '22:00' },
+        'match7': { date: '2026-07-01', time: '02:00' },
+        'match8': { date: '2026-07-01', time: '17:00' },
+        'match9': { date: '2026-07-01', time: '21:00' },
+        'match10': { date: '2026-07-02', time: '01:00' },
+        'match11': { date: '2026-07-02', time: '20:00' },
+        'match12': { date: '2026-07-03', time: '00:00' },
+        'match13': { date: '2026-07-03', time: '04:00' },
+        'match14': { date: '2026-07-03', time: '19:00' },
+        'match15': { date: '2026-07-03', time: '23:00' },
+        'match16': { date: '2026-07-04', time: '02:30' }
     },
     'Round of 16': {
-        // July 4-7, 2026 (8 matches over 4 days)
-        'match1': '2026-07-04', 'match2': '2026-07-04', 'match3': '2026-07-05', 'match4': '2026-07-05',
-        'match5': '2026-07-06', 'match6': '2026-07-06', 'match7': '2026-07-07', 'match8': '2026-07-07'
+        // July 4-7, 2026 (ordered by TV airtime)
+        'match1': { date: '2026-07-04', time: '18:00' },
+        'match2': { date: '2026-07-04', time: '22:00' },
+        'match3': { date: '2026-07-05', time: '21:00' },
+        'match4': { date: '2026-07-06', time: '01:00' },
+        'match5': { date: '2026-07-06', time: '20:00' },
+        'match6': { date: '2026-07-07', time: '01:00' },
+        'match7': { date: '2026-07-07', time: '17:00' },
+        'match8': { date: '2026-07-07', time: '21:00' }
     },
     'Quarter Finals': {
-        // July 9-11, 2026 (4 matches over 3 days)
-        'match1': '2026-07-09', 'match2': '2026-07-09', 'match3': '2026-07-10', 'match4': '2026-07-11'
+        // July 9-12, 2026 (ordered by TV airtime)
+        'match1': { date: '2026-07-09', time: '21:00' },
+        'match2': { date: '2026-07-10', time: '20:00' },
+        'match3': { date: '2026-07-11', time: '22:00' },
+        'match4': { date: '2026-07-12', time: '02:00' }
     },
     'Semi Finals': {
-        // July 14-15, 2026 (2 matches)
-        'match1': '2026-07-14', 'match2': '2026-07-15'
+        // July 14-15, 2026
+        'match1': { date: '2026-07-14', time: '20:00' },
+        'match2': { date: '2026-07-15', time: '20:00' }
     },
     'Third Place Playoff': {
         // July 18, 2026
-        'match1': '2026-07-18'
+        'match1': { date: '2026-07-18', time: '22:00' }
     },
     'Final': {
         // July 19, 2026
-        'match1': '2026-07-19'
+        'match1': { date: '2026-07-19', time: '20:00' }
     }
 };
+
+export function getKnockoutScheduleEntry(stage, matchKey) {
+    return knockoutMatchSchedule[stage]?.[matchKey] || null;
+}
+
+export function getKnockoutScheduleDate(stage, matchKey) {
+    const entry = getKnockoutScheduleEntry(stage, matchKey);
+    if (!entry) {
+        return null;
+    }
+
+    return typeof entry === 'string' ? entry : entry.date || null;
+}
+
+export function getKnockoutScheduleTime(stage, matchKey) {
+    const entry = getKnockoutScheduleEntry(stage, matchKey);
+    if (!entry || typeof entry === 'string') {
+        return null;
+    }
+
+    return entry.time || null;
+}
 
 /**
  * Utility function to get the display date based on match date and time
