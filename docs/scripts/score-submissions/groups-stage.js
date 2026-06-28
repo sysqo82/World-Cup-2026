@@ -1,7 +1,7 @@
 import { db } from '../config/firebase-config.js';
 import { sendMatchEmails } from '../utils/email-notifications.js';
 import { sendGroupConclusionEmails } from '../utils/email-notifications.js';
-import { matchSchedule } from '../utils/match-schedule-constants.js';
+import { chronologicalMatches, matchSchedule } from '../utils/match-schedule-constants.js';
 
 function findStoredMatch(matchdays = {}, teamLeftId, teamRightId) {
     const directMatchKey = `${teamLeftId}_${teamRightId}`;
@@ -29,6 +29,40 @@ function getMatchdayForDate(groupId, matchDate) {
     return Object.entries(groupSchedule).find(([, scheduledDate]) => scheduledDate === matchDate)?.[0] || null;
 }
 
+function getMatchdayForFixture(groupData, groupId, teamLeftId, teamRightId, matchDate) {
+    const leftTeamCode = groupData?.teams?.[teamLeftId]?.name || groupData?.teams?.[teamLeftId]?.Name;
+    const rightTeamCode = groupData?.teams?.[teamRightId]?.name || groupData?.teams?.[teamRightId]?.Name;
+
+    if (!leftTeamCode || !rightTeamCode) {
+        return null;
+    }
+
+    const groupMatches = chronologicalMatches
+        .filter(match => match.group === groupId)
+        .sort((a, b) => {
+            const kickoffA = new Date(`${a.date}T${a.time}:00`);
+            const kickoffB = new Date(`${b.date}T${b.time}:00`);
+            return kickoffA - kickoffB;
+        });
+
+    const sameTeams = (match) => (
+        (match.team1 === leftTeamCode && match.team2 === rightTeamCode) ||
+        (match.team1 === rightTeamCode && match.team2 === leftTeamCode)
+    );
+
+    let matchIndex = groupMatches.findIndex(match => sameTeams(match) && (!matchDate || match.date === matchDate));
+
+    if (matchIndex === -1) {
+        matchIndex = groupMatches.findIndex(sameTeams);
+    }
+
+    if (matchIndex === -1) {
+        return null;
+    }
+
+    return `matchday${Math.floor(matchIndex / 2) + 1}`;
+}
+
 export async function handleGroupStageScoreSubmission(matchDetails, stage) {
     const {
         groupId,
@@ -49,7 +83,12 @@ export async function handleGroupStageScoreSubmission(matchDetails, stage) {
         const groupDoc = await db.collection('groups').doc(groupId).get();
         const groupData = groupDoc.data();
         const storedMatch = findStoredMatch(groupData.matchdays, teamLeftId, teamRightId);
-        const matchday = providedMatchday || storedMatch?.matchday || getMatchdayForDate(groupId, matchDate);
+        const matchday = (
+            providedMatchday ||
+            storedMatch?.matchday ||
+            getMatchdayForFixture(groupData, groupId, teamLeftId, teamRightId, matchDate) ||
+            getMatchdayForDate(groupId, matchDate)
+        );
         const matchKey = storedMatch?.matchKey || `${teamLeftId}_${teamRightId}`;
         const existingMatch = storedMatch?.match;
         const groupName = groupData['name'];
