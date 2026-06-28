@@ -1,4 +1,13 @@
 import { db } from "../../config/firebase-config.js";
+import { QUARTER_FINAL_BRACKET_RULES } from "../../utils/round-of-32-projection.js";
+
+function getWinnerName(match) {
+    if (!match?.winner) {
+        return null;
+    }
+
+    return typeof match.winner === 'string' ? match.winner : match.winner.name || null;
+}
 
 export async function generateQuarterFinalsMatches() {
     try {
@@ -14,31 +23,23 @@ export async function generateQuarterFinalsMatches() {
 
         const roundOf16Matches = roundOf16Data.matches;
 
-        // Define the match rules for the Quarter Finals
-        const matchRules = [
-            { match: 'Winner of roundOf16-1 vs. Winner of roundOf16-2', match1: 0, match2: 1 },
-            { match: 'Winner of roundOf16-3 vs. Winner of roundOf16-4', match1: 2, match2: 3 },
-            { match: 'Winner of roundOf16-5 vs. Winner of roundOf16-6', match1: 4, match2: 5 },
-            { match: 'Winner of roundOf16-7 vs. Winner of roundOf16-8', match1: 6, match2: 7 }
-        ];
+        const matchLookup = new Map(roundOf16Matches.map(match => [match.match, match]));
 
         // Prepare the Quarter Finals structure
-        const quarterFinalsTeams = matchRules.map(rule => {
-            const match1Winner = roundOf16Matches[rule.match1]?.winner;
-            const match2Winner = roundOf16Matches[rule.match2]?.winner;
-        
-            // Ensure both winners exist
-            if (!match1Winner || !match2Winner) {
-                console.warn(`Missing winners for matches: ${rule.match1} or ${rule.match2}`);
-                return null; // Skip this match if data is missing
+        const quarterFinalsTeams = QUARTER_FINAL_BRACKET_RULES.map(rule => {
+            const sourceMatch1 = matchLookup.get(rule.sourceMatch1);
+            const sourceMatch2 = matchLookup.get(rule.sourceMatch2);
+            const team1Name = getWinnerName(sourceMatch1);
+            const team2Name = getWinnerName(sourceMatch2);
+
+            if (!team1Name || !team2Name) {
+                throw new Error(`Missing winners for ${rule.sourceMatch1} or ${rule.sourceMatch2}`);
             }
-            
-            // Handle cases where the winner is a string
-            const team1Name = typeof match1Winner === 'string' ? match1Winner : match1Winner.name || 'Unknown';
-            const team2Name = typeof match2Winner === 'string' ? match2Winner : match2Winner.name || 'Unknown';
 
             return {
                 match: rule.match,
+                sourceMatch1: rule.sourceMatch1,
+                sourceMatch2: rule.sourceMatch2,
                 team1: team1Name,
                 team2: team2Name,
                 type: 'regular',
@@ -53,7 +54,7 @@ export async function generateQuarterFinalsMatches() {
                 displayExtraTime: false,
                 displayPenaltyShootouts: false,
             };
-        }).filter(match => match !== null); // Remove any null matches
+        });
 
         // Save the Quarter Finals structure to Firestore
         await db.collection('quarterFinalsTeams').doc('matches').set({ matches: quarterFinalsTeams });

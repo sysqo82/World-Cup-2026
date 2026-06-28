@@ -1,4 +1,13 @@
 import { db } from "../../config/firebase-config.js";
+import { ROUND_OF_16_BRACKET_RULES } from "../../utils/round-of-32-projection.js";
+
+function getWinnerName(match) {
+    if (!match?.winner) {
+        return null;
+    }
+
+    return typeof match.winner === 'string' ? match.winner : match.winner.name || null;
+}
 
 export async function generateRoundOf16Matches() {
         try {
@@ -21,22 +30,29 @@ export async function generateRoundOf16Matches() {
                 return;
             }
 
-            // Extract winners from Round of 32 (should be 16 teams)
-            const winners = roundOf32Matches.map(match => match.winner);
-
-            if (winners.length !== 16) {
-                alert(`Expected 16 winners from Round of 32, but found ${winners.length}. Please check the Round of 32 matches.`);
+            if (roundOf32Matches.length !== 16) {
+                alert(`Expected 16 Round of 32 matches, but found ${roundOf32Matches.length}. Please check the bracket.`);
                 return;
             }
 
-            // Define the match pairings for Round of 16
-            // Pairing winners in sequence: 1st winner vs 2nd winner, 3rd vs 4th, etc.
-            const roundOf16Matches = [];
-            for (let i = 0; i < winners.length; i += 2) {
-                roundOf16Matches.push({
-                    match: `Match ${(i / 2) + 1}`,
-                    team1: winners[i] || 'Unknown',
-                    team2: winners[i + 1] || 'Unknown',
+            const matchLookup = new Map(roundOf32Matches.map(match => [match.match, match]));
+
+            const roundOf16Matches = ROUND_OF_16_BRACKET_RULES.map(rule => {
+                const sourceMatch1 = matchLookup.get(rule.sourceMatch1);
+                const sourceMatch2 = matchLookup.get(rule.sourceMatch2);
+                const team1Name = getWinnerName(sourceMatch1);
+                const team2Name = getWinnerName(sourceMatch2);
+
+                if (!team1Name || !team2Name) {
+                    throw new Error(`Missing winners for ${rule.sourceMatch1} or ${rule.sourceMatch2}`);
+                }
+
+                return {
+                    match: rule.match,
+                    sourceMatch1: rule.sourceMatch1,
+                    sourceMatch2: rule.sourceMatch2,
+                    team1: team1Name,
+                    team2: team2Name,
                     type: 'regular',
                     regularTimeTeam1Score: null,
                     regularTimeTeam2Score: null,
@@ -48,8 +64,8 @@ export async function generateRoundOf16Matches() {
                     loser: null,
                     displayExtraTime: false,
                     displayPenaltyShootouts: false,
-                });
-            }
+                };
+            });
 
             // Save the Round of 16 structure to Firestore
             await db.collection('roundOf16Teams').doc('matches').set({ matches: roundOf16Matches });
