@@ -1,4 +1,13 @@
 import { db } from "../../config/firebase-config.js";
+import { THIRD_PLACE_BRACKET_RULES } from "../../utils/round-of-32-projection.js";
+
+function getLoserName(match) {
+    if (!match?.loser) {
+        return null;
+    }
+
+    return typeof match.loser === 'string' ? match.loser : match.loser.name || null;
+}
 
 export async function generateThirdPlacePlayoffMatch() {
     try {
@@ -14,28 +23,22 @@ export async function generateThirdPlacePlayoffMatch() {
 
         const semiFinalsMatches = semiFinalsData.matches;
 
-        // Define the match rules for the Final
-        const matchRules = [
-            { match: 'Loser of semiFinals-1 vs. Loser of semiFinals-2', match1: 0, match2: 1 }
-        ];
+        const matchLookup = new Map(semiFinalsMatches.map(match => [match.match, match]));
 
-        // Prepare the Semi Finals structure
-        const thirdPlacePlayoffTeams = matchRules.map(rule => {
-            const match1Loser = semiFinalsMatches[rule.match1]?.loser;
-            const match2Loser = semiFinalsMatches[rule.match2]?.loser;
-        
-            // Ensure both losers exist
-            if (!match1Loser || !match2Loser) {
-                console.warn(`Missing losers for matches: ${rule.match1} or ${rule.match2}`);
-                return null; // Skip this match if data is missing
+        const thirdPlacePlayoffTeams = THIRD_PLACE_BRACKET_RULES.map(rule => {
+            const sourceMatch1 = matchLookup.get(rule.sourceMatch1);
+            const sourceMatch2 = matchLookup.get(rule.sourceMatch2);
+            const team1Name = getLoserName(sourceMatch1);
+            const team2Name = getLoserName(sourceMatch2);
+
+            if (!team1Name || !team2Name) {
+                throw new Error(`Missing losers for ${rule.sourceMatch1} or ${rule.sourceMatch2}`);
             }
-            
-            // Handle cases where the loser is a string
-            const team1Name = typeof match1Loser === 'string' ? match1Loser : match1Loser.name || 'Unknown';
-            const team2Name = typeof match2Loser === 'string' ? match2Loser : match2Loser.name || 'Unknown';
 
             return {
                 match: rule.match,
+                sourceMatch1: rule.sourceMatch1,
+                sourceMatch2: rule.sourceMatch2,
                 team1: team1Name,
                 team2: team2Name,
                 type: 'regular',
@@ -50,7 +53,7 @@ export async function generateThirdPlacePlayoffMatch() {
                 displayExtraTime: false,
                 displayPenaltyShootouts: false,
             };
-        }).filter(match => match !== null); // Remove any null matches
+        });
 
         // Save the Third Place Playoffs structure to Firestore
         await db.collection('thirdPlacePlayoffTeams').doc('matches').set({ matches: thirdPlacePlayoffTeams });

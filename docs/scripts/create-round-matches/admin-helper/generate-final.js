@@ -1,4 +1,13 @@
 import { db } from "../../config/firebase-config.js";
+import { FINAL_BRACKET_RULES } from "../../utils/round-of-32-projection.js";
+
+function getWinnerName(match) {
+    if (!match?.winner) {
+        return null;
+    }
+
+    return typeof match.winner === 'string' ? match.winner : match.winner.name || null;
+}
 
 export async function generateFinalMatch() {
     try {
@@ -14,28 +23,22 @@ export async function generateFinalMatch() {
 
         const semiFinalsMatches = semiFinalsData.matches;
 
-        // Define the match rules for the Final
-        const matchRules = [
-            { match: 'Winner of semiFinals-1 vs. Winner of semiFinals-2', match1: 0, match2: 1 }
-        ];
+        const matchLookup = new Map(semiFinalsMatches.map(match => [match.match, match]));
 
-        // Prepare the Semi Finals structure
-        const semiFinalsTeams = matchRules.map(rule => {
-            const match1Winner = semiFinalsMatches[rule.match1]?.winner;
-            const match2Winner = semiFinalsMatches[rule.match2]?.winner;
-        
-            // Ensure both winners exist
-            if (!match1Winner || !match2Winner) {
-                console.warn(`Missing winners for matches: ${rule.match1} or ${rule.match2}`);
-                return null; // Skip this match if data is missing
+        const finalTeams = FINAL_BRACKET_RULES.map(rule => {
+            const sourceMatch1 = matchLookup.get(rule.sourceMatch1);
+            const sourceMatch2 = matchLookup.get(rule.sourceMatch2);
+            const team1Name = getWinnerName(sourceMatch1);
+            const team2Name = getWinnerName(sourceMatch2);
+
+            if (!team1Name || !team2Name) {
+                throw new Error(`Missing winners for ${rule.sourceMatch1} or ${rule.sourceMatch2}`);
             }
-            
-            // Handle cases where the winner is a string
-            const team1Name = typeof match1Winner === 'string' ? match1Winner : match1Winner.name || 'Unknown';
-            const team2Name = typeof match2Winner === 'string' ? match2Winner : match2Winner.name || 'Unknown';
 
             return {
                 match: rule.match,
+                sourceMatch1: rule.sourceMatch1,
+                sourceMatch2: rule.sourceMatch2,
                 team1: team1Name,
                 team2: team2Name,
                 type: 'regular',
@@ -50,10 +53,10 @@ export async function generateFinalMatch() {
                 displayExtraTime: false,
                 displayPenaltyShootouts: false,
             };
-        }).filter(match => match !== null); // Remove any null matches
+        });
 
         // Save the Final structure to Firestore
-        await db.collection('finalTeams').doc('matches').set({ matches: semiFinalsTeams });
+        await db.collection('finalTeams').doc('matches').set({ matches: finalTeams });
         alert('Final structure generated successfully!');
     } catch (error) {
         console.error('Error generating Final structure:', error);

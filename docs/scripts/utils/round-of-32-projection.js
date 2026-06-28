@@ -11,21 +11,52 @@ const GROUP_ID_TO_LETTER = Object.fromEntries(
 
 export const ROUND_OF_32_RULES = [
   { match: 'Match 73', pairing: '2A vs 2B', team1: { group: 'A', rank: 2 }, team2: { group: 'B', rank: 2 } },
-  { match: 'Match 74', pairing: '1E vs 3A/B/C/D/F', team1: { group: 'E', rank: 1 }, thirdPlacePriority: ['A', 'B', 'C', 'D', 'F'] },
-  { match: 'Match 75', pairing: '1F vs 2C', team1: { group: 'F', rank: 1 }, team2: { group: 'C', rank: 2 } },
-  { match: 'Match 76', pairing: '1C vs 2F', team1: { group: 'C', rank: 1 }, team2: { group: 'F', rank: 2 } },
-  { match: 'Match 77', pairing: '1I vs 3C/D/F/G/H', team1: { group: 'I', rank: 1 }, thirdPlacePriority: ['C', 'D', 'F', 'G', 'H'] },
-  { match: 'Match 78', pairing: '2E vs 2I', team1: { group: 'E', rank: 2 }, team2: { group: 'I', rank: 2 } },
-  { match: 'Match 79', pairing: '1A vs 3C/E/F/H/I', team1: { group: 'A', rank: 1 }, thirdPlacePriority: ['C', 'E', 'F', 'H', 'I'] },
-  { match: 'Match 80', pairing: '1L vs 3E/H/I/J/K', team1: { group: 'L', rank: 1 }, thirdPlacePriority: ['E', 'H', 'I', 'J', 'K'] },
-  { match: 'Match 81', pairing: '1D vs 3B/E/F/I/J', team1: { group: 'D', rank: 1 }, thirdPlacePriority: ['B', 'E', 'F', 'I', 'J'] },
-  { match: 'Match 82', pairing: '1G vs 3A/E/H/I/J', team1: { group: 'G', rank: 1 }, thirdPlacePriority: ['A', 'E', 'H', 'I', 'J'] },
-  { match: 'Match 83', pairing: '2K vs 2L', team1: { group: 'K', rank: 2 }, team2: { group: 'L', rank: 2 } },
-  { match: 'Match 84', pairing: '1H vs 2J', team1: { group: 'H', rank: 1 }, team2: { group: 'J', rank: 2 } },
-  { match: 'Match 85', pairing: '1B vs 3E/F/G/I/J', team1: { group: 'B', rank: 1 }, thirdPlacePriority: ['E', 'F', 'G', 'I', 'J'] },
-  { match: 'Match 86', pairing: '1J vs 2H', team1: { group: 'J', rank: 1 }, team2: { group: 'H', rank: 2 } },
-  { match: 'Match 87', pairing: '1K vs 3D/E/I/J/L', team1: { group: 'K', rank: 1 }, thirdPlacePriority: ['D', 'E', 'I', 'J', 'L'] },
-  { match: 'Match 88', pairing: '2D vs 2G', team1: { group: 'D', rank: 2 }, team2: { group: 'G', rank: 2 } }
+  { match: 'Match 74', pairing: '1C vs 2F', team1: { group: 'C', rank: 1 }, team2: { group: 'F', rank: 2 } },
+  { match: 'Match 75', pairing: '1E vs 3D', team1: { group: 'E', rank: 1 }, thirdPlacePriority: ['D'] },
+  { match: 'Match 76', pairing: '1F vs 2C', team1: { group: 'F', rank: 1 }, team2: { group: 'C', rank: 2 } },
+  { match: 'Match 77', pairing: '2E vs 2I', team1: { group: 'E', rank: 2 }, team2: { group: 'I', rank: 2 } },
+  { match: 'Match 78', pairing: '1I vs 3F', team1: { group: 'I', rank: 1 }, thirdPlacePriority: ['F'] },
+  { match: 'Match 79', pairing: '1A vs 3E', team1: { group: 'A', rank: 1 }, thirdPlacePriority: ['E'] },
+  { match: 'Match 80', pairing: '1L vs 3K', team1: { group: 'L', rank: 1 }, thirdPlacePriority: ['K'] },
+  { match: 'Match 81', pairing: '1G vs 3I', team1: { group: 'G', rank: 1 }, thirdPlacePriority: ['I'] },
+  { match: 'Match 82', pairing: '1D vs 3B', team1: { group: 'D', rank: 1 }, thirdPlacePriority: ['B'] },
+  { match: 'Match 83', pairing: '1H vs 2J', team1: { group: 'H', rank: 1 }, team2: { group: 'J', rank: 2 } },
+  { match: 'Match 84', pairing: '1K vs 2L', team1: { group: 'K', rank: 1 }, team2: { group: 'L', rank: 2 } },
+  { match: 'Match 85', pairing: '1B vs 3J', team1: { group: 'B', rank: 1 }, thirdPlacePriority: ['J'] },
+  { match: 'Match 86', pairing: '2D vs 2G', team1: { group: 'D', rank: 2 }, team2: { group: 'G', rank: 2 } },
+  { match: 'Match 87', pairing: '1J vs 2H', team1: { group: 'J', rank: 1 }, team2: { group: 'H', rank: 2 } },
+  { match: 'Match 88', pairing: '2K vs 3L', team1: { group: 'K', rank: 2 }, thirdPlacePriority: ['L'] }
+];
+
+export const ROUND_OF_16_BRACKET_RULES = [
+  { match: 'Match 1', sourceMatch1: 'Match 73', sourceMatch2: 'Match 76' },
+  { match: 'Match 2', sourceMatch1: 'Match 75', sourceMatch2: 'Match 78' },
+  { match: 'Match 3', sourceMatch1: 'Match 74', sourceMatch2: 'Match 77' },
+  { match: 'Match 4', sourceMatch1: 'Match 79', sourceMatch2: 'Match 85' },
+  { match: 'Match 5', sourceMatch1: 'Match 81', sourceMatch2: 'Match 82' },
+  { match: 'Match 6', sourceMatch1: 'Match 83', sourceMatch2: 'Match 84' },
+  { match: 'Match 7', sourceMatch1: 'Match 86', sourceMatch2: 'Match 80' },
+  { match: 'Match 8', sourceMatch1: 'Match 87', sourceMatch2: 'Match 88' }
+];
+
+export const QUARTER_FINAL_BRACKET_RULES = [
+  { match: 'Match 1', sourceMatch1: 'Match 1', sourceMatch2: 'Match 2' },
+  { match: 'Match 2', sourceMatch1: 'Match 5', sourceMatch2: 'Match 6' },
+  { match: 'Match 3', sourceMatch1: 'Match 3', sourceMatch2: 'Match 4' },
+  { match: 'Match 4', sourceMatch1: 'Match 7', sourceMatch2: 'Match 8' }
+];
+
+export const SEMI_FINAL_BRACKET_RULES = [
+  { match: 'Match 1', sourceMatch1: 'Match 1', sourceMatch2: 'Match 2' },
+  { match: 'Match 2', sourceMatch1: 'Match 3', sourceMatch2: 'Match 4' }
+];
+
+export const FINAL_BRACKET_RULES = [
+  { match: 'Match 1', sourceMatch1: 'Match 1', sourceMatch2: 'Match 2' }
+];
+
+export const THIRD_PLACE_BRACKET_RULES = [
+  { match: 'Match 1', sourceMatch1: 'Match 1', sourceMatch2: 'Match 2' }
 ];
 
 export function getGroupIdFromLetter(letter) {
